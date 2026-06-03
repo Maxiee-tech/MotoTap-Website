@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mototap - Auth</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #050505;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      display: block;
+      min-height: 100vh;
+      padding: 80px 0 40px;
+    }
+
+    /* Full-screen welcome overlay */
+    .welcome-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.75)), url("/mechanic-0.jpg") center/cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 70px 20px 20px;
+    }
+
+    .welcome-screen.hidden {
+      display: none;
+    }
+
+    .welcome-content {
+      text-align: center;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .welcome-content span {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: #ffb3b3;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.92;
+    }
+
+    .welcome-content h1 {
+      font-size: clamp(3rem, 4vw, 4.6rem);
+      line-height: 0.95;
+      margin-bottom: 16px;
+    }
+
+    .welcome-content p {
+      font-size: 1.05rem;
+      max-width: 680px;
+      margin: 0 auto 28px;
+      opacity: 0.92;
+      line-height: 1.5;
+      color: #fff;
+    }
+
+    .welcome-actions {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    /* Fixed top navbar */
+    .fixed-navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(5, 5, 5, 0.95);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 100;
+    }
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex: 0;
+    }
+
+    .logo-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff4f4f, #ff9c9c);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: #080808;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .logo-circle:hover {
+      transform: scale(1.05);
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 16px;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+
+    .navbar-center {
+      display: flex;
+      gap: 14px;
+      justify-content: flex-end;
+      flex: 1;
+      margin-left: auto;
+    }
+
+    .navbar-center button {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.2s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .navbar-center button:hover {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+
+    /* Expandable menu sidebar */
+    .menu-panel {
+      position: fixed;
+      left: -280px;
+      top: 70px;
+      width: 280px;
+      height: calc(100vh - 70px);
+      background: rgba(10, 10, 10, 0.95);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      z-index: 99;
+      padding: 28px;
+      overflow-y: auto;
+      transition: left 0.3s ease;
+      box-shadow: 4px 0 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .menu-panel.open {
+      left: 0;
+    }
+
+    .menu-label {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 18px;
+    }
+
+    .menu-profile {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .menu-profile .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ff4f4f, #ff9c9c);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 18px;
+      color: #080808;
+      flex-shrink: 0;
+    }
+
+    .menu-profile .menu-role {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .menu-profile .menu-email {
+      font-size: 12px;
+      opacity: 0.76;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .menu-actions {
+      display: grid;
+      gap: 12px;
+    }
+
+    .menu-actions button {
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+
+    .menu-actions button:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .menu-actions button.danger {
+      border-color: rgba(255, 90, 90, 0.4);
+      color: #ff9999;
+    }
+
+    /* Menu overlay */
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 98;
+      display: none;
+    }
+
+    .menu-overlay.open {
+      display: block;
+    }
+
+    .container {
+      width: 100% !important;
+      max-width: none;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+    }
+
+    .topbar {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-pill {
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-links {
+      display: none;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .nav-links button {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .nav-links button:hover {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 64px 24px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.75)), url("/mechanic-0.jpg") center/cover no-repeat;
+      margin-bottom: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 32%);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      color: #fff;
+    }
+
+    .hero-copy span {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: #ffb3b3;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.92;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(3rem, 4vw, 4.6rem);
+      line-height: 0.95;
+      margin-bottom: 16px;
+    }
+
+    .hero-copy p {
+      font-size: 1.05rem;
+      max-width: 680px;
+      margin: 0 auto 28px;
+      opacity: 0.92;
+      line-height: 1.5;
+    }
+
+    .hero-actions {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .landing-actions {
+      margin-top: 32px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions .btn-primary,
+    .hero-actions .btn-secondary {
+      min-width: 140px;
+    }
+
+    #landing-section.active,
+    #messages-section.active,
+    #login-section.active,
+    #signup-section.active,
+    #dashboard.active {
+      margin-top: 20px;
+    }
+
+    .message-placeholder {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: #ccc;
+    }
+
+    .message-placeholder p {
+      max-width: 520px;
+      line-height: 1.6;
+    }
+
+    /* Force all sections to use full container width */
+    .form-section {
+      width: 100% !important;
+      display: none;
+    }
+
+    .form-section.active {
+      display: block !important;
+    }
+
+    /* responsive logic */
+    @media (max-width: 767px) {
+      .container {
+        width: 95% !important;
+      }
+      .navbar-center {
+        display: none;
+      }
+      .fixed-navbar {
+        justify-content: flex-start;
+        gap: 20px;
+      }
+      .navbar-left {
+        flex: 1;
+      }
+      .hero {
+        padding: 40px 18px;
+      }
+      .service-category-list,
+      .mechanic-service-list {
+        grid-template-columns: 1fr;
+      }
+      body {
+        padding: 70px 0 40px;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .navbar-center {
+        display: flex;
+        gap: 10px;
+      }
+      .navbar-center button {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+
+    /* Grid layout for dashboard on larger screens */
+    #dashboard.active {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @media (min-width: 992px) {
+      .dashboard-panel.active {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        align-items: start;
+      }
+
+      .panel-header {
+        grid-column: 1 / -1;
+      }
+
+      #service-category-list, #mechanic-service-list {
+        grid-column: 1;
+      }
+
+      .map-section, #mechanic-matches-card, #service-request-form, #available-jobs-list {
+        grid-column: 2;
+      }
+
+      /* Fix for mechanic profile section */
+      #mechanic-dashboard.dashboard-panel.active {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      #mechanic-dashboard .panel-header:nth-of-type(2) {
+        grid-column: 2;
+        grid-row: 2;
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .form-section {
+      display: none;
+    }
+
+    .form-section.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    input[type="tel"]:focus {
+      outline: none;
+      border-color: #ff0000;
+    }
+
+    .role-selection {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .role-option {
+      flex: 1;
+    }
+
+    .role-option label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .role-option input[type="radio"] {
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #ff0000;
+      color: white;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #cc0000;
+    }
+
+    .btn-primary:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #ff0000;
+      border: 1px solid #ff0000;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .error-message {
+      color: #ff4444;
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .status-message {
+      color: #44ff44;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ff0000;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .password-strength {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .strength-bar {
+      width: 100%;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .strength-fill {
+      height: 100%;
+      transition: width 0.2s;
+    }
+
+    .strength-0 {
+      width: 0%;
+      background: #888;
+    }
+    .strength-1 {
+      width: 20%;
+      background: #ff6666;
+    }
+    .strength-2 {
+      width: 40%;
+      background: #ffaa00;
+    }
+    .strength-3 {
+      width: 60%;
+      background: #ffff00;
+    }
+    .strength-4 {
+      width: 80%;
+      background: #66ff66;
+    }
+    .strength-5 {
+      width: 100%;
+      background: #00ff00;
+    }
+
+    .divider {
+      text-align: center;
+      color: #666;
+      margin: 20px 0;
+    }
+
+    #dashboard {
+      display: none;
+      text-align: center;
+    }
+
+    #dashboard.active {
+      display: block;
+    }
+
+    .dashboard-header {
+      margin-bottom: 32px;
+    }
+
+    .user-info {
+      background: #1a1a1a;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    .dashboard-panel {
+      display: none;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .dashboard-panel.active {
+      display: block;
+    }
+
+    #map {
+      height: 300px;
+      width: 100%;
+      margin: 16px 0;
+      border-radius: 12px;
+      border: 1px solid #333;
+      display: none;
+    }
+
+    #map.active {
+      display: block;
+    }
+
+    .panel-header {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .service-category-list,
+    .mechanic-service-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      text-align: left;
+      max-height: 54vh;
+      overflow-y: auto;
+      padding-right: 4px;
+      scroll-behavior: smooth;
+    }
+
+    /* Car Wash category spans full width */
+    .service-category-card:nth-child(5) {
+      grid-column: 1 / -1;
+    }
+
+    .service-category-card,
+    .service-group-card {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      min-height: 250px;
+    }
+
+    .service-category-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 68, 68, 0.08);
+      border-color: rgba(255, 68, 68, 0.22);
+    }
+
+    .service-group-card {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      margin-top: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .service-category-card h3,
+    .service-group-card h4 {
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .service-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      margin: 4px 6px 4px 0;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .service-tag:hover {
+      background: rgba(255, 75, 75, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .service-tag.selected {
+      background: rgba(255, 75, 75, 0.25);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .service-category-card h3,
+    .service-group-card h4 {
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .service-tag,
+    .service-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 4px 4px 0 0;
+      border-radius: 999px;
+      background: #1f1f1f;
+      border: 1px solid #333;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 13px;
+    }
+
+    .service-tag:hover,
+    .service-checkbox-label:hover {
+      background: #2a2a2a;
+    }
+
+    .service-tag.selected {
+      background: #ff0000;
+      border-color: #ff4444;
+    }
+
+    .dashboard-form {
+      margin-top: 16px;
+      text-align: left;
+    }
+
+    .dashboard-form .form-group {
+      margin-bottom: 14px;
+    }
+
+    #matching-mechanics-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .mechanic-card {
+      background: #111;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a2a;
+      text-align: left;
+    }
+
+    .mechanic-card h4 {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .mechanic-card p {
+      margin-bottom: 4px;
+      font-size: 13px;
+      color: #ccc;
+    }
+
+    .dashboard-form input[type="text"],
+    .dashboard-form textarea,
+    .dashboard-form input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #111;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .dashboard-form textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .dashboard-status {
+      margin-top: 12px;
+      min-height: 20px;
+      font-size: 14px;
+      color: #88ff88;
+    }
+
+    .dashboard-error {
+      margin-top: 12px;
+      min-height: 20px;
+      font-size: 14px;
+      color: #ff6666;
+    }
+  </style>
+</head>
+<body>
+  <!-- Welcome Screen (Full viewport) -->
+  <div class="welcome-screen" id="welcome-screen">
+    <nav class="fixed-navbar">
+      <div class="navbar-left">
+        <div class="logo-circle" id="logo-button">MT</div>
+        <div class="navbar-brand">MOTO TAP</div>
+      </div>
+      <div class="navbar-center">
+        <button type="button" id="nav-home">HOME</button>
+        <button type="button" id="nav-requests">REQUESTS</button>
+        <button type="button" id="nav-messages">MESSAGES</button>
+        <button type="button" id="nav-signup">SIGN UP</button>
+      </div>
+    </nav>
+    <div class="welcome-content">
+      <span>Welcome to</span>
+      <h1>MOTO TAP</h1>
+      <p>Connecting Drivers & Mechanics</p>
+      <div class="welcome-actions">
+        <button class="btn-primary" id="landing-to-login">Sign In</button>
+        <button class="btn-secondary" id="landing-to-signup">Create Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed top navbar (shown after welcome) -->
+  <nav class="fixed-navbar" id="main-navbar">
+    <div class="navbar-left">
+      <button type="button" class="logo-circle" id="menu-toggle">MT</button>
+      <div class="navbar-brand">MOTO TAP</div>
+    </div>
+    <div class="navbar-center">
+      <button type="button" id="nav-home-2">HOME</button>
+      <button type="button" id="nav-requests-2">REQUESTS</button>
+      <button type="button" id="nav-messages-2">MESSAGES</button>
+      <button type="button" id="nav-signup-2">SIGN UP</button>
+    </div>
+  </nav>
+
+  <!-- Menu overlay -->
+  <div class="menu-overlay" id="menu-overlay"></div>
+
+  <!-- Expandable menu sidebar -->
+  <aside class="menu-panel" id="menu-panel">
+    <div class="menu-label">MENU</div>
+    <div class="menu-profile">
+      <div class="avatar" id="menu-user-avatar">G</div>
+      <div>
+        <div class="menu-role" id="menu-user-role">Guest</div>
+        <div class="menu-email" id="menu-user-email">Not signed in</div>
+      </div>
+    </div>
+    <div class="menu-actions">
+      <button type="button" id="menu-contacts-btn">Contacts</button>
+      <button type="button" id="menu-settings-btn">Settings</button>
+      <button type="button" id="menu-logout-btn">Log Out</button>
+      <button type="button" id="menu-delete-btn" class="danger">Delete Account</button>
+    </div>
+  </aside>
+
+  <div class="container">
+    <!-- Old topbar (hidden, kept for compatibility) -->
+    <div class="topbar">
+      <div class="brand-pill">MOTO TAP</div>
+      <div class="nav-links">
+        <button type="button" id="nav-home-old">HOME</button>
+        <button type="button" id="nav-requests-old">REQUESTS</button>
+        <button type="button" id="nav-messages-old">MESSAGES</button>
+        <button type="button" id="nav-signup-old">SIGN UP</button>
+      </div>
+    </div>
+
+    <div class="header hero" id="landing-hero" style="display: none;">
+      <div class="hero-copy">
+        <span>Welcome to</span>
+        <h1>MOTO TAP</h1>
+        <p>Connecting Drivers & Mechanics</p>
+        <div class="hero-actions">
+          <button class="btn-primary" id="landing-to-login-old">Sign In</button>
+          <button class="btn-secondary" id="landing-to-signup-old">Create Account</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landing Section (Service Catalog for Guests) -->
+    <div id="landing-section" class="form-section active">
+      <div class="panel-header">
+        <h3>Explore Our Services</h3>
+        <p>Browse available services. Sign in or create an account to request a service or offer your skills as a mechanic.</p>
+      </div>
+      <div class="service-category-list" id="guest-service-category-list"></div>
+      <div class="landing-actions">
+        <button class="btn-primary" id="landing-to-login-secondary">Sign In</button>
+        <button class="btn-secondary" id="landing-to-signup-secondary">Create Account</button>
+      </div>
+    </div>
+
+    <div id="messages-section" class="form-section">
+      <div class="panel-header">
+        <h3>Messages</h3>
+        <p>Service updates, chat notifications, and connection alerts will appear here.</p>
+      </div>
+      <div class="message-placeholder">
+        <p>Welcome to your inbox. Sign in or request a service to start receiving messages from mechanics and drivers.</p>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-section" class="form-section">
+      <div class="error-message" id="login-error"></div>
+      <div class="form-group">
+        <input
+          type="email"
+          id="login-email"
+          placeholder="Email"
+          autocomplete="email"
+        />
+      </div>
+      <div class="form-group">
+        <input
+          type="password"
+          id="login-password"
+          placeholder="Password"
+          autocomplete="current-password"
+        />
+      </div>
+      <button class="btn-primary" id="login-btn">Sign In</button>
+      <div class="divider">OR</div>
+      <button class="btn-secondary" id="to-signup">Create Account</button>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signup-section" class="form-section">
+      <div class="error-message" id="signup-error"></div>
+      <div class="form-group">
+        <input
+          type="text"
+          id="signup-name"
+          placeholder="Full Name"
+          autocomplete="name"
+        />
+      </div>
+      <div class="form-group">
+        <input
+          type="email"
+          id="signup-email"
+          placeholder="Email"
+          autocomplete="email"
+        />
+      </div>
+      <div class="form-group">
+        <input
+          type="password"
+          id="signup-password"
+          placeholder="Password"
+          autocomplete="new-password"
+        />
+        <div class="password-strength" id="password-strength" style="display: none;">
+          <div class="strength-bar">
+            <div class="strength-fill" id="strength-fill"></div>
+          </div>
+          <span id="strength-text">Password strength: </span>
+        </div>
+      </div>
+      <div class="form-group">
+        <input
+          type="tel"
+          id="signup-phone"
+          placeholder="Phone Number"
+          autocomplete="tel"
+        />
+      </div>
+      <div class="form-group">
+        <label>Select Role</label>
+        <div class="role-selection">
+          <div class="role-option">
+            <label>
+              <input type="radio" name="role" value="customer" checked />
+              Driver
+            </label>
+          </div>
+          <div class="role-option">
+            <label>
+              <input type="radio" name="role" value="mechanic" />
+              Mechanic
+            </label>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" id="signup-btn">Create Account</button>
+      <div class="divider">OR</div>
+      <button class="btn-secondary" id="to-login">Have an Account? Sign In</button>
+    </div>
+
+    <!-- Dashboard (shown after auth) -->
+    <div id="dashboard" class="form-section">
+      <div class="dashboard-header">
+        <h2>Welcome</h2>
+      </div>
+      <div class="user-info">
+        <h3 id="dashboard-user-email">user@example.com</h3>
+        <div class="user-role" id="dashboard-user-role">driver</div>
+      </div>
+
+      <div id="driver-dashboard" class="dashboard-panel">
+        <div class="panel-header">
+          <h3>Driver Service Request</h3>
+          <p>Select a category and sub-service, then submit a request to connect with mechanics who offer it.</p>
+        </div>
+        <div class="service-category-list" id="service-category-list"></div>
+        
+        <!-- Google Map Section (populates when a service is selected) -->
+        <div class="map-section" style="margin-top: 16px; margin-bottom: 16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-weight:600; font-size:14px;">Mechanic Locations</div>
+            <button type="button" id="open-in-google-maps-btn" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; display:none;">
+              Open in Google Maps
+            </button>
+          </div>
+          <div id="map"></div>
+          <div id="map-hint" style="font-size:11px; color:#888; margin-top:4px; display:none;">
+            Tap markers for contact info • Use the button above for full Google Maps experience
+          </div>
+        </div>
+
+        <div class="service-category-card" id="mechanic-matches-card">
+          <h3>Matching Mechanics</h3>
+          <p>Mechanics offering the selected sub-service appear here.</p>
+          <div id="matching-mechanics-list" class="service-category-list"></div>
+          <div class="dashboard-status" id="match-status"></div>
+        </div>
+        <form id="service-request-form" class="dashboard-form">
+          <div class="form-group">
+            <label for="selected-category">Selected Category</label>
+            <input type="text" id="selected-category" disabled />
+          </div>
+          <div class="form-group">
+            <label for="selected-subservice">Selected Sub-Service</label>
+            <input type="text" id="selected-subservice" disabled />
+          </div>
+          <div class="form-group">
+            <input type="text" id="request-location" placeholder="Pickup location or landmark" />
+          </div>
+          <div class="form-group">
+            <textarea id="request-description" placeholder="Add any details for the mechanic"></textarea>
+          </div>
+          <div class="form-group">
+            <input type="number" id="request-price" placeholder="Suggested price (optional)" min="0" step="1" />
+          </div>
+          <button class="btn-primary" id="submit-request-btn" type="submit">Submit Service Request</button>
+          <div class="dashboard-status" id="request-status"></div>
+          <div class="dashboard-error" id="request-error"></div>
+        </form>
+      </div>
+
+      <div id="mechanic-dashboard" class="dashboard-panel">
+        <div class="panel-header">
+          <h3>Mechanic Service Selection</h3>
+          <p>Choose the sub-services you can deliver. Your profile will be matched to requests for those services.</p>
+        </div>
+        <div class="mechanic-service-list" id="mechanic-service-list"></div>
+        <button class="btn-primary" id="save-services-btn">Save Offered Services</button>
+        <div class="dashboard-status" id="mechanic-status"></div>
+        <div class="dashboard-error" id="mechanic-error"></div>
+
+        <div class="panel-header">
+          <h3>Available Jobs</h3>
+          <p>Jobs matching your offered services appear here.</p>
+        </div>
+        <div class="available-jobs-list" id="available-jobs-list"></div>
+        <div class="dashboard-status" id="jobs-status"></div>
+      </div>
+
+      <button class="btn-primary" id="logout-btn">Sign Out</button>
+    </div>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoWCD-4_Xyja_OXdWEbeYROwJddSkMrtI&libraries=places"></script>
+  <script type="module" src="/js/auth-ui.js"></script>
+</body>
+</html>
