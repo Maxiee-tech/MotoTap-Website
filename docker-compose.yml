@@ -1,0 +1,22 @@
+# MotoTap static site, fronted by snipeit's existing Caddy.
+#
+# The container has no host ports and no TLS -- snipeit's Caddy terminates
+# HTTPS and reverse-proxies mototap.co.ke to this container over the shared
+# snipeit network. So this joins snipeit's default network as external.
+#
+# Bring snipeit up first (it creates `snipeit_default`).
+
+networks:
+  snipeit_default:
+    external: true
+
+services:
+  mototap:
+    build: .
+    image: mototap-web
+    container_name: mototap-web
+    restart: unless-stopped
+    networks:
+      - snipeit_default
+    expose:
+      - "80"
