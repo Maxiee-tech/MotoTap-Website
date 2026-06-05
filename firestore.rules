@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /homeReviews/{userId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() > 0
+        && request.resource.data.comment.size() <= 150
+        && request.resource.data.reviewedAtMillis is int
+        && request.resource.data.createdAtMillis is int
+        && request.resource.data.updatedAtMillis is int;
+      allow delete: if false;
+    }
+
+    match /homeReviewRateLimit/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.writeLogMillis is list
+        && request.resource.data.writeLogMillis.size() <= 10;
+      allow delete: if false;
+    }
+  }
+}

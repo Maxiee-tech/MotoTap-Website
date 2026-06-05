@@ -32,6 +32,11 @@ import {
   setupServiceCardResizeListener,
 } from "./serviceCardLayout.js";
 import PasswordValidator from "./PasswordValidator.js";
+import {
+  initHomeReviews,
+  refreshHomeReviews,
+  setPendingReviewAfterAuth,
+} from "./homeReviews.js";
 import { onAuthStateChanged } from "firebase/auth";
 
 const landingSection = document.getElementById("landing-section");
@@ -47,6 +52,8 @@ const requestsDriverIntro = document.getElementById("requests-driver-intro");
 const requestsMechanicIntro = document.getElementById("requests-mechanic-intro");
 const requestHistoryList = document.getElementById("request-history-list");
 const landingGuestView = document.getElementById("landing-guest-view");
+const landingGuestActions = document.getElementById("landing-guest-actions");
+const homeReviewsMount = document.getElementById("home-reviews-mount");
 const landingHero = document.getElementById("landing-hero");
 const welcomeScreen = document.getElementById("welcome-screen");
 const mainNavbar = document.getElementById("main-navbar");
@@ -234,6 +241,12 @@ function setLandingGuestViewVisible(visible) {
   }
 }
 
+function setLandingGuestActionsVisible(visible) {
+  if (landingGuestActions) {
+    landingGuestActions.classList.toggle("hidden", !visible);
+  }
+}
+
 function renderRequestHistoryList() {
   if (!requestHistoryList) return;
   if (!auth.currentUser) {
@@ -260,15 +273,18 @@ function showHomePage() {
     } else {
       landingSection.classList.add("active");
       setLandingGuestViewVisible(false);
+      setLandingGuestActionsVisible(false);
       driverDashboard.classList.add("active");
       setHomeMenuVisible(true);
     }
   } else {
     landingSection.classList.add("active");
     setLandingGuestViewVisible(true);
+    setLandingGuestActionsVisible(true);
     setHomeMenuVisible(true);
     updateMenuProfile("Guest", "Not signed in");
   }
+  refreshHomeReviews(auth, homeReviewsMount);
   scheduleServiceCategoryCardBalance();
 }
 
@@ -1614,11 +1630,17 @@ chatComposeForm?.addEventListener("submit", async (e) => {
 
 saveServicesBtn.addEventListener("click", handleMechanicSaveServices);
 
+homeReviewsMount?.addEventListener("home-review-request-sign-in", () => {
+  setPendingReviewAfterAuth(true);
+  showLoginForm();
+});
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     wasLoggedIn = true;
     clearWelcomeDismissTimer();
     await loadUserProfile(user);
+    await refreshHomeReviews(auth, homeReviewsMount);
     if (!resumePendingServiceAfterAuth()) {
       showHomePage();
     }
@@ -1626,10 +1648,13 @@ onAuthStateChanged(auth, async (user) => {
     clearPendingServiceSelection();
     showHomePage();
     wasLoggedIn = false;
+  } else {
+    await refreshHomeReviews(auth, homeReviewsMount);
   }
   updateNavAuthButton();
 });
 
+initHomeReviews(auth, homeReviewsMount);
 renderCatalogFromLocal();
 updateNavAuthButton();
 setupServiceCardResizeListener();
