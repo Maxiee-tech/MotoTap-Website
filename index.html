@@ -539,6 +539,203 @@
       font-size: 0.9375rem;
     }
 
+    .home-reviews-section {
+      margin-top: 28px;
+      padding: 22px 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .home-reviews-header h3 {
+      margin-bottom: 6px;
+    }
+
+    .home-reviews-subtitle {
+      margin: 20px 0 12px;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #ffb3b3;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .home-reviews-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 640px) {
+      .home-reviews-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .home-reviews-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    .review-card {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 100%;
+    }
+
+    .review-card-static {
+      border-color: rgba(255, 77, 77, 0.18);
+    }
+
+    .review-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .review-stars {
+      display: inline-flex;
+      gap: 2px;
+      line-height: 1;
+    }
+
+    .review-star,
+    .review-star-btn {
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 1.125rem;
+    }
+
+    .review-star.is-filled,
+    .review-star-btn.is-filled {
+      color: #ffc107;
+    }
+
+    .review-star-btn {
+      background: none;
+      border: none;
+      padding: 0 2px;
+      cursor: pointer;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+
+    .review-star-btn:hover,
+    .review-star-btn:focus-visible {
+      color: #ffe082;
+      transform: scale(1.08);
+      outline: none;
+    }
+
+    .review-card-meta {
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    .review-card-comment {
+      margin: 0;
+      font-size: 0.9375rem;
+      line-height: 1.55;
+      color: #e8e8e8;
+      flex: 1;
+    }
+
+    .review-card-author {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: #aaa;
+      font-weight: 600;
+    }
+
+    .home-review-compose {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .home-review-form-note,
+    .home-review-guest-cta p {
+      margin: 0 0 14px;
+      color: #bbb;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .home-review-label {
+      display: block;
+      margin: 14px 0 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #ccc;
+    }
+
+    .home-review-comment {
+      width: 100%;
+      resize: vertical;
+      min-height: 88px;
+      max-height: 200px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      font: inherit;
+      line-height: 1.45;
+    }
+
+    .home-review-comment:focus {
+      outline: none;
+      border-color: rgba(255, 77, 77, 0.55);
+    }
+
+    .home-review-form-footer {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .home-review-char-count {
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    .home-review-submit {
+      width: auto;
+      min-width: 140px;
+      margin-bottom: 0;
+    }
+
+    .home-review-error {
+      margin: 10px 0 0;
+      color: #ff6b6b;
+      font-size: 0.875rem;
+    }
+
+    .home-review-success {
+      margin: 10px 0 0;
+      color: #7dcea0;
+      font-size: 0.875rem;
+    }
+
+    .home-review-guest-cta .btn-primary {
+      width: auto;
+      min-width: 180px;
+      margin-bottom: 0;
+    }
+
+    #landing-guest-actions.hidden {
+      display: none;
+    }
+
     .landing-actions {
       margin-top: 24px;
       display: flex;
@@ -560,6 +757,20 @@
     #landing-section.active {
       margin-top: 0;
       padding-top: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #landing-guest-view:not(.hidden) {
+      order: 1;
+    }
+
+    #home-reviews-mount {
+      order: 2;
+    }
+
+    #landing-guest-actions:not(.hidden) {
+      order: 3;
     }
 
     #landing-section.active #android-apk-download {
@@ -603,8 +814,55 @@
     }
 
     #requests-driver-intro.hidden,
-    #requests-mechanic-intro.hidden {
+    #requests-mechanic-intro.hidden,
+    #messages-driver-intro.hidden,
+    #messages-mechanic-intro.hidden,
+    #messages-driver-placeholder.hidden,
+    #messages-mechanic-placeholder.hidden,
+    #messages-inbox-list.hidden {
       display: none;
+    }
+
+    .messages-inbox-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .messages-inbox-item {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .messages-inbox-item:hover {
+      border-color: rgba(255, 75, 75, 0.45);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .messages-inbox-item-name {
+      display: block;
+      font-weight: 700;
+      margin: 0 0 4px;
+      font-size: 0.9375rem;
+    }
+
+    .messages-inbox-item-preview {
+      display: block;
+      margin: 0;
+      font-size: 0.8125rem;
+      color: #aaa;
+      line-height: 1.4;
+      word-break: break-word;
     }
 
     #landing-guest-view.hidden {
@@ -617,6 +875,13 @@
     }
 
     #landing-section #driver-dashboard.active {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      order: 1;
+    }
+
+    #mechanic-dashboard.dashboard-panel.active {
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -901,44 +1166,10 @@
 
     }
 
-    /* Grid layout for dashboard on larger screens */
     #dashboard.active {
       display: flex;
       flex-direction: column;
       gap: 20px;
-    }
-
-    @media (min-width: 992px) {
-      #mechanic-dashboard.dashboard-panel.active {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 32px;
-        align-items: start;
-      }
-
-      #mechanic-dashboard.dashboard-panel.active .panel-header {
-        grid-column: 1 / -1;
-      }
-
-      #mechanic-service-list {
-        grid-column: 1;
-      }
-
-      #mechanic-dashboard #save-services-btn,
-      #mechanic-dashboard #mechanic-status,
-      #mechanic-dashboard #mechanic-error {
-        grid-column: 1;
-      }
-
-      #mechanic-dashboard .panel-header:nth-of-type(2),
-      #available-jobs-list,
-      #mechanic-dashboard #jobs-status {
-        grid-column: 2;
-      }
-
-      #mechanic-dashboard .panel-header:nth-of-type(2) {
-        grid-row: 2;
-      }
     }
 
     .header {
@@ -1476,7 +1707,7 @@
     }
 
     .closest-badge.hidden {
-      display: none;
+      display: none !important;
     }
 
     .mechanic-contact-btn {
@@ -1694,45 +1925,6 @@
       white-space: nowrap;
     }
 
-    @media (min-width: 992px) {
-      .mechanic-float-panel-layout {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-
-      .mechanic-float-panel-info {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .mechanic-map-float-panel {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        width: 50%;
-        min-width: 260px;
-        max-width: 560px;
-        padding: 14px 16px;
-        max-height: min(40vh, 280px);
-      }
-
-      .mechanic-map-float-panel .mechanic-panel-actions {
-        flex-direction: column;
-        flex-wrap: nowrap;
-        gap: 8px;
-        margin-top: 0;
-        width: auto;
-        align-self: center;
-      }
-
-      .mechanic-map-float-panel .mechanic-panel-actions .btn-primary,
-      .mechanic-map-float-panel .mechanic-panel-actions .btn-secondary {
-        flex: 0 0 auto;
-        min-width: 96px;
-      }
-    }
-
     .mechanic-map-float-panel .mechanic-panel-name-btn {
       width: auto;
       background: none;
@@ -1785,6 +1977,117 @@
       display: none;
     }
 
+    @media (max-width: 991px) {
+      .mechanic-float-panel-layout {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .mechanic-float-panel-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .mechanic-map-float-panel {
+        padding: 10px 12px;
+        border-radius: 14px;
+        bottom: max(12px, env(safe-area-inset-bottom, 12px));
+        max-height: none;
+        overflow: visible;
+      }
+
+      .closest-badge:not(.hidden) {
+        width: fit-content;
+        max-width: 100%;
+        align-self: flex-start;
+        margin-bottom: 6px;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-name-btn {
+        font-size: 1rem;
+        margin: 0 0 4px;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-distance {
+        font-size: 0.875rem;
+        margin: 0 0 2px;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-meta,
+      .mechanic-map-float-panel .mechanic-panel-service {
+        font-size: 0.75rem;
+        margin: 0;
+        line-height: 1.3;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-book-status,
+      .mechanic-map-float-panel .mechanic-panel-book-error {
+        margin: 4px 0 0;
+        font-size: 0.75rem;
+        line-height: 1.3;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 0;
+        width: auto;
+        flex-shrink: 0;
+        align-self: center;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-primary,
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-secondary {
+        flex: 0 0 auto;
+        min-width: 88px;
+        margin-bottom: 0;
+        padding: 10px 12px;
+        font-size: 0.8125rem;
+      }
+    }
+
+    @media (min-width: 992px) {
+      .mechanic-float-panel-layout {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .mechanic-float-panel-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .mechanic-map-float-panel {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: 50%;
+        min-width: 260px;
+        max-width: 560px;
+        padding: 14px 16px;
+        max-height: min(40vh, 280px);
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 0;
+        width: auto;
+        align-self: center;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-primary,
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-secondary {
+        flex: 0 0 auto;
+        min-width: 96px;
+      }
+    }
+
     .chat-view {
       display: flex;
       flex-direction: column;
@@ -1809,6 +2112,61 @@
       margin: 0;
       font-size: 1.125rem;
       text-align: left;
+    }
+
+    .chat-typing-indicator {
+      margin: 0;
+      min-height: 1.4em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .chat-typing-indicator.hidden {
+      display: none;
+    }
+
+    .chat-typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chat-typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #888;
+      animation: chat-typing-wave 1s ease-in-out infinite;
+    }
+
+    .chat-typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .chat-typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes chat-typing-wave {
+      0%,
+      60%,
+      100% {
+        opacity: 0.25;
+        transform: translateY(0);
+      }
+
+      30% {
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+    }
+
+    .chat-typing-label {
+      font-size: 0.8125rem;
+      color: #888;
+      font-style: italic;
     }
 
     .chat-messages {
@@ -1840,10 +2198,48 @@
       border: 1px solid rgba(255, 75, 75, 0.5);
     }
 
+    .chat-bubble-inner {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .chat-bubble-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chat-read-receipt {
+      flex-shrink: 0;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chat-tick-icon {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      font-variation-settings: "FILL" 1;
+    }
+
+    .chat-read-receipt.is-read .chat-tick-icon {
+      color: #53bdeb;
+    }
+
     .chat-bubble.theirs {
       align-self: flex-start;
       background: #1f1f1f;
       border: 1px solid #333;
+    }
+
+    .chat-bubble.pending {
+      opacity: 0.7;
+    }
+
+    .chat-bubble.failed {
+      opacity: 0.55;
+      border-color: rgba(255, 100, 100, 0.6);
     }
 
     .chat-compose {
@@ -2024,10 +2420,11 @@
         <p class="catalog-version-note">Catalog v2 · Emergency · Maintenance · Upgrades</p>
         </div>
         <div class="service-category-list" id="guest-service-category-list"></div>
-        <div class="landing-actions">
-          <button class="btn-primary" id="landing-to-login-secondary">Sign In</button>
-          <button class="btn-secondary" id="landing-to-signup-secondary">Create Account</button>
-        </div>
+      </div>
+
+      <div id="landing-guest-actions" class="landing-actions">
+        <button class="btn-primary" id="landing-to-login-secondary">Sign In</button>
+        <button class="btn-secondary" id="landing-to-signup-secondary">Create Account</button>
       </div>
 
       <div id="driver-dashboard" class="dashboard-panel">
@@ -2037,21 +2434,39 @@
         </div>
         <div class="service-category-list" id="service-category-list"></div>
       </div>
+
+      <div id="home-reviews-mount" aria-live="polite"></div>
     </div>
 
     <div id="messages-section" class="form-section">
       <div id="messages-inbox-view">
-        <div class="panel-header">
+        <div id="messages-driver-intro" class="panel-header">
           <h3>Messages</h3>
           <p>Chat with your mechanic before booking. All conversations stay on Moto Tap.</p>
         </div>
-        <div class="message-placeholder" id="messages-placeholder">
+        <div id="messages-mechanic-intro" class="panel-header hidden">
+          <h3>Messages</h3>
+          <p>Chat with drivers who contact you about services and bookings. All conversations stay on Moto Tap.</p>
+        </div>
+        <div class="message-placeholder" id="messages-driver-placeholder">
           <p>Select a service on Home, pick a mechanic on the map, then tap <strong>Chat</strong> to start messaging.</p>
         </div>
+        <div class="message-placeholder hidden" id="messages-mechanic-placeholder">
+          <p>When a driver taps <strong>Chat</strong> on the map or from a job, your conversation with them will appear here.</p>
+        </div>
+        <ul id="messages-inbox-list" class="messages-inbox-list hidden" aria-live="polite"></ul>
       </div>
       <div id="chat-view" class="chat-view hidden">
         <button type="button" id="chat-back-btn" class="btn-secondary chat-back-btn">← Back</button>
         <h4 id="chat-header-title" class="chat-header-title">Chat</h4>
+        <p id="chat-typing-indicator" class="chat-typing-indicator hidden" aria-live="polite">
+          <span class="chat-typing-dots" aria-hidden="true">
+            <span class="chat-typing-dot"></span>
+            <span class="chat-typing-dot"></span>
+            <span class="chat-typing-dot"></span>
+          </span>
+          <span class="chat-typing-label"></span>
+        </p>
         <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
         <form id="chat-compose-form" class="chat-compose">
           <input type="text" id="chat-input" placeholder="Type a message…" autocomplete="off" />

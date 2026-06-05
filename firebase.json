@@ -1,5 +1,10 @@
 {
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "hosting": {
+    "site": "mototap-447fe",
     "public": "dist",
     "ignore": [
       "firebase.json",

@@ -16,6 +16,32 @@ export function formatDistanceMeters(meters) {
   return `${(meters / 1000).toFixed(1)} km away`;
 }
 
-export function buildDriverMechanicConversationId(driverId, mechanicId) {
+/** Shared room ID — sorted UIDs so app and web use the same Firestore chat doc. */
+export function getChatRoomId(userId1, userId2) {
+  const sortedIds = [userId1, userId2].sort();
+  return `chat_${sortedIds[0]}_${sortedIds[1]}`;
+}
+
+/** Legacy Android room ID — driver UID always comes first. */
+export function getLegacyDriverMechanicRoomId(driverId, mechanicId) {
   return `chat_${driverId}_${mechanicId}`;
+}
+
+/** All room IDs that may hold the same conversation (sorted + legacy). */
+export function getAllChatRoomIds(driverId, mechanicId) {
+  const sorted = getChatRoomId(driverId, mechanicId);
+  const legacy = getLegacyDriverMechanicRoomId(driverId, mechanicId);
+  return sorted === legacy ? [sorted] : [sorted, legacy];
+}
+
+/** Every conversation ID variant used by web/Android (order-independent). */
+export function getAllConversationIdsForParticipants(userIdA, userIdB) {
+  const sorted = getChatRoomId(userIdA, userIdB);
+  const forward = `chat_${userIdA}_${userIdB}`;
+  const reverse = `chat_${userIdB}_${userIdA}`;
+  return [...new Set([sorted, forward, reverse])];
+}
+
+export function buildDriverMechanicConversationId(userIdA, userIdB) {
+  return getChatRoomId(userIdA, userIdB);
 }
