@@ -25,6 +25,17 @@ export default class FirebaseChatService extends ChatRepository {
     return { success: true };
   }
 
+  async sendConversationMessage({ conversationId, senderId, text }) {
+    await this.sendMessage({
+      conversationId,
+      senderId,
+      text: text.trim(),
+      timestampMillis: Date.now(),
+      read: false,
+    });
+    return { success: true };
+  }
+
   async sendMessageToJob(jobId, senderId, text) {
     try {
       await addDoc(collection(this.firestore, "jobs", jobId, "messages"), {

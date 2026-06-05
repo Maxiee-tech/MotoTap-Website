@@ -44,7 +44,8 @@ export default class FirebaseJobService extends JobRepository {
     serviceNameOrDescription,
     descriptionOrLocationLabel,
     locationLabelOrPrice,
-    suggestedPrice
+    suggestedPrice,
+    mechanicId = null
   ) {
     let serviceCategory = null;
     let serviceName = null;
@@ -69,7 +70,7 @@ export default class FirebaseJobService extends JobRepository {
     try {
       const docRef = await addDoc(collection(this.firestore, "jobs"), {
         driverId,
-        mechanicId: null,
+        mechanicId: mechanicId || null,
         serviceCategory,
         serviceName,
         issueType: serviceName,
@@ -77,6 +78,7 @@ export default class FirebaseJobService extends JobRepository {
         locationLabel,
         status: JobStatus.REQUESTED,
         price,
+        loyaltyPointsStarted: Boolean(mechanicId),
         createdAtMillis: Date.now(),
       });
       return docRef.id;

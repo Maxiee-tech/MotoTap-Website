@@ -2,13 +2,58 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta name="mototap-build" content="catalog-v2-2026-06-04" />
   <title>Mototap - Auth</title>
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+  />
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+
+    :root {
+      --nav-height: 56px;
+      --nav-stack: 0px;
+      --nav-pad-x: 12px;
+      --content-pad-x: 16px;
+      --content-max: 100%;
+      --section-gap: 20px;
+      --header-offset: calc(var(--nav-height) + var(--nav-stack) + 12px);
+    }
+
+    @media (min-width: 576px) {
+      :root {
+        --nav-height: 64px;
+        --nav-pad-x: 16px;
+        --content-pad-x: 20px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --nav-height: 72px;
+        --nav-stack: 0px;
+        --nav-pad-x: 20px;
+        --section-gap: 28px;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      :root {
+        --nav-height: 80px;
+        --content-max: 1200px;
+        --section-gap: 32px;
+      }
+    }
+
+    html {
+      overflow-x: hidden;
     }
 
     body {
@@ -18,7 +63,8 @@
         "Helvetica Neue", Arial, sans-serif;
       display: block;
       min-height: 100vh;
-      padding: 80px 0 40px;
+      padding: var(--header-offset) 0 32px;
+      overflow-x: hidden;
     }
 
     /* Full-screen welcome overlay */
@@ -34,11 +80,24 @@
       align-items: center;
       justify-content: center;
       z-index: 50;
-      padding: 70px 20px 20px;
+      padding: calc(var(--header-offset) + 4px) var(--content-pad-x) 20px;
     }
 
     .welcome-screen.hidden {
       display: none;
+    }
+
+    body.welcome-active #main-navbar {
+      display: none !important;
+    }
+
+    body.welcome-active .container {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    body:not(.welcome-active) #main-navbar {
+      display: flex;
     }
 
     .welcome-content {
@@ -49,27 +108,29 @@
 
     .welcome-content span {
       display: inline-block;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       color: #ffb3b3;
       font-weight: 700;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       opacity: 0.92;
+      font-size: clamp(0.75rem, 2.5vw, 1.125rem);
     }
 
     .welcome-content h1 {
-      font-size: clamp(3rem, 4vw, 4.6rem);
-      line-height: 0.95;
+      font-size: clamp(2.25rem, 8vw, 5.5rem);
+      line-height: 1;
       margin-bottom: 16px;
     }
 
     .welcome-content p {
-      font-size: 1.05rem;
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
       max-width: 680px;
       margin: 0 auto 28px;
       opacity: 0.92;
       line-height: 1.5;
       color: #fff;
+      padding: 0 8px;
     }
 
     .welcome-actions {
@@ -85,70 +146,106 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 70px;
+      min-height: var(--nav-height);
       background: rgba(5, 5, 5, 0.95);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       -webkit-backdrop-filter: blur(14px);
       backdrop-filter: blur(14px);
       display: flex;
-      justify-content: space-between;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
       align-items: center;
-      padding: 0 20px;
+      padding: calc(10px + env(safe-area-inset-top, 0px))
+        max(var(--nav-pad-x), env(safe-area-inset-right, 0)) 10px
+        max(var(--nav-pad-x), env(safe-area-inset-left, 0));
+      gap: 8px;
       z-index: 100;
+    }
+
+    .navbar-logo-btn {
+      width: auto;
+      flex: 0 0 auto;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+      line-height: 0;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+
+    .navbar-logo-img {
+      width: clamp(44px, 11vw, 52px);
+      height: clamp(44px, 11vw, 52px);
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+
+    .navbar-logo-btn:hover .navbar-logo-img {
+      transform: scale(1.05);
     }
 
     .navbar-left {
       display: flex;
       align-items: center;
-      gap: 0;
-      flex: 0;
+      flex: 0 0 auto;
+      width: fit-content;
+      min-height: var(--nav-height);
+      padding-left: 10px;
     }
 
-    .logo-circle {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #ff4f4f, #ff9c9c);
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: 20px;
-      color: #080808;
-      cursor: pointer;
-      transition: transform 0.2s ease;
+    /* Logo + wordmark stay together; never stretch across the bar */
+    .navbar-brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      flex-shrink: 0;
     }
 
-    .logo-circle:hover {
-      transform: scale(1.05);
-    }
-
-    .navbar-brand {
-      font-weight: 700;
-      letter-spacing: 0.04em;
+    .fixed-navbar .navbar-brand {
+      display: block;
+      flex: none;
+      font-weight: 900;
+      letter-spacing: 0.02em;
       text-transform: uppercase;
-      font-size: 16px;
+      font-size: clamp(1.3125rem, 5vw, 1.875rem);
+      line-height: 1;
       white-space: nowrap;
-      margin-left: 12px;
+      margin: 0;
+      padding: 0;
+      color: #fff;
     }
 
     .navbar-center {
       display: flex;
-      gap: 14px;
+      flex-wrap: nowrap;
+      gap: 6px;
       justify-content: flex-end;
-      flex: 1;
+      align-items: center;
+      flex: 0 0 auto;
       margin-left: auto;
+      max-width: 100%;
+      padding-bottom: 0;
     }
 
     .navbar-center button {
+      width: auto;
+      flex: 0 0 auto;
       background: rgba(255, 255, 255, 0.05);
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 999px;
-      padding: 10px 16px;
+      padding: 10px 14px;
       cursor: pointer;
       font-weight: 700;
       transition: transform 0.2s ease, background 0.2s ease;
       white-space: nowrap;
+      font-size: clamp(0.6875rem, 2vw, 0.875rem);
+      min-height: 40px;
     }
 
     .navbar-center button:hover {
@@ -160,9 +257,9 @@
     .menu-panel {
       position: fixed;
       left: -280px;
-      top: 70px;
-      width: 280px;
-      height: calc(100vh - 70px);
+      top: calc(var(--nav-height) + var(--nav-stack));
+      width: min(280px, 85vw);
+      height: calc(100dvh - var(--nav-height) - var(--nav-stack));
       background: rgba(10, 10, 10, 0.95);
       border-right: 1px solid rgba(255, 255, 255, 0.08);
       -webkit-backdrop-filter: blur(14px);
@@ -262,10 +359,11 @@
     }
 
     .container {
-      width: 100% !important;
-      max-width: none;
+      width: 100%;
+      max-width: var(--content-max);
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0 max(var(--content-pad-x), env(safe-area-inset-left, 0))
+        max(var(--content-pad-x), env(safe-area-inset-right, 0));
       position: relative;
     }
 
@@ -318,8 +416,8 @@
     .hero {
       position: relative;
       overflow: hidden;
-      border-radius: 28px;
-      min-height: 360px;
+      border-radius: clamp(16px, 3vw, 28px);
+      min-height: clamp(220px, 40vh, 360px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -378,11 +476,76 @@
       gap: 14px;
     }
 
+    .home-menu-btn {
+      display: none !important;
+      position: fixed !important;
+      z-index: 110;
+      width: auto !important;
+      max-width: none;
+      margin: 0 !important;
+      padding: 11px 16px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      font-size: 0.8125rem;
+      border-radius: 999px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      background: #ff0000 !important;
+      color: #fff !important;
+      border: 1px solid #ff6666 !important;
+    }
+
+    .home-menu-btn.is-visible {
+      display: inline-flex !important;
+    }
+
+    body.welcome-active .home-menu-btn {
+      display: none !important;
+    }
+
+    .app-download-banner,
+    #android-apk-download {
+      margin-bottom: 24px;
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255, 75, 75, 0.12);
+      border: 1px solid rgba(255, 75, 75, 0.35);
+      text-align: center;
+    }
+
+    .app-download-banner p {
+      margin: 0 0 14px;
+      font-size: 0.9375rem;
+      color: #ddd;
+      line-height: 1.5;
+    }
+
+    .app-download-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 180px;
+      padding: 12px 24px;
+      margin-bottom: 0;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9375rem;
+    }
+
     .landing-actions {
-      margin-top: 32px;
+      margin-top: 24px;
       display: flex;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
+    }
+
+    .landing-actions .btn-primary,
+    .landing-actions .btn-secondary {
+      flex: 1 1 140px;
+      min-width: 0;
     }
 
     .hero-actions .btn-primary,
@@ -390,12 +553,97 @@
       min-width: 140px;
     }
 
-    #landing-section.active,
+    #landing-section.active {
+      margin-top: 0;
+      padding-top: 4px;
+    }
+
+    #landing-section.active #android-apk-download {
+      margin-top: 0;
+      scroll-margin-top: var(--header-offset);
+    }
+
     #messages-section.active,
+    #requests-section.active,
     #login-section.active,
-    #signup-section.active,
-    #dashboard.active {
+    #signup-section.active {
       margin-top: 20px;
+    }
+
+    #dashboard.active {
+      margin-top: 0;
+      padding-top: 4px;
+    }
+
+    .request-history-list {
+      margin-bottom: 24px;
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 120px;
+    }
+
+    .request-history-list .request-history-empty,
+    .request-history-list p {
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    #requests-section .requests-history-note {
+      margin-top: 8px;
+      color: #ffb3b3;
+      font-weight: 600;
+    }
+
+    #requests-driver-intro.hidden,
+    #requests-mechanic-intro.hidden {
+      display: none;
+    }
+
+    #landing-guest-view.hidden {
+      display: none;
+    }
+
+    #landing-section #driver-dashboard {
+      display: none;
+      margin-top: 0;
+    }
+
+    #landing-section #driver-dashboard.active {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .map-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .map-section-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .map-maps-btn {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .map-hint {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+      display: none;
     }
 
     .message-placeholder {
@@ -415,52 +663,241 @@
       line-height: 1.6;
     }
 
-    /* Force all sections to use full container width */
     .form-section {
-      width: 100% !important;
+      width: 100%;
       display: none;
     }
 
     .form-section.active {
-      display: block !important;
+      display: block;
     }
 
-    /* responsive logic */
-    @media (max-width: 767px) {
-      .container {
-        width: 95% !important;
+    #login-section.active,
+    #signup-section.active {
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .panel-header h3 {
+      font-size: clamp(1.125rem, 3vw, 1.5rem);
+    }
+
+    .panel-header p {
+      font-size: clamp(0.875rem, 2vw, 1rem);
+      line-height: 1.5;
+    }
+
+    /* Small screens (phones) */
+    @media (max-width: 575px) {
+      body {
+        padding-bottom: 24px;
       }
-      .navbar-center {
-        display: none;
+
+      .role-selection {
+        flex-direction: column;
+        gap: 10px;
       }
-      .fixed-navbar {
-        justify-content: flex-start;
-        gap: 20px;
+
+      .landing-actions {
+        flex-direction: column;
       }
-      .navbar-left {
-        flex: 1;
+
+      .landing-actions .btn-primary,
+      .landing-actions .btn-secondary {
+        flex: 1 1 auto;
+        width: 100%;
       }
-      .hero {
-        padding: 40px 18px;
-      }
+
       .service-category-list,
       .mechanic-service-list {
         grid-template-columns: 1fr;
+        max-height: none;
       }
-      body {
-        padding: 70px 0 40px;
+
+      .service-category-card,
+      .service-group-card {
+        min-height: auto;
+      }
+
+      .hero {
+        padding: 32px 16px;
+        margin-bottom: 24px;
+      }
+
+      .hero-copy h1 {
+        font-size: clamp(1.75rem, 7vw, 2.5rem);
+      }
+
+      #map {
+        height: min(50vh, 280px);
+      }
+
+      .map-section > div:first-child {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      #open-in-google-maps-btn {
+        width: 100% !important;
+      }
+
+      .dashboard-header h2 {
+        font-size: 1.35rem;
+      }
+
+    }
+
+    /* Phones & tablets: stack nav under brand so all tabs stay visible */
+    @media (max-width: 991px) {
+      :root {
+        --nav-height: 56px;
+        --nav-stack: 112px;
+        --header-offset: calc(var(--nav-height) + var(--nav-stack) + 12px);
+      }
+
+      /* MENU sits top-right on the logo row — always visible, does not cover APK */
+      .home-menu-btn.is-visible {
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        right: max(var(--nav-pad-x), env(safe-area-inset-right, 12px));
+        left: auto;
+      }
+
+      .fixed-navbar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding-bottom: 10px;
+        align-items: center;
+      }
+
+      .navbar-left {
+        flex: 1 1 100%;
+        width: 100%;
+        min-height: 0;
+        padding-left: 0;
+        padding-top: 4px;
+        padding-right: 92px;
+      }
+
+      .navbar-brand-lockup {
+        margin-top: 2px;
+      }
+
+      .navbar-center {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        justify-content: stretch;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-bottom: 2px;
+      }
+
+      .navbar-center button {
+        flex: 1 1 calc(50% - 3px);
+        min-width: calc(50% - 3px);
+        box-sizing: border-box;
+        padding: 9px 8px;
+        font-size: 0.6875rem;
+        min-height: 38px;
       }
     }
 
-    @media (min-width: 768px) and (max-width: 1024px) {
-      .navbar-center {
-        display: flex;
-        gap: 10px;
+    /* Medium screens (tablets) */
+    @media (min-width: 576px) and (max-width: 991px) {
+      .service-category-list,
+      .mechanic-service-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: none;
       }
+
+      .hero {
+        padding: 48px 20px;
+      }
+
+      #map {
+        height: 320px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .navbar-brand-lockup {
+        gap: 5px;
+      }
+
+      .fixed-navbar .navbar-brand {
+        font-size: 1.25rem;
+      }
+
       .navbar-center button {
-        padding: 8px 12px;
-        font-size: 13px;
+        font-size: 0.65rem;
+        padding: 8px 6px;
       }
+    }
+
+    @media (max-width: 340px) {
+      .navbar-brand-lockup {
+        gap: 4px;
+      }
+
+      .fixed-navbar .navbar-brand {
+        font-size: 1.125rem;
+      }
+
+      .navbar-center {
+        gap: 4px;
+      }
+
+      .navbar-center button {
+        min-height: 36px;
+        font-size: 0.625rem;
+      }
+    }
+
+    /* Desktop / laptop: MENU floats in the body below the navbar (not on the logo) */
+    @media (min-width: 992px) {
+      body.home-menu-active {
+        --header-offset: calc(var(--nav-height) + var(--nav-stack) + 44px);
+      }
+
+      .home-menu-btn.is-visible {
+        top: calc(var(--nav-height) + var(--nav-stack) + 14px);
+        left: max(var(--content-pad-x), env(safe-area-inset-left, 16px));
+        right: auto;
+      }
+
+      .fixed-navbar {
+        flex-wrap: nowrap;
+        padding-bottom: 0;
+        gap: 12px;
+      }
+
+      .navbar-center {
+        flex-wrap: nowrap;
+        gap: 12px;
+      }
+
+      .fixed-navbar .navbar-center button {
+        padding: 12px 24px;
+        font-size: 0.9375rem;
+        min-width: max-content;
+        flex: 0 0 auto;
+      }
+    }
+
+    @media (min-width: 992px) {
+      .service-category-list,
+      .mechanic-service-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .service-category-list#guest-service-category-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
     }
 
     /* Grid layout for dashboard on larger screens */
@@ -471,32 +908,34 @@
     }
 
     @media (min-width: 992px) {
-      .dashboard-panel.active {
+      #mechanic-dashboard.dashboard-panel.active {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 32px;
         align-items: start;
       }
 
-      .panel-header {
+      #mechanic-dashboard.dashboard-panel.active .panel-header {
         grid-column: 1 / -1;
       }
 
-      #service-category-list, #mechanic-service-list {
+      #mechanic-service-list {
         grid-column: 1;
       }
 
-      .map-section, #mechanic-matches-card, #service-request-form, #available-jobs-list {
+      #mechanic-dashboard #save-services-btn,
+      #mechanic-dashboard #mechanic-status,
+      #mechanic-dashboard #mechanic-error {
+        grid-column: 1;
+      }
+
+      #mechanic-dashboard .panel-header:nth-of-type(2),
+      #available-jobs-list,
+      #mechanic-dashboard #jobs-status {
         grid-column: 2;
       }
 
-      /* Fix for mechanic profile section */
-      #mechanic-dashboard.dashboard-panel.active {
-        grid-template-columns: 1fr 1fr;
-      }
-      
       #mechanic-dashboard .panel-header:nth-of-type(2) {
-        grid-column: 2;
         grid-row: 2;
       }
     }
@@ -584,6 +1023,41 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
+    }
+
+    .fixed-navbar .navbar-logo-btn,
+    .fixed-navbar .navbar-center button,
+    .home-menu-btn {
+      width: auto;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 0;
+    }
+
+    .fixed-navbar .navbar-logo-btn {
+      width: clamp(44px, 11vw, 52px);
+      height: clamp(44px, 11vw, 52px);
+      min-width: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 575px) {
+      .fixed-navbar .navbar-logo-btn {
+        min-height: 0;
+      }
+      button:not(.navbar-center button) {
+        min-height: 44px;
+      }
+
+      .navbar-center button {
+        min-height: 36px;
+      }
     }
 
     .btn-primary {
@@ -708,21 +1182,6 @@
       margin-bottom: 32px;
     }
 
-    .user-info {
-      background: #1a1a1a;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      text-align: left;
-    }
-
-    .user-role {
-      font-size: 12px;
-      color: #888;
-      text-transform: uppercase;
-      margin-top: 8px;
-    }
-
     .dashboard-panel {
       display: none;
       margin-top: 24px;
@@ -734,7 +1193,7 @@
     }
 
     #map {
-      height: 300px;
+      height: clamp(220px, 35vh, 400px);
       width: 100%;
       margin: 16px 0;
       border-radius: 12px;
@@ -751,25 +1210,85 @@
       text-align: left;
     }
 
+    .catalog-version-note {
+      font-size: 0.8125rem;
+      color: #ffb3b3;
+      margin: 0 0 12px;
+      letter-spacing: 0.04em;
+    }
+
     .service-category-list,
     .mechanic-service-list {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
       text-align: left;
-      max-height: 54vh;
-      overflow-y: auto;
-      padding-right: 4px;
-      scroll-behavior: smooth;
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+      align-items: stretch;
     }
 
-    /* Car Wash category spans full width */
-    .service-category-card:nth-child(5) {
+    .service-display-group {
       grid-column: 1 / -1;
+      margin-top: 8px;
     }
 
-    .service-category-card,
-    .service-group-card {
+    .service-display-group:first-child {
+      margin-top: 0;
+    }
+
+    .service-display-group-title {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffb3b3;
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    }
+
+    .service-category-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .service-category-icon {
+      font-size: 28px;
+      color: #ff3b3b;
+      flex-shrink: 0;
+    }
+
+    .service-category-card-header h3 {
+      flex: 1;
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.3;
+      min-width: 0;
+    }
+
+    .service-category-card {
       background: rgba(255, 255, 255, 0.04);
       padding: 18px;
       border-radius: 20px;
@@ -777,7 +1296,19 @@
       transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
       display: flex;
       flex-direction: column;
-      min-height: 250px;
+      min-height: 0;
+      position: relative;
+    }
+
+    .service-category-card.is-balanced {
+      min-height: var(--service-card-target-height, auto);
+      max-height: var(--service-card-target-height, auto);
+      overflow: hidden;
+    }
+
+    .service-category-card.is-expanded {
+      max-height: none !important;
+      overflow: visible;
     }
 
     .service-category-card:hover {
@@ -786,16 +1317,82 @@
       border-color: rgba(255, 68, 68, 0.22);
     }
 
-    .service-group-card {
+    .service-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       flex: 1;
-      overflow: auto;
       min-height: 0;
-      margin-top: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .service-category-card.is-balanced:not(.is-expanded) .service-card-body {
+      max-height: var(--service-card-body-max-height, none);
+    }
+
+    .service-category-card.is-expanded .service-card-body {
+      overflow: visible;
+      max-height: none;
+    }
+
+    .service-category-card.has-overflow .service-card-body::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 44px;
+      background: linear-gradient(
+        180deg,
+        rgba(12, 12, 12, 0) 0%,
+        rgba(12, 12, 12, 0.92) 75%
+      );
+      pointer-events: none;
+    }
+
+    .service-card-see-more {
+      display: none;
+      width: auto;
+      align-self: center;
+      position: relative;
+      z-index: 2;
+      margin: 10px auto 0;
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ffb3b3;
+      background: rgba(255, 75, 75, 0.12);
+      border: 1px solid rgba(255, 75, 75, 0.35);
+      border-radius: 999px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .service-card-see-more.is-visible,
+    .service-category-card.is-expanded .service-card-see-more {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .service-card-see-more:hover {
+      background: rgba(255, 75, 75, 0.22);
+      color: #fff;
+    }
+
+    .service-group-card {
+      flex: 0 0 auto;
+      overflow: visible;
+      min-height: 0;
+      padding: 14px;
+      border-radius: 16px;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .service-category-card h3,
     .service-group-card h4 {
       margin-bottom: 12px;
       font-size: 16px;
@@ -824,12 +1421,6 @@
       background: rgba(255, 75, 75, 0.25);
       color: #fff;
       font-weight: 700;
-    }
-
-    .service-category-card h3,
-    .service-group-card h4 {
-      margin-bottom: 12px;
-      font-size: 16px;
     }
 
     .service-tag,
@@ -867,29 +1458,393 @@
       margin-bottom: 14px;
     }
 
-    #matching-mechanics-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 12px;
+    .driver-mechanic-panel.hidden {
+      display: none;
     }
 
-    .mechanic-card {
+    .closest-badge {
+      display: inline-block;
+      background: #ff0000;
+      color: #fff;
+      font-size: 0.6875rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .closest-badge.hidden {
+      display: none;
+    }
+
+    .mechanic-contact-btn {
+      text-align: center;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mechanic-contact-btn.hidden {
+      display: none;
+    }
+
+    .map-notification.hidden {
+      display: none;
+    }
+
+    body.mechanic-map-active {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body.mechanic-map-active #main-navbar,
+    body.mechanic-map-active .home-menu-btn {
+      display: none !important;
+    }
+
+    #mechanic-map-section.active {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: none;
       background: #111;
-      padding: 14px;
+    }
+
+    .mechanic-map-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      margin: 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+      background: #ff0000;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .mechanic-map-back-btn {
+      width: auto;
+      min-width: 44px;
+      margin: 0;
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1;
+      border-radius: 8px;
+    }
+
+    .mechanic-map-back-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .mechanic-map-service-title {
+      flex: 1;
+      font-size: 0.9375rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+      text-align: center;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .map-notification-overlay {
+      position: absolute;
+      top: 58px;
+      left: 16px;
+      right: 16px;
+      z-index: 50;
+      padding: 12px 16px;
       border-radius: 12px;
-      border: 1px solid #2a2a2a;
+      background: rgba(20, 20, 20, 0.92);
+      border: 1px solid rgba(255, 75, 75, 0.5);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: center;
+      margin: 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    #mechanic-map-section .driver-post-services {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      width: 100%;
+      gap: 0;
+    }
+
+    #mechanic-map-section .driver-post-services.hidden {
+      display: none;
+    }
+
+    #mechanic-map-section .map-section-fullscreen {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #mechanic-map-section #map {
+      flex: 1;
+      width: 100%;
+      height: 100% !important;
+      min-height: 0;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      display: block !important;
+    }
+
+    #mechanic-map-section .map-match-status {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      max-width: calc(100% - 32px);
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #fff;
+      color: #111;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+      margin: 0;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    #mechanic-map-section .map-match-status:empty {
+      display: none;
+    }
+
+    .mechanic-float-panel-layout {
+      display: block;
+    }
+
+    .mechanic-float-panel-info {
       text-align: left;
     }
 
-    .mechanic-card h4 {
-      margin-bottom: 8px;
-      font-size: 15px;
+    .mechanic-map-float-panel {
+      position: absolute;
+      left: max(12px, env(safe-area-inset-left, 12px));
+      right: max(12px, env(safe-area-inset-right, 12px));
+      bottom: max(16px, env(safe-area-inset-bottom, 16px));
+      z-index: 6;
+      background: #fff;
+      color: #111;
+      border-radius: 16px;
+      padding: 16px 18px 18px;
+      text-align: left;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      max-height: min(48vh, 360px);
+      overflow-y: auto;
     }
 
-    .mechanic-card p {
-      margin-bottom: 4px;
-      font-size: 13px;
-      color: #ccc;
+    .mechanic-map-float-panel .mechanic-panel-actions {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      width: 100%;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-actions .btn-primary,
+    .mechanic-map-float-panel .mechanic-panel-actions .btn-secondary {
+      flex: 1 1 120px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 992px) {
+      .mechanic-float-panel-layout {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .mechanic-float-panel-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .mechanic-map-float-panel {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: 50%;
+        min-width: 260px;
+        max-width: 560px;
+        padding: 14px 16px;
+        max-height: min(40vh, 280px);
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 0;
+        width: auto;
+        align-self: center;
+      }
+
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-primary,
+      .mechanic-map-float-panel .mechanic-panel-actions .btn-secondary {
+        flex: 0 0 auto;
+        min-width: 96px;
+      }
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-name-btn {
+      width: auto;
+      background: none;
+      border: none;
+      color: #111;
+      font-size: 1.125rem;
+      font-weight: 700;
+      padding: 0;
+      margin: 0 0 8px;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-name-btn:hover {
+      color: #cc0000;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-distance {
+      font-size: 0.9375rem;
+      color: #1a1a1a;
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-meta,
+    .mechanic-map-float-panel .mechanic-panel-service {
+      font-size: 0.8125rem;
+      color: #555;
+      margin: 0 0 4px;
+      line-height: 1.45;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-book-status {
+      font-size: 0.8125rem;
+      color: #2e7d32;
+      margin: 8px 0 0;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-book-status:empty {
+      display: none;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-book-error {
+      font-size: 0.8125rem;
+      margin: 8px 0 0;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-book-error:empty {
+      display: none;
+    }
+
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 60vh;
+    }
+
+    .chat-view.hidden {
+      display: none;
+    }
+
+    #messages-inbox-view.hidden {
+      display: none;
+    }
+
+    .chat-back-btn {
+      width: auto;
+      align-self: flex-start;
+    }
+
+    .chat-header-title {
+      margin: 0;
+      font-size: 1.125rem;
+      text-align: left;
+    }
+
+    .chat-messages {
+      flex: 1;
+      min-height: 280px;
+      max-height: 50vh;
+      overflow-y: auto;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .chat-bubble.mine {
+      align-self: flex-end;
+      background: rgba(255, 0, 0, 0.35);
+      border: 1px solid rgba(255, 75, 75, 0.5);
+    }
+
+    .chat-bubble.theirs {
+      align-self: flex-start;
+      background: #1f1f1f;
+      border: 1px solid #333;
+    }
+
+    .chat-compose {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .chat-compose input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #111;
+      color: #fff;
+    }
+
+    .chat-compose .btn-primary {
+      width: auto;
+      flex: 0 0 auto;
+      margin-bottom: 0;
     }
 
     .dashboard-form input[type="text"],
@@ -924,45 +1879,59 @@
     }
   </style>
 </head>
-<body>
-  <!-- Welcome Screen (Full viewport) -->
+<body class="welcome-active">
+  <!-- Welcome page (splash — separate from HOME / services) -->
   <div class="welcome-screen" id="welcome-screen">
     <nav class="fixed-navbar">
       <div class="navbar-left">
-        <div class="logo-circle" id="logo-button">MT</div>
-        <div class="navbar-brand">MOTO TAP</div>
+        <div class="navbar-brand-lockup">
+          <button type="button" class="navbar-logo-btn" id="logo-button" aria-label="Moto Tap home">
+            <img class="navbar-logo-img" src="/mototap-logo.jpg" alt="" width="52" height="52" />
+          </button>
+          <div class="navbar-brand">MOTO TAP</div>
+        </div>
       </div>
       <div class="navbar-center">
         <button type="button" id="nav-home">HOME</button>
         <button type="button" id="nav-requests">REQUESTS</button>
         <button type="button" id="nav-messages">MESSAGES</button>
-        <button type="button" id="nav-signup">SIGN UP</button>
+        <button type="button" id="nav-signup">SIGN IN</button>
       </div>
     </nav>
     <div class="welcome-content">
       <span>Welcome to</span>
       <h1>MOTO TAP</h1>
       <p>Connecting Drivers & Mechanics</p>
-      <div class="welcome-actions">
-        <button class="btn-primary" id="landing-to-login">Sign In</button>
-        <button class="btn-secondary" id="landing-to-signup">Create Account</button>
-      </div>
     </div>
   </div>
 
-  <!-- Fixed top navbar (shown after welcome) -->
-  <nav class="fixed-navbar" id="main-navbar">
+  <!-- Fixed top navbar (app pages — not shown on welcome) -->
+  <nav class="fixed-navbar" id="main-navbar" hidden>
     <div class="navbar-left">
-      <button type="button" class="logo-circle" id="menu-toggle">MT</button>
-      <div class="navbar-brand">MOTO TAP</div>
+      <div class="navbar-brand-lockup">
+        <button type="button" class="navbar-logo-btn" id="menu-toggle" aria-label="Open menu">
+          <img class="navbar-logo-img" src="/mototap-logo.jpg" alt="" width="52" height="52" />
+        </button>
+        <div class="navbar-brand">MOTO TAP</div>
+      </div>
     </div>
     <div class="navbar-center">
       <button type="button" id="nav-home-2">HOME</button>
       <button type="button" id="nav-requests-2">REQUESTS</button>
       <button type="button" id="nav-messages-2">MESSAGES</button>
-      <button type="button" id="nav-signup-2">SIGN UP</button>
+      <button type="button" id="nav-signup-2">SIGN IN</button>
     </div>
   </nav>
+
+  <button
+    type="button"
+    id="home-menu-btn"
+    class="home-menu-btn"
+    aria-label="Open menu"
+    aria-hidden="true"
+  >
+    MENU
+  </button>
 
   <!-- Menu overlay -->
   <div class="menu-overlay" id="menu-overlay"></div>
@@ -978,6 +1947,7 @@
       </div>
     </div>
     <div class="menu-actions">
+      <button type="button" id="menu-welcome-btn">Welcome</button>
       <button type="button" id="menu-contacts-btn">Contacts</button>
       <button type="button" id="menu-settings-btn">Settings</button>
       <button type="button" id="menu-logout-btn">Log Out</button>
@@ -993,7 +1963,7 @@
         <button type="button" id="nav-home-old">HOME</button>
         <button type="button" id="nav-requests-old">REQUESTS</button>
         <button type="button" id="nav-messages-old">MESSAGES</button>
-        <button type="button" id="nav-signup-old">SIGN UP</button>
+        <button type="button" id="nav-signup-old">SIGN IN</button>
       </div>
     </div>
 
@@ -1009,27 +1979,114 @@
       </div>
     </div>
 
-    <!-- Landing Section (Service Catalog for Guests) -->
-    <div id="landing-section" class="form-section active">
-      <div class="panel-header">
-        <h3>Explore Our Services</h3>
-        <p>Browse available services. Sign in or create an account to request a service or offer your skills as a mechanic.</p>
+    <!-- HOME: service catalog (guests) & new request flow (signed-in drivers) -->
+    <div id="landing-section" class="form-section">
+      <div class="app-download-banner" id="android-apk-download">
+        <p>Get the full Moto Tap experience on your Android phone.</p>
+        <a
+          href="https://restless-math-2997.maxmasha0.workers.dev/apk/MotoTap.apk"
+          class="btn-primary app-download-btn"
+          download
+        >
+          Download APK
+        </a>
       </div>
-      <div class="service-category-list" id="guest-service-category-list"></div>
-      <div class="landing-actions">
-        <button class="btn-primary" id="landing-to-login-secondary">Sign In</button>
-        <button class="btn-secondary" id="landing-to-signup-secondary">Create Account</button>
+
+      <div id="landing-guest-view">
+        <div class="panel-header">
+        <h3>Our Services</h3>
+        <p>Browse all Moto Tap services (same as the mobile app). Scroll down for Emergency, Maintenance, and Upgrades categories.</p>
+        <p class="catalog-version-note">Catalog v2 · Emergency · Maintenance · Upgrades</p>
+        </div>
+        <div class="service-category-list" id="guest-service-category-list"></div>
+        <div class="landing-actions">
+          <button class="btn-primary" id="landing-to-login-secondary">Sign In</button>
+          <button class="btn-secondary" id="landing-to-signup-secondary">Create Account</button>
+        </div>
+      </div>
+
+      <div id="driver-dashboard" class="dashboard-panel">
+        <div class="panel-header">
+          <h3>Our Services</h3>
+          <p>Tap any service to open the map and find nearby mechanics who offer it.</p>
+        </div>
+        <div class="service-category-list" id="service-category-list"></div>
+      </div>
+    </div>
+
+    <!-- Mechanic map: full-screen map + floating bottom panel (matches mobile app) -->
+    <div id="mechanic-map-section" class="form-section">
+      <div class="mechanic-map-toolbar">
+        <button type="button" id="mechanic-map-back-btn" class="mechanic-map-back-btn" aria-label="Back to services">←</button>
+        <h3 id="mechanic-map-service-title" class="mechanic-map-service-title">Mechanic Locations</h3>
+      </div>
+      <div id="map-notification" class="map-notification map-notification-overlay hidden" role="alert"></div>
+      <input type="hidden" id="selected-category" />
+      <input type="hidden" id="selected-subservice" />
+      <button type="button" id="open-in-google-maps-btn" class="map-maps-btn hidden" hidden aria-hidden="true"></button>
+      <div id="map-hint" class="map-hint hidden" aria-hidden="true"></div>
+
+      <div class="driver-post-services map-fullscreen" id="driver-post-services">
+        <div class="map-section map-section-fullscreen">
+          <div id="map"></div>
+          <div class="dashboard-status map-match-status" id="match-status"></div>
+          <div id="driver-mechanic-panel" class="driver-mechanic-panel mechanic-map-float-panel hidden" aria-live="polite">
+            <div class="mechanic-float-panel-layout">
+              <div class="mechanic-float-panel-info">
+                <span id="closest-badge" class="closest-badge hidden">CLOSEST TO YOU</span>
+                <button type="button" id="mechanic-panel-name" class="mechanic-panel-name-btn"></button>
+                <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
+                <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
+                <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
+                <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
+                <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
+              </div>
+              <div class="mechanic-panel-actions">
+                <button type="button" class="btn-secondary" id="mechanic-chat-btn">Chat</button>
+                <button type="button" class="btn-primary" id="mechanic-book-btn">Book Now</button>
+                <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-call-btn">Call</a>
+                <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-sms-btn">SMS</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div id="messages-section" class="form-section">
-      <div class="panel-header">
-        <h3>Messages</h3>
-        <p>Service updates, chat notifications, and connection alerts will appear here.</p>
+      <div id="messages-inbox-view">
+        <div class="panel-header">
+          <h3>Messages</h3>
+          <p>Chat with your mechanic before booking. All conversations stay on Moto Tap.</p>
+        </div>
+        <div class="message-placeholder" id="messages-placeholder">
+          <p>Select a service on Home, pick a mechanic on the map, then tap <strong>Chat</strong> to start messaging.</p>
+        </div>
       </div>
-      <div class="message-placeholder">
-        <p>Welcome to your inbox. Sign in or request a service to start receiving messages from mechanics and drivers.</p>
+      <div id="chat-view" class="chat-view hidden">
+        <button type="button" id="chat-back-btn" class="btn-secondary chat-back-btn">← Back</button>
+        <h4 id="chat-header-title" class="chat-header-title">Chat</h4>
+        <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+        <form id="chat-compose-form" class="chat-compose">
+          <input type="text" id="chat-input" placeholder="Type a message…" autocomplete="off" />
+          <button type="submit" class="btn-primary">Send</button>
+        </form>
       </div>
+    </div>
+
+    <!-- REQUESTS: driver service requests & history -->
+    <div id="requests-section" class="form-section">
+      <div id="requests-driver-intro" class="panel-header">
+        <h3>Driver Service Request</h3>
+        <p>Select a category and sub-service, then submit a request to connect with mechanics who offer it.</p>
+        <p class="requests-history-note">All history requests will appear here.</p>
+      </div>
+      <div id="requests-mechanic-intro" class="panel-header hidden">
+        <h3>Service Requests</h3>
+        <p>Your accepted and completed jobs will appear in your request history.</p>
+        <p class="requests-history-note">All history requests will appear here.</p>
+      </div>
+      <div id="request-history-list" class="request-history-list" aria-live="polite"></div>
     </div>
 
     <!-- Login Form -->
@@ -1124,61 +2181,6 @@
       <div class="dashboard-header">
         <h2>Welcome</h2>
       </div>
-      <div class="user-info">
-        <h3 id="dashboard-user-email">user@example.com</h3>
-        <div class="user-role" id="dashboard-user-role">driver</div>
-      </div>
-
-      <div id="driver-dashboard" class="dashboard-panel">
-        <div class="panel-header">
-          <h3>Driver Service Request</h3>
-          <p>Select a category and sub-service, then submit a request to connect with mechanics who offer it.</p>
-        </div>
-        <div class="service-category-list" id="service-category-list"></div>
-        
-        <!-- Google Map Section (populates when a service is selected) -->
-        <div class="map-section" style="margin-top: 16px; margin-bottom: 16px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <div style="font-weight:600; font-size:14px;">Mechanic Locations</div>
-            <button type="button" id="open-in-google-maps-btn" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; display:none;">
-              Open in Google Maps
-            </button>
-          </div>
-          <div id="map"></div>
-          <div id="map-hint" style="font-size:11px; color:#888; margin-top:4px; display:none;">
-            Tap markers for contact info • Use the button above for full Google Maps experience
-          </div>
-        </div>
-
-        <div class="service-category-card" id="mechanic-matches-card">
-          <h3>Matching Mechanics</h3>
-          <p>Mechanics offering the selected sub-service appear here.</p>
-          <div id="matching-mechanics-list" class="service-category-list"></div>
-          <div class="dashboard-status" id="match-status"></div>
-        </div>
-        <form id="service-request-form" class="dashboard-form">
-          <div class="form-group">
-            <label for="selected-category">Selected Category</label>
-            <input type="text" id="selected-category" disabled />
-          </div>
-          <div class="form-group">
-            <label for="selected-subservice">Selected Sub-Service</label>
-            <input type="text" id="selected-subservice" disabled />
-          </div>
-          <div class="form-group">
-            <input type="text" id="request-location" placeholder="Pickup location or landmark" />
-          </div>
-          <div class="form-group">
-            <textarea id="request-description" placeholder="Add any details for the mechanic"></textarea>
-          </div>
-          <div class="form-group">
-            <input type="number" id="request-price" placeholder="Suggested price (optional)" min="0" step="1" />
-          </div>
-          <button class="btn-primary" id="submit-request-btn" type="submit">Submit Service Request</button>
-          <div class="dashboard-status" id="request-status"></div>
-          <div class="dashboard-error" id="request-error"></div>
-        </form>
-      </div>
 
       <div id="mechanic-dashboard" class="dashboard-panel">
         <div class="panel-header">
@@ -1202,7 +2204,6 @@
     </div>
   </div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoWCD-4_Xyja_OXdWEbeYROwJddSkMrtI&libraries=places"></script>
   <script type="module" src="/js/auth-ui.js"></script>
 </body>
 </html>

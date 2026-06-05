@@ -105,6 +105,7 @@ export default class FirebaseAuthService extends AuthRepository {
         phone: data.phoneNumber || "",
         role: data.role === "mechanic" ? "mechanic" : "customer",
         skills: data.skills || [],
+        isAdmin: data.isAdmin === true,
       };
     } catch (error) {
       console.error("FirebaseAuthService.getUserProfile error:", error);
