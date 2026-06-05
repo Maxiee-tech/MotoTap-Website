@@ -83,6 +83,10 @@
       padding: calc(var(--header-offset) + 4px) var(--content-pad-x) 20px;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .welcome-screen.hidden {
       display: none;
     }
@@ -729,13 +733,9 @@
         font-size: clamp(1.75rem, 7vw, 2.5rem);
       }
 
-      #map {
-        height: min(50vh, 280px);
-      }
-
-      .map-section > div:first-child {
-        flex-wrap: wrap;
-        gap: 8px;
+      #mechanic-map-section #map {
+        height: 100% !important;
+        margin: 0 !important;
       }
 
       #open-in-google-maps-btn {
@@ -816,8 +816,9 @@
         padding: 48px 20px;
       }
 
-      #map {
-        height: 320px;
+      #mechanic-map-section #map {
+        height: 100% !important;
+        margin: 0 !important;
       }
     }
 
@@ -1513,11 +1514,13 @@
       z-index: 45;
       display: flex;
       flex-direction: column;
+      gap: 0;
       margin: 0;
       padding: 0;
       width: 100%;
       max-width: none;
-      background: #111;
+      background: #202124;
+      overflow: hidden;
     }
 
     .mechanic-map-toolbar {
@@ -1528,7 +1531,7 @@
       margin: 0;
       padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
       background: #ff0000;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      box-shadow: none;
     }
 
     .mechanic-map-back-btn {
@@ -1562,7 +1565,7 @@
 
     .map-notification-overlay {
       position: absolute;
-      top: 58px;
+      top: 12px;
       left: 16px;
       right: 16px;
       z-index: 50;
@@ -1578,56 +1581,73 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
+    #mechanic-map-section .mechanic-map-stage,
     #mechanic-map-section .driver-post-services {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+      position: relative;
+      flex: 1 1 auto;
       min-height: 0;
       width: 100%;
-      gap: 0;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #202124;
     }
 
+    #mechanic-map-section .mechanic-map-stage.hidden,
     #mechanic-map-section .driver-post-services.hidden {
       display: none;
     }
 
-    #mechanic-map-section .map-section-fullscreen {
-      position: relative;
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
+    #mechanic-map-section #map {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      display: block !important;
+      background: #202124 !important;
       overflow: hidden;
+      line-height: 0;
+      font-size: 0;
     }
 
-    #mechanic-map-section #map {
-      flex: 1;
-      width: 100%;
+    #mechanic-map-section #map > div,
+    #mechanic-map-section #map .gm-style,
+    #mechanic-map-section #map .gm-style > div {
       height: 100% !important;
-      min-height: 0;
+      width: 100% !important;
+      max-height: none !important;
+    }
+
+    #mechanic-map-section #map iframe {
+      display: block;
       margin: 0;
-      border: none;
-      border-radius: 0;
-      display: block !important;
+      padding: 0;
     }
 
     #mechanic-map-section .map-match-status {
       position: absolute;
-      top: 12px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 4;
       max-width: calc(100% - 32px);
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 999px;
-      background: #fff;
-      color: #111;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
       font-size: 0.8125rem;
       font-weight: 700;
       text-align: center;
-      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
       margin: 0;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      min-height: 0;
+      border: none;
+      pointer-events: none;
     }
 
     #mechanic-map-section .map-match-status:empty {
@@ -1871,6 +1891,11 @@
       color: #88ff88;
     }
 
+    #mechanic-map-section #match-status {
+      margin: 0;
+      min-height: 0;
+    }
+
     .dashboard-error {
       margin-top: 12px;
       min-height: 20px;
@@ -2011,45 +2036,6 @@
           <p>Tap any service to open the map and find nearby mechanics who offer it.</p>
         </div>
         <div class="service-category-list" id="service-category-list"></div>
-      </div>
-    </div>
-
-    <!-- Mechanic map: full-screen map + floating bottom panel (matches mobile app) -->
-    <div id="mechanic-map-section" class="form-section">
-      <div class="mechanic-map-toolbar">
-        <button type="button" id="mechanic-map-back-btn" class="mechanic-map-back-btn" aria-label="Back to services">←</button>
-        <h3 id="mechanic-map-service-title" class="mechanic-map-service-title">Mechanic Locations</h3>
-      </div>
-      <div id="map-notification" class="map-notification map-notification-overlay hidden" role="alert"></div>
-      <input type="hidden" id="selected-category" />
-      <input type="hidden" id="selected-subservice" />
-      <button type="button" id="open-in-google-maps-btn" class="map-maps-btn hidden" hidden aria-hidden="true"></button>
-      <div id="map-hint" class="map-hint hidden" aria-hidden="true"></div>
-
-      <div class="driver-post-services map-fullscreen" id="driver-post-services">
-        <div class="map-section map-section-fullscreen">
-          <div id="map"></div>
-          <div class="dashboard-status map-match-status" id="match-status"></div>
-          <div id="driver-mechanic-panel" class="driver-mechanic-panel mechanic-map-float-panel hidden" aria-live="polite">
-            <div class="mechanic-float-panel-layout">
-              <div class="mechanic-float-panel-info">
-                <span id="closest-badge" class="closest-badge hidden">CLOSEST TO YOU</span>
-                <button type="button" id="mechanic-panel-name" class="mechanic-panel-name-btn"></button>
-                <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
-                <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
-                <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
-                <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
-                <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
-              </div>
-              <div class="mechanic-panel-actions">
-                <button type="button" class="btn-secondary" id="mechanic-chat-btn">Chat</button>
-                <button type="button" class="btn-primary" id="mechanic-book-btn">Book Now</button>
-                <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-call-btn">Call</a>
-                <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-sms-btn">SMS</a>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2202,6 +2188,42 @@
 
       <button class="btn-primary" id="logout-btn">Sign Out</button>
     </div>
+  </div>
+
+  <!-- Mechanic map: outside .container so it can fill the viewport edge-to-edge -->
+  <div id="mechanic-map-section" class="form-section">
+    <div class="mechanic-map-toolbar">
+      <button type="button" id="mechanic-map-back-btn" class="mechanic-map-back-btn" aria-label="Back to services">←</button>
+      <h3 id="mechanic-map-service-title" class="mechanic-map-service-title">Mechanic Locations</h3>
+    </div>
+    <div class="mechanic-map-stage" id="driver-post-services">
+      <div id="map"></div>
+      <div class="map-match-status" id="match-status"></div>
+      <div id="driver-mechanic-panel" class="driver-mechanic-panel mechanic-map-float-panel hidden" aria-live="polite">
+        <div class="mechanic-float-panel-layout">
+          <div class="mechanic-float-panel-info">
+            <span id="closest-badge" class="closest-badge hidden">CLOSEST TO YOU</span>
+            <button type="button" id="mechanic-panel-name" class="mechanic-panel-name-btn"></button>
+            <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
+            <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
+            <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
+            <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
+            <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
+          </div>
+          <div class="mechanic-panel-actions">
+            <button type="button" class="btn-secondary" id="mechanic-chat-btn">Chat</button>
+            <button type="button" class="btn-primary" id="mechanic-book-btn">Book Now</button>
+            <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-call-btn">Call</a>
+            <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-sms-btn">SMS</a>
+          </div>
+        </div>
+      </div>
+      <div id="map-notification" class="map-notification map-notification-overlay hidden" role="alert"></div>
+    </div>
+    <input type="hidden" id="selected-category" />
+    <input type="hidden" id="selected-subservice" />
+    <button type="button" id="open-in-google-maps-btn" class="map-maps-btn hidden" hidden aria-hidden="true"></button>
+    <div id="map-hint" class="map-hint hidden" aria-hidden="true"></div>
   </div>
 
   <script type="module" src="/js/auth-ui.js"></script>

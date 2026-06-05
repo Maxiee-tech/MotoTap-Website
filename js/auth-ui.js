@@ -131,7 +131,7 @@ function setMechanicMapPageLayout(active) {
   }
   if (active) {
     setHomeMenuVisible(false);
-    requestAnimationFrame(() => triggerMapResize());
+    requestAnimationFrame(() => fixGoogleMapContainerFill());
   }
 }
 
@@ -145,6 +145,7 @@ function hideAllSections() {
   mechanicMapSection?.classList.remove("active");
   driverDashboard.classList.remove("active");
   mechanicDashboard.classList.remove("active");
+  clearMapMatchNotification();
   setMechanicMapPageLayout(false);
   setHomeMenuVisible(false);
 }
@@ -157,6 +158,32 @@ function showMapNotification(message) {
   } else {
     mapNotificationEl.textContent = "";
     mapNotificationEl.classList.add("hidden");
+  }
+}
+
+let mapMatchNotificationTimer = null;
+
+function clearMapMatchNotification() {
+  clearTimeout(mapMatchNotificationTimer);
+  mapMatchNotificationTimer = null;
+  if (matchStatus) {
+    matchStatus.textContent = "";
+    matchStatus.classList.remove("is-notification");
+  }
+}
+
+function showMapMatchNotification(message, { autoDismissMs = 0 } = {}) {
+  if (!matchStatus) return;
+  clearMapMatchNotification();
+  if (!message) return;
+
+  matchStatus.textContent = message;
+  matchStatus.classList.add("is-notification");
+
+  if (autoDismissMs > 0) {
+    mapMatchNotificationTimer = setTimeout(() => {
+      clearMapMatchNotification();
+    }, autoDismissMs);
   }
 }
 
@@ -187,6 +214,18 @@ function triggerMapResize() {
   requestAnimationFrame(() => {
     google.maps.event.trigger(googleMap, "resize");
   });
+}
+
+function fixGoogleMapContainerFill() {
+  if (!mapElement) return;
+  mapElement.style.height = "100%";
+  mapElement.style.width = "100%";
+  const gmStyle = mapElement.querySelector(".gm-style");
+  if (gmStyle) {
+    gmStyle.style.height = "100%";
+    gmStyle.style.width = "100%";
+  }
+  triggerMapResize();
 }
 
 function setLandingGuestViewVisible(visible) {
@@ -556,7 +595,7 @@ function clearRequestSelection() {
   selectedSubservice = null;
   selectedCategoryInput.value = "";
   selectedSubserviceInput.value = "";
-  matchStatus.textContent = "";
+  clearMapMatchNotification();
   hideDriverMechanicPanel();
   clearMechanicMapState();
 }
@@ -817,7 +856,7 @@ const MAP_STYLES = [
 function showMapLoadError() {
   showMapNotification(getMapLoadErrorMessage());
   driverPostServices?.classList.add("hidden");
-  matchStatus.textContent = "";
+  clearMapMatchNotification();
   stopMapErrorObserver();
 }
 
@@ -846,6 +885,7 @@ async function ensureGoogleMap() {
         center: { lat: -1.286389, lng: 36.817223 },
         zoom: 12,
         styles: MAP_STYLES,
+        backgroundColor: "#202124",
       });
       watchMapForGoogleErrorOverlay();
     } catch (err) {
@@ -857,7 +897,7 @@ async function ensureGoogleMap() {
 
   await new Promise((resolve) => {
     requestAnimationFrame(() => {
-      triggerMapResize();
+      fixGoogleMapContainerFill();
       resolve();
     });
   });
@@ -872,7 +912,7 @@ function clearMarkers() {
 
 function showNoMechanicsOnMap() {
   showMapNotification(MAP_EMPTY_NOTIFICATION);
-  matchStatus.textContent = "";
+  clearMapMatchNotification();
   mapElement?.classList.remove("active");
   driverPostServices?.classList.remove("map-active");
   driverPostServices?.classList.add("hidden");
@@ -883,7 +923,7 @@ async function fetchMatchingMechanics(serviceName) {
   hideDriverMechanicPanel();
   showMapNotification("");
   driverPostServices?.classList.remove("hidden");
-  matchStatus.textContent = "Finding mechanics for your service…";
+  showMapMatchNotification("Finding mechanics for your service…");
   bookStatus.textContent = "";
   bookError.textContent = "";
   clearMechanicMapState({ keepMapVisible: true });
@@ -976,8 +1016,9 @@ async function fetchMatchingMechanics(serviceName) {
       bounds.extend(driverPos);
       smoothCenterMap(driverPos, MAP_DRIVER_ZOOM);
     } else {
-      matchStatus.textContent =
-        "Allow location access to see distance and auto-select the closest mechanic.";
+      showMapMatchNotification(
+        "Allow location access to see distance and auto-select the closest mechanic."
+      );
       googleMap.fitBounds(bounds);
     }
 
@@ -997,12 +1038,15 @@ async function fetchMatchingMechanics(serviceName) {
       };
     }
 
-    matchStatus.textContent = driverPos
-      ? `${withCoords.length} mechanic(s) nearby for “${serviceName}”. Closest auto-selected.`
-      : `${withCoords.length} mechanic(s) on map for “${serviceName}”.`;
-    triggerMapResize();
+    showMapMatchNotification(
+      driverPos
+        ? `${withCoords.length} mechanic(s) nearby for “${serviceName}”. Closest auto-selected.`
+        : `${withCoords.length} mechanic(s) on map for “${serviceName}”.`,
+      { autoDismissMs: 3000 }
+    );
+    fixGoogleMapContainerFill();
   } catch (error) {
-    matchStatus.textContent = `Unable to load mechanics: ${error.message}`;
+    showMapMatchNotification(`Unable to load mechanics: ${error.message}`);
   }
 }
 
