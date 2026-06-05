@@ -45,6 +45,12 @@ mototap.co.ke {
 	}
 }
 
+# Canonical redirect: www -> apex. (www.mototap.co.ke is a CNAME to the apex
+# in DNS; Caddy issues a cert for it and 301s to the apex.)
+www.mototap.co.ke {
+	redir https://mototap.co.ke{uri} permanent
+}
+
 # --- Optional: staging while testing DNS/cert issuance ---
 # Let's Encrypt rate-limits prod certs (5 failures/hr/domain). If you're
 # fiddling with DNS, uncomment the global block below to use the staging CA,
