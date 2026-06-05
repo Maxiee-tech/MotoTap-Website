@@ -8,6 +8,7 @@ import {
   distanceMeters,
   formatDistanceMeters,
   buildDriverMechanicConversationId,
+  getAllConversationIdsForParticipants,
 } from "./utils/geo.js";
 import {
   loadGoogleMapsScript,
@@ -213,6 +214,7 @@ function showMechanicMapPage(category, serviceName) {
   showMapNotification("");
   driverPostServices?.classList.remove("hidden");
 
+  beginDriverPositionLookup();
   fetchMatchingMechanics(serviceName);
 }
 
@@ -418,10 +420,16 @@ const mechanicSmsBtn = document.getElementById("mechanic-sms-btn");
 const bookStatus = document.getElementById("book-status");
 const bookError = document.getElementById("book-error");
 const messagesInboxView = document.getElementById("messages-inbox-view");
-const messagesPlaceholder = document.getElementById("messages-placeholder");
+const messagesDriverIntro = document.getElementById("messages-driver-intro");
+const messagesMechanicIntro = document.getElementById("messages-mechanic-intro");
+const messagesDriverPlaceholder = document.getElementById("messages-driver-placeholder");
+const messagesMechanicPlaceholder = document.getElementById("messages-mechanic-placeholder");
+const messagesInboxList = document.getElementById("messages-inbox-list");
 const chatView = document.getElementById("chat-view");
 const chatBackBtn = document.getElementById("chat-back-btn");
 const chatHeaderTitle = document.getElementById("chat-header-title");
+const chatTypingIndicator = document.getElementById("chat-typing-indicator");
+const chatTypingLabel = chatTypingIndicator?.querySelector(".chat-typing-label");
 const chatMessagesEl = document.getElementById("chat-messages");
 const chatComposeForm = document.getElementById("chat-compose-form");
 const chatInput = document.getElementById("chat-input");
@@ -441,11 +449,21 @@ let googleMap = null;
 let mapMarkers = [];
 let driverMarker = null;
 let driverPosition = null;
+let activeDriverPositionRequest = null;
 let matchedMechanics = [];
+let autoSelectedMechanicId = null;
 let selectedMechanicEntry = null;
 let activeChatConversationId = null;
-let activeChatMechanicName = "";
+let activeChatPartnerName = "";
 let chatUnsubscribe = null;
+let chatRoomUnsubscribe = null;
+let chatInboxUnsubscribe = null;
+const chatPartnerNameCache = new Map();
+let chatTypingDebounceTimer = null;
+let optimisticChatMessages = [];
+let serverChatMessages = [];
+let activeChatPartnerId = null;
+let activeChatRoomIds = [];
 
 const MAP_DRIVER_ZOOM = 14;
 const MAP_MECHANIC_DETAIL_ZOOM = 17;
@@ -544,22 +562,135 @@ function showDashboard(role, email) {
   }
 }
 
+function updateMessagesIntro() {
+  const role = currentUserProfile?.role || "customer";
+  const isMechanic = auth.currentUser && role === "mechanic";
+
+  messagesDriverIntro?.classList.toggle("hidden", isMechanic);
+  messagesMechanicIntro?.classList.toggle("hidden", !isMechanic);
+  messagesDriverPlaceholder?.classList.toggle("hidden", isMechanic);
+  messagesMechanicPlaceholder?.classList.toggle("hidden", !isMechanic);
+}
+
 function showMessagesPage() {
   hideWelcomeScreen();
   closeMenu();
   hideAllSections();
   messagesSection.classList.add("active");
+  updateMessagesIntro();
   if (!activeChatConversationId) {
     showMessagesInbox();
   }
 }
 
+function stopChatInboxListener() {
+  if (chatInboxUnsubscribe) {
+    chatInboxUnsubscribe();
+    chatInboxUnsubscribe = null;
+  }
+}
+
+function getChatPartnerId(room, myId) {
+  return (room.participants || []).find((id) => id !== myId) || null;
+}
+
+function getChatRoomActivityMillis(room) {
+  return room.lastActiveMillis || room.lastActive || room.lastMessageMillis || 0;
+}
+
+function dedupeInboxByPartner(entries) {
+  const byPartner = new Map();
+  for (const entry of entries) {
+    const partnerId = entry.partnerId || entry.id;
+    if (!partnerId) continue;
+    const existing = byPartner.get(partnerId);
+    if (!existing || getChatRoomActivityMillis(entry) > getChatRoomActivityMillis(existing)) {
+      byPartner.set(partnerId, entry);
+    }
+  }
+  return [...byPartner.values()].sort(
+    (a, b) => getChatRoomActivityMillis(b) - getChatRoomActivityMillis(a)
+  );
+}
+
+async function resolveChatPartnerName(partnerId, room) {
+  if (!partnerId) return "User";
+  const cached = room?.participantNames?.[partnerId] || chatPartnerNameCache.get(partnerId);
+  if (cached) return cached;
+
+  const profile = await authService.getUserProfile(partnerId);
+  const name = profile?.name || "User";
+  chatPartnerNameCache.set(partnerId, name);
+  return name;
+}
+
+function setMessagesInboxEmptyState(hasConversations) {
+  messagesInboxList?.classList.toggle("hidden", !hasConversations);
+  if (hasConversations) {
+    messagesDriverPlaceholder?.classList.add("hidden");
+    messagesMechanicPlaceholder?.classList.add("hidden");
+  } else {
+    updateMessagesIntro();
+  }
+}
+
+async function renderMessagesInbox(entries) {
+  if (!messagesInboxList || !auth.currentUser) return;
+
+  setMessagesInboxEmptyState(entries.length > 0);
+  if (!entries.length) {
+    messagesInboxList.innerHTML = "";
+    return;
+  }
+
+  messagesInboxList.innerHTML = "";
+
+  for (const entry of entries) {
+    const partnerId = entry.partnerId || entry.id;
+    const partnerName = await resolveChatPartnerName(partnerId, entry);
+    const preview = entry.lastMessageText
+      ? entry.lastMessageText
+      : "No messages yet";
+
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "messages-inbox-item";
+    button.innerHTML = `
+      <span class="messages-inbox-item-name">${partnerName}</span>
+      <span class="messages-inbox-item-preview">${preview}</span>
+    `;
+    button.addEventListener("click", () => {
+      openChatWithPartner(partnerId, partnerName);
+    });
+    item.appendChild(button);
+    messagesInboxList.appendChild(item);
+  }
+}
+
+function startChatInboxListener() {
+  if (!auth.currentUser) return;
+  stopChatInboxListener();
+  chatInboxUnsubscribe = chatService.listenToUserChatPartners(
+    auth.currentUser.uid,
+    (entries) => {
+      renderMessagesInbox(dedupeInboxByPartner(entries));
+    },
+    (err) => {
+      console.error("Chat inbox error:", err);
+      setMessagesInboxEmptyState(false);
+    }
+  );
+}
+
 function showMessagesInbox() {
   messagesInboxView?.classList.remove("hidden");
   chatView?.classList.add("hidden");
+  startChatInboxListener();
 }
 
 function showChatView() {
+  stopChatInboxListener();
   messagesInboxView?.classList.add("hidden");
   chatView?.classList.remove("hidden");
 }
@@ -620,6 +751,7 @@ function hideDriverMechanicPanel() {
   driverMechanicPanel?.classList.add("hidden");
   closestBadge?.classList.add("hidden");
   selectedMechanicEntry = null;
+  autoSelectedMechanicId = null;
 }
 
 function resetGoogleMapInstance() {
@@ -668,22 +800,131 @@ function clearMechanicMapState({ keepMapVisible = false } = {}) {
   driverPostServices?.classList.remove("map-active");
 }
 
-function getDriverPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported in this browser."));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        }),
-      (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-    );
+function beginDriverPositionLookup() {
+  activeDriverPositionRequest = getDriverPosition().catch(() => null);
+  return activeDriverPositionRequest;
+}
+
+async function getDriverPosition() {
+  if (!navigator.geolocation) {
+    throw new Error("Geolocation is not supported in this browser.");
+  }
+
+  const readCoords = (pos) => ({
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
   });
+
+  const tryOnce = (options) =>
+    new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(readCoords(pos)),
+        reject,
+        options
+      );
+    });
+
+  try {
+    return await tryOnce({
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 300000,
+    });
+  } catch {
+    return tryOnce({
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 60000,
+    });
+  }
+}
+
+function buildMechanicEntries(snapshot, driverPos = null) {
+  return snapshot.docs.map((docItem) => {
+    const mechanic = docItem.data();
+    const lat = Number(mechanic.latitude);
+    const lng = Number(mechanic.longitude);
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+    const position = hasCoords ? { lat, lng } : null;
+    let dist = null;
+    if (driverPos && position) {
+      dist = distanceMeters(driverPos.lat, driverPos.lng, lat, lng);
+    }
+    return {
+      id: docItem.id,
+      mechanic,
+      position,
+      distanceMeters: dist,
+    };
+  });
+}
+
+function sortMechanicsByDistance(entries) {
+  return [...entries].sort(
+    (a, b) =>
+      (a.distanceMeters ?? Number.MAX_SAFE_INTEGER) -
+      (b.distanceMeters ?? Number.MAX_SAFE_INTEGER)
+  );
+}
+
+async function applyDriverPositionToMap(serviceName) {
+  try {
+    const driverPos = await (activeDriverPositionRequest || beginDriverPositionLookup());
+    if (!driverPos || !googleMap || !matchedMechanics.length) return;
+
+    driverPosition = driverPos;
+    matchedMechanics.forEach((entry) => {
+      if (entry.position) {
+        entry.distanceMeters = distanceMeters(
+          driverPos.lat,
+          driverPos.lng,
+          entry.position.lat,
+          entry.position.lng
+        );
+      }
+    });
+
+    const withCoords = sortMechanicsByDistance(
+      matchedMechanics.filter((entry) => entry.position)
+    );
+    const closest = withCoords[0];
+    if (!closest) return;
+
+    placeDriverMarker(driverPos);
+    smoothCenterMap(driverPos, MAP_DRIVER_ZOOM);
+
+    const keepAutoSelection =
+      !selectedMechanicEntry ||
+      selectedMechanicEntry.id === autoSelectedMechanicId;
+
+    if (keepAutoSelection) {
+      autoSelectedMechanicId = closest.id;
+      selectMechanicEntry(closest, { autoClosest: true });
+    } else {
+      const updated = matchedMechanics.find(
+        (entry) => entry.id === selectedMechanicEntry.id
+      );
+      if (updated) {
+        selectedMechanicEntry = updated;
+        renderMechanicPanel(updated, { showClosestBadge: false });
+      }
+    }
+
+    if (openInMapsBtn) {
+      openInMapsBtn.style.display = "block";
+      openInMapsBtn.onclick = () => {
+        const url = `https://www.google.com/maps/@${driverPos.lat},${driverPos.lng},${MAP_DRIVER_ZOOM}z`;
+        window.open(url, "_blank");
+      };
+    }
+
+    showMapMatchNotification(
+      `${withCoords.length} mechanic(s) nearby for “${serviceName}”. Closest auto-selected.`,
+      { autoDismissMs: 3000 }
+    );
+  } catch {
+    // Map is already usable without location.
+  }
 }
 
 function smoothCenterMap(position, zoom = MAP_DRIVER_ZOOM) {
@@ -948,7 +1189,7 @@ async function fetchMatchingMechanics(serviceName) {
   if (mapHint) mapHint.style.display = "none";
 
   try {
-    const [snapshot, driverPos] = await Promise.all([
+    const [snapshot, map] = await Promise.all([
       getDocs(
         query(
           collection(db, "users"),
@@ -956,50 +1197,23 @@ async function fetchMatchingMechanics(serviceName) {
           where("skills", "array-contains", serviceName)
         )
       ),
-      getDriverPosition().catch(() => null),
+      ensureGoogleMap(),
     ]);
-
-    driverPosition = driverPos;
 
     if (snapshot.empty) {
       showNoMechanicsOnMap();
       return;
     }
 
-    matchedMechanics = snapshot.docs.map((docItem) => {
-      const mechanic = docItem.data();
-      const lat = Number(mechanic.latitude);
-      const lng = Number(mechanic.longitude);
-      const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
-      const position = hasCoords ? { lat, lng } : null;
-      let dist = null;
-      if (driverPos && position) {
-        dist = distanceMeters(driverPos.lat, driverPos.lng, lat, lng);
-      }
-      return {
-        id: docItem.id,
-        mechanic,
-        position,
-        distanceMeters: dist,
-      };
-    });
-
-    const withCoords = matchedMechanics.filter((e) => e.position);
+    matchedMechanics = buildMechanicEntries(snapshot);
+    const withCoords = matchedMechanics.filter((entry) => entry.position);
     if (!withCoords.length) {
       showNoMechanicsOnMap();
       return;
     }
 
-    withCoords.sort(
-      (a, b) =>
-        (a.distanceMeters ?? Number.MAX_SAFE_INTEGER) -
-        (b.distanceMeters ?? Number.MAX_SAFE_INTEGER)
-    );
-
     driverPostServices?.classList.add("map-active");
     if (mapHint) mapHint.style.display = "block";
-
-    const map = await ensureGoogleMap();
     if (!map) return;
 
     const bounds = new google.maps.LatLngBounds();
@@ -1027,50 +1241,125 @@ async function fetchMatchingMechanics(serviceName) {
       bounds.extend(entry.position);
     });
 
-    if (driverPos) {
-      placeDriverMarker(driverPos);
-      bounds.extend(driverPos);
-      smoothCenterMap(driverPos, MAP_DRIVER_ZOOM);
-    } else {
-      showMapMatchNotification(
-        "Allow location access to see distance and auto-select the closest mechanic."
-      );
-      googleMap.fitBounds(bounds);
-    }
+    googleMap.fitBounds(bounds);
 
-    const closest = withCoords[0];
-    if (closest) {
-      selectMechanicEntry(closest, {
-        autoClosest: Boolean(driverPos),
+    const initialSelection = withCoords[0];
+    if (initialSelection) {
+      autoSelectedMechanicId = initialSelection.id;
+      selectMechanicEntry(initialSelection, {
+        autoClosest: true,
         zoomDetail: false,
       });
     }
 
-    if (openInMapsBtn && driverPos) {
-      openInMapsBtn.style.display = "block";
-      openInMapsBtn.onclick = () => {
-        const url = `https://www.google.com/maps/@${driverPos.lat},${driverPos.lng},${MAP_DRIVER_ZOOM}z`;
-        window.open(url, "_blank");
-      };
-    }
-
     showMapMatchNotification(
-      driverPos
-        ? `${withCoords.length} mechanic(s) nearby for “${serviceName}”. Closest auto-selected.`
-        : `${withCoords.length} mechanic(s) on map for “${serviceName}”.`,
+      `${withCoords.length} mechanic(s) on map for “${serviceName}”.`,
       { autoDismissMs: 3000 }
     );
     fixGoogleMapContainerFill();
+    applyDriverPositionToMap(serviceName);
   } catch (error) {
     showMapMatchNotification(`Unable to load mechanics: ${error.message}`);
   }
 }
 
 function stopChatListener() {
+  if (chatTypingDebounceTimer) {
+    clearTimeout(chatTypingDebounceTimer);
+    chatTypingDebounceTimer = null;
+  }
+  if (activeChatRoomIds.length && auth.currentUser) {
+    broadcastTypingStatus(false);
+  }
   if (chatUnsubscribe) {
     chatUnsubscribe();
     chatUnsubscribe = null;
   }
+  if (chatRoomUnsubscribe) {
+    chatRoomUnsubscribe();
+    chatRoomUnsubscribe = null;
+  }
+  optimisticChatMessages = [];
+  serverChatMessages = [];
+  activeChatPartnerId = null;
+  activeChatRoomIds = [];
+  chatTypingIndicator?.classList.add("hidden");
+}
+
+function isMatchingServerMessage(optimisticMessage, serverMessage) {
+  return (
+    optimisticMessage.senderId === serverMessage.senderId &&
+    optimisticMessage.text === serverMessage.text &&
+    Math.abs(
+      (optimisticMessage.timestampMillis || 0) -
+        (serverMessage.timestampMillis || 0)
+    ) < 60000
+  );
+}
+
+function mergeChatMessages() {
+  const pending = optimisticChatMessages.filter(
+    (message) =>
+      message.pending &&
+      !serverChatMessages.some((serverMessage) =>
+        isMatchingServerMessage(message, serverMessage)
+      )
+  );
+  return chatService.sortMessages([...serverChatMessages, ...pending]);
+}
+
+function isUserTyping(typingStatus, userId) {
+  const value = typingStatus?.[userId];
+  return (
+    value === true ||
+    value === 1 ||
+    (typeof value === "string" && value.toLowerCase() === "true")
+  );
+}
+
+function getActiveChatParticipantIds() {
+  if (!auth.currentUser?.uid || !activeChatPartnerId) return [];
+  return [auth.currentUser.uid, activeChatPartnerId];
+}
+
+function broadcastTypingStatus(isTyping) {
+  if (!auth.currentUser || !activeChatRoomIds.length) return;
+  chatService
+    .setTypingStatus({
+      roomIds: activeChatRoomIds,
+      userId: auth.currentUser.uid,
+      isTyping,
+      participantIds: getActiveChatParticipantIds(),
+    })
+    .catch((err) => console.error("Could not update typing status:", err));
+}
+
+function updateTypingIndicator(roomData) {
+  if (!chatTypingIndicator || !activeChatPartnerId || !auth.currentUser) return;
+  const isTyping = isUserTyping(roomData?.typingStatus, activeChatPartnerId);
+  if (isTyping) {
+    if (chatTypingLabel) {
+      chatTypingLabel.textContent = `${activeChatPartnerName || "They"} is typing`;
+    }
+    chatTypingIndicator.classList.remove("hidden");
+  } else {
+    if (chatTypingLabel) {
+      chatTypingLabel.textContent = "";
+    }
+    chatTypingIndicator.classList.add("hidden");
+  }
+}
+
+function createReadReceipt(isRead) {
+  const receipt = document.createElement("span");
+  receipt.className = `chat-read-receipt${isRead ? " is-read" : ""}`;
+  receipt.setAttribute("aria-label", isRead ? "Read" : "Sent");
+
+  const icon = document.createElement("span");
+  icon.className = "material-symbols-outlined chat-tick-icon";
+  icon.textContent = isRead ? "done_all" : "done";
+  receipt.appendChild(icon);
+  return receipt;
 }
 
 function renderChatMessages(messages) {
@@ -1079,45 +1368,134 @@ function renderChatMessages(messages) {
   const myId = auth.currentUser?.uid;
   messages.forEach((msg) => {
     const bubble = document.createElement("div");
-    bubble.className = `chat-bubble ${msg.senderId === myId ? "mine" : "theirs"}`;
-    bubble.textContent = msg.text || "";
+    const side = msg.senderId === myId ? "mine" : "theirs";
+    const stateClass = msg.failed ? "failed" : msg.pending ? "pending" : "";
+    bubble.className = `chat-bubble ${side}${stateClass ? ` ${stateClass}` : ""}`;
+
+    const displayText = msg.failed
+      ? `${msg.text || ""} (failed to send)`
+      : msg.text || "";
+
+    if (side === "mine" && !msg.failed) {
+      const inner = document.createElement("div");
+      inner.className = "chat-bubble-inner";
+      const text = document.createElement("span");
+      text.className = "chat-bubble-text";
+      text.textContent = displayText;
+      inner.appendChild(text);
+      inner.appendChild(createReadReceipt(msg.read === true && !msg.pending));
+      bubble.appendChild(inner);
+    } else {
+      bubble.textContent = displayText;
+    }
+
     chatMessagesEl.appendChild(bubble);
   });
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 
-async function openChatWithMechanic(mechanicId, mechanicName) {
-  if (!auth.currentUser) {
+async function markActiveChatAsRead(messages) {
+  if (!activeChatConversationId || !auth.currentUser || !messages?.length) return;
+  try {
+    await chatService.markMessagesAsRead(
+      activeChatConversationId,
+      auth.currentUser.uid,
+      messages
+    );
+  } catch (err) {
+    console.error("Could not mark messages as read:", err);
+  }
+}
+
+function handleServerChatMessages(messages) {
+  serverChatMessages = messages;
+  optimisticChatMessages = optimisticChatMessages.filter(
+    (message) =>
+      !message.pending ||
+      !serverChatMessages.some((serverMessage) =>
+        isMatchingServerMessage(message, serverMessage)
+      )
+  );
+  renderChatMessages(mergeChatMessages());
+  markActiveChatAsRead(messages);
+}
+
+async function openChatWithPartner(partnerId, partnerName) {
+  if (!auth.currentUser || !partnerId) {
     showLoginForm();
     return;
   }
-  activeChatConversationId = buildDriverMechanicConversationId(
-    auth.currentUser.uid,
-    mechanicId
-  );
-  activeChatMechanicName = mechanicName || "Mechanic";
+
+  stopChatListener();
+  const myId = auth.currentUser.uid;
+  activeChatPartnerId = partnerId;
+  activeChatRoomIds = getAllConversationIdsForParticipants(myId, partnerId);
+  activeChatConversationId = buildDriverMechanicConversationId(myId, partnerId);
+  activeChatPartnerName = partnerName || "User";
+  chatPartnerNameCache.set(partnerId, activeChatPartnerName);
+  optimisticChatMessages = [];
+  serverChatMessages = [];
   showMessagesPage();
   showChatView();
+
   if (chatHeaderTitle) {
-    chatHeaderTitle.textContent = `Chat · ${activeChatMechanicName}`;
+    chatHeaderTitle.textContent = `Chat · ${activeChatPartnerName}`;
+  }
+  if (chatTypingLabel) {
+    chatTypingLabel.textContent = "";
+  }
+  if (chatTypingIndicator) {
+    chatTypingIndicator.classList.add("hidden");
   }
   if (chatMessagesEl) {
     chatMessagesEl.innerHTML = "<p style='color:#888;font-size:13px'>Loading messages…</p>";
   }
 
-  stopChatListener();
-  chatUnsubscribe = chatService.listenToMessages(
-    activeChatConversationId,
-    (snapshot) => {
-      const messages = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderChatMessages(messages);
+  const myName =
+    currentUserProfile?.name ||
+    auth.currentUser.displayName ||
+    auth.currentUser.email?.split("@")[0] ||
+    "User";
+
+  try {
+    await chatService.ensureChatRooms(
+      activeChatRoomIds,
+      [auth.currentUser.uid, partnerId],
+      {
+        [auth.currentUser.uid]: myName,
+        [partnerId]: activeChatPartnerName,
+      }
+    );
+  } catch (err) {
+    if (chatMessagesEl) {
+      chatMessagesEl.innerHTML = `<p style='color:#f88'>${err.message}</p>`;
+    }
+    return;
+  }
+
+  chatUnsubscribe = chatService.listenForMessagesMerged(
+    {
+      roomIds: activeChatRoomIds,
+      conversationIds: activeChatRoomIds,
+      participantIds: [myId, partnerId],
     },
+    handleServerChatMessages,
     (err) => {
       if (chatMessagesEl) {
         chatMessagesEl.innerHTML = `<p style='color:#f88'>${err.message}</p>`;
       }
     }
   );
+
+  chatRoomUnsubscribe = chatService.listenToChatRoomsMerged(
+    activeChatRoomIds,
+    updateTypingIndicator,
+    () => {}
+  );
+}
+
+function openChatWithMechanic(mechanicId, mechanicName) {
+  return openChatWithPartner(mechanicId, mechanicName || "Mechanic");
 }
 
 async function handleBookNow() {
@@ -1304,6 +1682,14 @@ function renderMechanicServiceSelection() {
   scheduleServiceCategoryCardBalance();
 }
 
+function showNoCurrentJobsAvailable() {
+  jobsStatus.textContent = "";
+  availableJobsList.innerHTML = "";
+  const noJobsMsg = document.createElement("p");
+  noJobsMsg.textContent = "No current jobs available.";
+  availableJobsList.appendChild(noJobsMsg);
+}
+
 async function renderAvailableJobs() {
   if (!currentUserProfile || currentUserProfile.role !== "mechanic") {
     return;
@@ -1321,14 +1707,12 @@ async function renderAvailableJobs() {
       mechanicSkills.has(job.serviceName)
     );
 
-    jobsStatus.textContent = "";
-
     if (availableJobs.length === 0) {
-      const noJobsMsg = document.createElement("p");
-      noJobsMsg.textContent = "No available jobs matching your services.";
-      availableJobsList.appendChild(noJobsMsg);
+      showNoCurrentJobsAvailable();
       return;
     }
+
+    jobsStatus.textContent = "";
 
     availableJobs.forEach((job) => {
       const jobCard = document.createElement("div");
@@ -1369,7 +1753,7 @@ async function renderAvailableJobs() {
     });
   } catch (error) {
     console.error("Error loading available jobs:", error);
-    jobsStatus.textContent = "Error loading jobs. Please refresh the page.";
+    showNoCurrentJobsAvailable();
   }
 }
 
@@ -1609,21 +1993,64 @@ mechanicMapBackBtn?.addEventListener("click", () => {
 chatBackBtn?.addEventListener("click", () => {
   stopChatListener();
   activeChatConversationId = null;
+  activeChatPartnerId = null;
+  activeChatRoomIds = [];
+  activeChatPartnerName = "";
   showMessagesInbox();
+});
+
+chatInput?.addEventListener("input", () => {
+  if (!activeChatConversationId || !auth.currentUser) return;
+  broadcastTypingStatus(true);
+  if (chatTypingDebounceTimer) {
+    clearTimeout(chatTypingDebounceTimer);
+  }
+  chatTypingDebounceTimer = setTimeout(() => {
+    broadcastTypingStatus(false);
+    chatTypingDebounceTimer = null;
+  }, 2000);
 });
 
 chatComposeForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput?.value?.trim();
   if (!text || !activeChatConversationId || !auth.currentUser) return;
+
+  const optimisticMessage = {
+    id: `pending_${Date.now()}`,
+    senderId: auth.currentUser.uid,
+    text,
+    timestampMillis: Date.now(),
+    pending: true,
+  };
+
+  optimisticChatMessages.push(optimisticMessage);
+  renderChatMessages(mergeChatMessages());
+  chatInput.value = "";
+
+  broadcastTypingStatus(false);
+
   try {
+    const myName =
+      currentUserProfile?.name ||
+      auth.currentUser.displayName ||
+      auth.currentUser.email?.split("@")[0] ||
+      "User";
+
     await chatService.sendConversationMessage({
-      conversationId: activeChatConversationId,
+      roomId: activeChatConversationId,
       senderId: auth.currentUser.uid,
       text,
+      participantIds: [auth.currentUser.uid, activeChatPartnerId],
+      participantNames: {
+        [auth.currentUser.uid]: myName,
+        [activeChatPartnerId]: activeChatPartnerName,
+      },
     });
-    chatInput.value = "";
   } catch (err) {
+    optimisticMessage.pending = false;
+    optimisticMessage.failed = true;
+    renderChatMessages(mergeChatMessages());
     alert(`Could not send message: ${err.message}`);
   }
 });

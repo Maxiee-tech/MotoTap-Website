@@ -1,6 +1,116 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      match /chatPartners/{partnerId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null
+          && (request.auth.uid == userId || request.auth.uid == partnerId)
+          && request.resource.data.partnerId == partnerId;
+        allow delete: if false;
+      }
+    }
+
+    match /serviceCategories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /jobs/{jobId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+
+      match /messages/{messageId} {
+        allow read, create: if request.auth != null;
+      }
+    }
+
+    match /jobRequests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    match /chats/{roomId} {
+      function chatRoomPath() {
+        return /databases/$(database)/documents/chats/$(roomId);
+      }
+      function chatRoomExists() {
+        return exists(chatRoomPath());
+      }
+      function chatRoomParticipants() {
+        return chatRoomExists()
+          ? get(chatRoomPath()).data.get('participants', [])
+          : [];
+      }
+      function isChatParticipant() {
+        return request.auth != null
+          && request.auth.uid in chatRoomParticipants();
+      }
+      function isIncomingChatParticipant() {
+        return request.auth != null
+          && request.auth.uid in request.resource.data.get('participants', []);
+      }
+      function canBootstrapChatRoom() {
+        return request.auth != null
+          && isIncomingChatParticipant()
+          && chatRoomParticipants().size() == 0;
+      }
+      function uidInRoomId() {
+        return request.auth != null
+          && roomId.matches('.*' + request.auth.uid + '.*');
+      }
+
+      allow read: if request.auth != null
+        && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
+      function isTypingStatusUpdate() {
+        return uidInRoomId()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['typingStatus', 'lastActive', 'lastActiveMillis']);
+      }
+
+      allow create: if isIncomingChatParticipant();
+      allow update: if isChatParticipant() || canBootstrapChatRoom()
+        || (uidInRoomId() && isIncomingChatParticipant())
+        || isTypingStatusUpdate();
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+          && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
+        allow create: if request.auth != null
+          && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId())
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.timestampMillis is int
+          && request.resource.data.read is bool;
+        allow update: if request.auth != null
+          && isChatParticipant()
+          && request.auth.uid != resource.data.senderId
+          && resource.data.read == false
+          && request.resource.data.read == true
+          && request.resource.data.senderId == resource.data.senderId
+          && request.resource.data.text == resource.data.text
+          && request.resource.data.timestampMillis == resource.data.timestampMillis;
+        allow delete: if false;
+      }
+    }
+
+    match /chatMessages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     match /homeReviews/{userId} {
       allow read: if true;
       allow create, update: if request.auth != null
@@ -26,6 +136,11 @@ service cloud.firestore {
         && request.resource.data.writeLogMillis is list
         && request.resource.data.writeLogMillis.size() <= 10;
       allow delete: if false;
+    }
+
+    match /website_messages/{messageId} {
+      allow read: if false;
+      allow create: if true;
     }
   }
 }
