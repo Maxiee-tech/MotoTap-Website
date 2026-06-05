@@ -1,0 +1,57 @@
+# ~/snipeit/Caddyfile on the server.
+# Original assets.priyav.dev block PLUS a new mototap.co.ke block.
+
+# Caddy auto-provisions + renews a Let's Encrypt cert for this domain.
+# Make sure assets.priyav.dev A record points at this server's public IP,
+# and ports 80 + 443 are open to the internet, BEFORE first boot.
+assets.priyav.dev {
+	# Reverse proxy to the Snipe-IT apache container on the internal network.
+	reverse_proxy app:80
+
+	# Let the app know the original scheme/host so it builds correct URLs.
+	header {
+		# Basic hardening headers.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+	}
+
+	encode gzip zstd
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# --- MotoTap static site ---
+# Routes to the mototap-web container (joined to snipeit's network).
+# Caddy auto-provisions a Let's Encrypt cert for mototap.co.ke -- the
+# domain's DNS must resolve to this server BEFORE the first request.
+mototap.co.ke {
+	reverse_proxy mototap-web:80
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+	}
+
+	encode gzip zstd
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# --- Optional: staging while testing DNS/cert issuance ---
+# Let's Encrypt rate-limits prod certs (5 failures/hr/domain). If you're
+# fiddling with DNS, uncomment the global block below to use the staging CA,
+# confirm a cert is issued (browser will warn — that's expected on staging),
+# then re-comment it and `docker compose up -d caddy` to get a real cert.
+#
+# {
+# 	acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+# 	email priyav.shah@protonmail.com
+# }
