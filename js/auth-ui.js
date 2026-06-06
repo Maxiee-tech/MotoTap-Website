@@ -9,6 +9,9 @@ import {
   formatDistanceMeters,
   buildDriverMechanicConversationId,
   getAllConversationIdsForParticipants,
+  getMechanicPosition,
+  isMechanicRole,
+  mechanicOffersService,
 } from "./utils/geo.js";
 import {
   loadGoogleMapsScript,
@@ -457,7 +460,10 @@ let activeChatConversationId = null;
 let activeChatPartnerName = "";
 let chatUnsubscribe = null;
 let chatRoomUnsubscribe = null;
+let chatPartnerTypingUnsubscribe = null;
 let chatInboxUnsubscribe = null;
+let roomTypingActive = false;
+let partnerInboxTypingActive = false;
 const chatPartnerNameCache = new Map();
 let chatTypingDebounceTimer = null;
 let optimisticChatMessages = [];
@@ -634,6 +640,50 @@ function setMessagesInboxEmptyState(hasConversations) {
   }
 }
 
+function escapeInboxPreviewText(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatInboxPreview(message, myId, partnerId) {
+  const text = String(message?.text || "").trim();
+  if (!text) return "No messages yet";
+  if (message.senderId === partnerId) {
+    return escapeInboxPreviewText(text);
+  }
+  if (message.senderId === myId) {
+    return `You: ${escapeInboxPreviewText(text)}`;
+  }
+  return escapeInboxPreviewText(text);
+}
+
+async function resolveInboxPreview(entry, partnerId, myId) {
+  try {
+    const message = await chatService.getInboxPreviewMessage({
+      myId,
+      partnerId,
+      entry,
+    });
+    if (message?.text && !String(entry.lastMessageText || "").trim()) {
+      chatService
+        .syncChatPartnerEntries({
+          participantIds: [myId, partnerId],
+          preview: message.text,
+          millis: message.timestampMillis || Date.now(),
+          senderId: message.senderId || "",
+        })
+        .catch(() => {});
+    }
+    return formatInboxPreview(message, myId, partnerId);
+  } catch (error) {
+    console.error("Inbox preview error:", error);
+    return "No messages yet";
+  }
+}
+
 async function renderMessagesInbox(entries) {
   if (!messagesInboxList || !auth.currentUser) return;
 
@@ -644,24 +694,28 @@ async function renderMessagesInbox(entries) {
   }
 
   messagesInboxList.innerHTML = "";
+  const myId = auth.currentUser.uid;
 
-  for (const entry of entries) {
-    const partnerId = entry.partnerId || entry.id;
-    const partnerName = await resolveChatPartnerName(partnerId, entry);
-    const preview = entry.lastMessageText
-      ? entry.lastMessageText
-      : "No messages yet";
+  const rows = await Promise.all(
+    entries.map(async (entry) => {
+      const partnerId = entry.partnerId || entry.id;
+      const partnerName = await resolveChatPartnerName(partnerId, entry);
+      const preview = await resolveInboxPreview(entry, partnerId, myId);
+      return { partnerId, partnerName, preview };
+    })
+  );
 
+  for (const row of rows) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
     button.className = "messages-inbox-item";
     button.innerHTML = `
-      <span class="messages-inbox-item-name">${partnerName}</span>
-      <span class="messages-inbox-item-preview">${preview}</span>
+      <span class="messages-inbox-item-name">${row.partnerName}</span>
+      <span class="messages-inbox-item-preview">${row.preview}</span>
     `;
     button.addEventListener("click", () => {
-      openChatWithPartner(partnerId, partnerName);
+      openChatWithPartner(row.partnerId, row.partnerName);
     });
     item.appendChild(button);
     messagesInboxList.appendChild(item);
@@ -839,16 +893,18 @@ async function getDriverPosition() {
   }
 }
 
-function buildMechanicEntries(snapshot, driverPos = null) {
-  return snapshot.docs.map((docItem) => {
+function buildMechanicEntries(docs, driverPos = null) {
+  return docs.map((docItem) => {
     const mechanic = docItem.data();
-    const lat = Number(mechanic.latitude);
-    const lng = Number(mechanic.longitude);
-    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
-    const position = hasCoords ? { lat, lng } : null;
+    const position = getMechanicPosition(mechanic);
     let dist = null;
     if (driverPos && position) {
-      dist = distanceMeters(driverPos.lat, driverPos.lng, lat, lng);
+      dist = distanceMeters(
+        driverPos.lat,
+        driverPos.lng,
+        position.lat,
+        position.lng
+      );
     }
     return {
       id: docItem.id,
@@ -1167,8 +1223,8 @@ function clearMarkers() {
   mapMarkers = [];
 }
 
-function showNoMechanicsOnMap() {
-  showMapNotification(MAP_EMPTY_NOTIFICATION);
+function showNoMechanicsOnMap(message = MAP_EMPTY_NOTIFICATION) {
+  showMapNotification(message);
   clearMapMatchNotification();
   mapElement?.classList.remove("active");
   driverPostServices?.classList.remove("map-active");
@@ -1191,24 +1247,29 @@ async function fetchMatchingMechanics(serviceName) {
   try {
     const [snapshot, map] = await Promise.all([
       getDocs(
-        query(
-          collection(db, "users"),
-          where("role", "==", "mechanic"),
-          where("skills", "array-contains", serviceName)
-        )
+        query(collection(db, "users"), where("role", "in", ["mechanic", "MECHANIC"]))
       ),
       ensureGoogleMap(),
     ]);
 
-    if (snapshot.empty) {
-      showNoMechanicsOnMap();
+    const matchingDocs = snapshot.docs.filter((docItem) => {
+      const profile = docItem.data();
+      return isMechanicRole(profile.role) && mechanicOffersService(profile, serviceName);
+    });
+
+    if (!matchingDocs.length) {
+      showNoMechanicsOnMap(
+        `No mechanics currently offer "${serviceName}". Check that mechanic accounts have this service selected in the app.`
+      );
       return;
     }
 
-    matchedMechanics = buildMechanicEntries(snapshot);
+    matchedMechanics = buildMechanicEntries(matchingDocs);
     const withCoords = matchedMechanics.filter((entry) => entry.position);
     if (!withCoords.length) {
-      showNoMechanicsOnMap();
+      showNoMechanicsOnMap(
+        `Mechanics offer "${serviceName}" but none have a map location yet. Open the Android app as a mechanic, enable location, and stay online so coordinates sync to Firestore.`
+      );
       return;
     }
 
@@ -1279,10 +1340,16 @@ function stopChatListener() {
     chatRoomUnsubscribe();
     chatRoomUnsubscribe = null;
   }
+  if (chatPartnerTypingUnsubscribe) {
+    chatPartnerTypingUnsubscribe();
+    chatPartnerTypingUnsubscribe = null;
+  }
   optimisticChatMessages = [];
   serverChatMessages = [];
   activeChatPartnerId = null;
   activeChatRoomIds = [];
+  roomTypingActive = false;
+  partnerInboxTypingActive = false;
   chatTypingIndicator?.classList.add("hidden");
 }
 
@@ -1323,10 +1390,17 @@ function getActiveChatParticipantIds() {
 }
 
 function broadcastTypingStatus(isTyping) {
-  if (!auth.currentUser || !activeChatRoomIds.length) return;
+  if (!auth.currentUser) return;
+  const roomIds = activeChatRoomIds.length
+    ? activeChatRoomIds
+    : activeChatConversationId
+      ? [activeChatConversationId]
+      : [];
+  if (!roomIds.length) return;
+
   chatService
     .setTypingStatus({
-      roomIds: activeChatRoomIds,
+      roomIds,
       userId: auth.currentUser.uid,
       isTyping,
       participantIds: getActiveChatParticipantIds(),
@@ -1334,9 +1408,15 @@ function broadcastTypingStatus(isTyping) {
     .catch((err) => console.error("Could not update typing status:", err));
 }
 
-function updateTypingIndicator(roomData) {
+function isPartnerTypingFromInbox(partnerData) {
+  if (!partnerData?.partnerIsTyping) return false;
+  const age = Date.now() - (partnerData.partnerTypingAtMillis || 0);
+  return age < 10000;
+}
+
+function refreshTypingIndicator() {
   if (!chatTypingIndicator || !activeChatPartnerId || !auth.currentUser) return;
-  const isTyping = isUserTyping(roomData?.typingStatus, activeChatPartnerId);
+  const isTyping = roomTypingActive || partnerInboxTypingActive;
   if (isTyping) {
     if (chatTypingLabel) {
       chatTypingLabel.textContent = `${activeChatPartnerName || "They"} is typing`;
@@ -1348,6 +1428,16 @@ function updateTypingIndicator(roomData) {
     }
     chatTypingIndicator.classList.add("hidden");
   }
+}
+
+function updateTypingIndicator(roomData) {
+  roomTypingActive = isUserTyping(roomData?.typingStatus, activeChatPartnerId);
+  refreshTypingIndicator();
+}
+
+function updatePartnerTypingIndicator(partnerData) {
+  partnerInboxTypingActive = isPartnerTypingFromInbox(partnerData);
+  refreshTypingIndicator();
 }
 
 function createReadReceipt(isRead) {
@@ -1490,7 +1580,14 @@ async function openChatWithPartner(partnerId, partnerName) {
   chatRoomUnsubscribe = chatService.listenToChatRoomsMerged(
     activeChatRoomIds,
     updateTypingIndicator,
-    () => {}
+    (err) => console.error("Chat room typing listener failed:", err)
+  );
+
+  chatPartnerTypingUnsubscribe = chatService.listenToPartnerTyping(
+    myId,
+    partnerId,
+    updatePartnerTypingIndicator,
+    (err) => console.error("Partner inbox typing listener failed:", err)
   );
 }
 
@@ -2054,6 +2151,29 @@ chatComposeForm?.addEventListener("submit", async (e) => {
     alert(`Could not send message: ${err.message}`);
   }
 });
+
+function initPasswordToggles() {
+  document.querySelectorAll(".password-toggle-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.target || "");
+      if (!input) return;
+
+      const showPassword = input.type === "password";
+      input.type = showPassword ? "text" : "password";
+
+      const icon = button.querySelector(".material-symbols-outlined");
+      if (icon) {
+        icon.textContent = showPassword ? "visibility_off" : "visibility";
+      }
+      button.setAttribute(
+        "aria-label",
+        showPassword ? "Hide password" : "Show password"
+      );
+    });
+  });
+}
+
+initPasswordToggles();
 
 saveServicesBtn.addEventListener("click", handleMechanicSaveServices);
 

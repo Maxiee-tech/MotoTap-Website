@@ -91,7 +91,10 @@ class FirebaseAuthRepository {
         id: userId,
         name: data.name || "",
         phone: data.phoneNumber || "",
-        role: data.role === "mechanic" ? "mechanic" : "customer",
+        role:
+          String(data.role || "").trim().toLowerCase() === "mechanic"
+            ? "mechanic"
+            : "customer",
         skills: data.skills || [],
       };
     } catch (error) {
