@@ -50,5 +50,13 @@ curl -sI https://mototap.co.ke | head
   with `docker network ls` and update `networks:` in
   `~/mototap/docker-compose.yml` to match.
 - No host ports on mototap — only Caddy talks to it. To redeploy after a code
-  change: `git pull && docker compose up -d --build`.
+  change (required for `mototap.co.ke` to match Firebase Hosting):
+  ```sh
+  cd ~/mototap && git pull origin main && docker compose up -d --build
+  ```
+- `mototap-447fe.web.app` is deployed separately via `firebase deploy --only hosting`.
+  Pushing to GitHub does **not** update `mototap.co.ke` until you rebuild the
+  Docker container on the server.
+- Google Maps: the browser API key must allow **both** origins in HTTP referrers:
+  `https://mototap-447fe.web.app/*` and `https://mototap.co.ke/*`.
 ```

@@ -404,6 +404,7 @@ function getMapLoadErrorMessage() {
     `Google Maps could not load. Configure the Maps browser key ${keyHint}: ` +
     `Google Cloud → Credentials → API key used for Maps JavaScript (not the Firebase Auth key). ` +
     `Application restrictions → HTTP referrers → add ${origin}/*, ${origin}/, ` +
+    `https://mototap-447fe.web.app/*, https://mototap.co.ke/*, ` +
     `https://mototap-447fe.firebaseapp.com/*, http://localhost:5173/*. ` +
     `API restrictions must include Maps JavaScript API. ` +
     `If this key is Android-only, create a new key for the website. Host: ${host}.`
