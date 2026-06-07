@@ -59,4 +59,9 @@ curl -sI https://mototap.co.ke | head
   Docker container on the server.
 - Google Maps: the browser API key must allow **both** origins in HTTP referrers:
   `https://mototap-447fe.web.app/*` and `https://mototap.co.ke/*`.
+- Create `~/mototap/.env` on the server (from `.env.example`) with
+  `VITE_GOOGLE_MAPS_API_KEY` before `docker compose up -d --build` so Maps
+  loads in the production container build.
+- Deploy Firestore rules after security updates:
+  `firebase deploy --only firestore:rules`
 ```

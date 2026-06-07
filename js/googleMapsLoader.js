@@ -1,10 +1,6 @@
-const DEFAULT_API_KEY = "AIzaSyDtHagYb4M83aWISvr6bA_OJ36EPGvp12E";
+import { getGoogleMapsApiKey } from "./appConfig.js";
 
 let loadPromise = null;
-
-export function getGoogleMapsApiKey() {
-  return import.meta.env.VITE_GOOGLE_MAPS_API_KEY || DEFAULT_API_KEY;
-}
 
 function onMapsAuthFailure() {
   window.__mototapMapsAuthFailed = true;
@@ -26,10 +22,14 @@ export function loadGoogleMapsScript() {
   }
   if (loadPromise) return loadPromise;
 
+  const key = getGoogleMapsApiKey();
+  if (!key) {
+    return Promise.reject(new Error("MAPS_API_KEY_MISSING"));
+  }
+
   registerMapsAuthFailureHandler();
 
   loadPromise = new Promise((resolve, reject) => {
-    const key = getGoogleMapsApiKey();
     const callbackName = "__mototapMapsReady";
 
     window[callbackName] = () => {

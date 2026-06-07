@@ -41,6 +41,8 @@ import {
   refreshHomeReviews,
   setPendingReviewAfterAuth,
 } from "./homeReviews.js";
+import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
+import { escapeHtml } from "./utils/html.js";
 import { onAuthStateChanged } from "firebase/auth";
 
 const landingSection = document.getElementById("landing-section");
@@ -399,7 +401,7 @@ function getMapLoadErrorMessage() {
   const host = window.location.host;
   const keyHint = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     ? "(from .env VITE_GOOGLE_MAPS_API_KEY)"
-    : "(default key …p12E — not your Firebase key …pc_4)";
+    : "(missing VITE_GOOGLE_MAPS_API_KEY at build time)";
   return (
     `Google Maps could not load. Configure the Maps browser key ${keyHint}: ` +
     `Google Cloud → Credentials → API key used for Maps JavaScript (not the Firebase Auth key). ` +
@@ -712,7 +714,7 @@ async function renderMessagesInbox(entries) {
     button.type = "button";
     button.className = "messages-inbox-item";
     button.innerHTML = `
-      <span class="messages-inbox-item-name">${row.partnerName}</span>
+      <span class="messages-inbox-item-name">${escapeHtml(row.partnerName)}</span>
       <span class="messages-inbox-item-preview">${row.preview}</span>
     `;
     button.addEventListener("click", () => {
@@ -1862,6 +1864,8 @@ function renderCatalogFromLocal() {
 }
 
 function syncCatalogToFirestoreInBackground() {
+  if (currentUserProfile?.isAdmin !== true) return;
+
   const run = () => {
     serviceCatalogService.seedServiceCatalogIfMissing().catch((err) => {
       console.error("Background catalog sync failed:", err);
@@ -2113,6 +2117,16 @@ chatComposeForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput?.value?.trim();
   if (!text || !activeChatConversationId || !auth.currentUser) return;
+  if (text.length > MAX_CHAT_MESSAGE_LENGTH) {
+    if (chatMessagesEl) {
+      const notice = document.createElement("p");
+      notice.style.color = "#f88";
+      notice.style.fontSize = "13px";
+      notice.textContent = `Message is too long (max ${MAX_CHAT_MESSAGE_LENGTH} characters).`;
+      chatMessagesEl.appendChild(notice);
+    }
+    return;
+  }
 
   const optimisticMessage = {
     id: `pending_${Date.now()}`,
@@ -2202,7 +2216,24 @@ onAuthStateChanged(auth, async (user) => {
   updateNavAuthButton();
 });
 
+function mountPageFooters() {
+  const template = document.getElementById("page-footer-template");
+  if (!template) return;
+
+  [landingSection, requestsSection].forEach((section) => {
+    if (!section || section.querySelector(".page-footer")) return;
+    section.appendChild(template.content.cloneNode(true));
+  });
+
+  document.querySelectorAll(".page-footer-social-link.is-placeholder").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+    });
+  });
+}
+
 initHomeReviews(auth, homeReviewsMount);
+mountPageFooters();
 renderCatalogFromLocal();
 updateNavAuthButton();
 setupServiceCardResizeListener();

@@ -18,6 +18,7 @@ import {
   getAllConversationIdsForParticipants,
 } from "../utils/geo.js";
 import ChatRepository from "../repositories/ChatRepository.js";
+import { MAX_CHAT_MESSAGE_LENGTH } from "../appConfig.js";
 
 export { getChatRoomId, getAllConversationIdsForParticipants };
 
@@ -155,6 +156,9 @@ export default class FirebaseChatService extends ChatRepository {
     const trimmed = String(text || "").trim();
     if (!senderId || !trimmed) {
       throw new Error("Invalid message");
+    }
+    if (trimmed.length > MAX_CHAT_MESSAGE_LENGTH) {
+      throw new Error("Message is too long");
     }
 
     const resolvedParticipants =

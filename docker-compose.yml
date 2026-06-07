@@ -12,7 +12,11 @@ networks:
 
 services:
   mototap:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
     image: mototap-web
     container_name: mototap-web
     restart: unless-stopped

@@ -16,4 +16,11 @@
 	# HTML shell (bare / and /index.html) must not be cached
 	@html path / /index.html
 	header @html Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+	}
 }

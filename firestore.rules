@@ -1,52 +1,204 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function isAdminUser() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc(request.auth.uid).data.get('isAdmin', false) == true;
+    }
+
+    function validUserRole(role) {
+      return role in ['customer', 'mechanic', 'driver', 'CUSTOMER', 'MECHANIC', 'DRIVER'];
+    }
+
+    function validJobStatus(status) {
+      return status in [
+        'REQUESTED',
+        'MATCHING',
+        'ASSIGNED',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'PAID',
+        'CLOSED'
+      ];
+    }
+
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.email is string
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && validUserRole(request.resource.data.role)
+        && request.resource.data.get('isAdmin', false) == false;
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && (!('skills' in request.resource.data) || request.resource.data.skills is list)
+        && (!('phoneNumber' in request.resource.data)
+          || (request.resource.data.phoneNumber is string
+            && request.resource.data.phoneNumber.size() <= 32));
+      allow delete: if isOwner(userId);
 
       match /chatPartners/{partnerId} {
         function isChatPartnerTypingUpdate() {
-          return request.auth != null
+          return signedIn()
             && (request.auth.uid == userId || request.auth.uid == partnerId)
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['partnerIsTyping', 'partnerTypingAtMillis', 'partnerId']);
         }
 
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow create, update: if request.auth != null
+        function validChatPartnerWrite() {
+          return request.resource.data.partnerId == partnerId
+            && (!('lastMessageText' in request.resource.data)
+              || (request.resource.data.lastMessageText is string
+                && request.resource.data.lastMessageText.size() <= 500))
+            && (!('partnerName' in request.resource.data)
+              || (request.resource.data.partnerName is string
+                && request.resource.data.partnerName.size() <= 120));
+        }
+
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create, update: if signedIn()
           && (request.auth.uid == userId || request.auth.uid == partnerId)
-          && (
-            request.resource.data.partnerId == partnerId
-            || isChatPartnerTypingUpdate()
-          );
+          && (validChatPartnerWrite() || isChatPartnerTypingUpdate());
         allow delete: if false;
       }
     }
 
     match /serviceCategories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdminUser();
     }
 
     match /jobs/{jobId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      function isJobDriver() {
+        return signedIn() && resource.data.driverId == request.auth.uid;
+      }
+
+      function isJobMechanic() {
+        return signedIn() && resource.data.mechanicId == request.auth.uid;
+      }
+
+      function isOpenJob() {
+        return resource.data.status == 'REQUESTED'
+          && (resource.data.mechanicId == null || !('mechanicId' in resource.data));
+      }
+
+      allow read: if signedIn()
+        && (resource.data.driverId == request.auth.uid
+          || resource.data.mechanicId == request.auth.uid
+          || isOpenJob());
+
+      allow create: if signedIn()
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'REQUESTED'
+        && validJobStatus(request.resource.data.status)
+        && request.resource.data.serviceName is string
+        && request.resource.data.serviceName.size() > 0
+        && request.resource.data.serviceName.size() <= 120
+        && request.resource.data.createdAtMillis is int
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string
+            && request.resource.data.description.size() <= 1000))
+        && (!('locationLabel' in request.resource.data)
+          || (request.resource.data.locationLabel is string
+            && request.resource.data.locationLabel.size() <= 200))
+        && (!('price' in request.resource.data)
+          || (request.resource.data.price is number && request.resource.data.price >= 0));
+
+      allow update: if signedIn() && (
+        (isJobDriver()
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && validJobStatus(request.resource.data.status))
+        || (isJobMechanic()
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && validJobStatus(request.resource.data.status))
+        || (isOpenJob()
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == request.auth.uid
+          && request.resource.data.status == 'ASSIGNED'
+          && resource.data.status == 'REQUESTED')
+      );
+
+      allow delete: if isJobDriver();
 
       match /messages/{messageId} {
-        allow read, create: if request.auth != null;
+        allow read, create: if signedIn()
+          && (get(/databases/$(database)/documents/jobs/$(jobId)).data.driverId == request.auth.uid
+            || get(/databases/$(database)/documents/jobs/$(jobId)).data.mechanicId == request.auth.uid);
       }
     }
 
     match /jobRequests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      function isRequestDriver() {
+        return signedIn() && resource.data.driverId == request.auth.uid;
+      }
+
+      function isRequestMechanic() {
+        return signedIn() && resource.data.mechanicId == request.auth.uid;
+      }
+
+      function isOpenRequest() {
+        return resource.data.status == 'REQUESTED'
+          && (resource.data.mechanicId == null || !('mechanicId' in resource.data));
+      }
+
+      allow read: if signedIn()
+        && (resource.data.driverId == request.auth.uid
+          || resource.data.mechanicId == request.auth.uid
+          || isOpenRequest());
+
+      allow create: if signedIn()
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'REQUESTED'
+        && validJobStatus(request.resource.data.status)
+        && request.resource.data.createdAtMillis is int
+        && (!('serviceName' in request.resource.data)
+          || (request.resource.data.serviceName is string
+            && request.resource.data.serviceName.size() <= 120))
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string
+            && request.resource.data.description.size() <= 1000))
+        && (!('locationLabel' in request.resource.data)
+          || (request.resource.data.locationLabel is string
+            && request.resource.data.locationLabel.size() <= 200));
+
+      allow update: if signedIn() && (
+        (isRequestDriver()
+          && request.resource.data.driverId == resource.data.driverId)
+        || (isRequestMechanic()
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == resource.data.mechanicId)
+        || (isOpenRequest()
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == request.auth.uid
+          && request.resource.data.status == 'ASSIGNED'
+          && resource.data.status == 'REQUESTED')
+      );
+
+      allow delete: if isRequestDriver();
     }
 
     match /chats/{roomId} {
@@ -62,25 +214,26 @@ service cloud.firestore {
           : [];
       }
       function isChatParticipant() {
-        return request.auth != null
+        return signedIn()
           && request.auth.uid in chatRoomParticipants();
       }
       function isIncomingChatParticipant() {
-        return request.auth != null
+        return signedIn()
           && request.auth.uid in request.resource.data.get('participants', []);
       }
       function canBootstrapChatRoom() {
-        return request.auth != null
+        return signedIn()
           && isIncomingChatParticipant()
           && chatRoomParticipants().size() == 0;
       }
       function uidInRoomId() {
-        return request.auth != null
+        return signedIn()
           && roomId.matches('.*' + request.auth.uid + '.*');
       }
 
-      allow read: if request.auth != null
+      allow read: if signedIn()
         && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
+
       function isTypingStatusUpdate() {
         return uidInRoomId()
           && request.resource.data.diff(resource.data).affectedKeys()
@@ -89,8 +242,14 @@ service cloud.firestore {
               'lastActive',
               'lastActiveMillis',
               'participants',
-              'participantNames'
-            ]);
+              'participantNames',
+              'lastMessageText',
+              'lastMessageSenderId',
+              'lastMessageMillis'
+            ])
+          && (!('lastMessageText' in request.resource.data)
+            || (request.resource.data.lastMessageText is string
+              && request.resource.data.lastMessageText.size() <= 500));
       }
 
       allow create: if isIncomingChatParticipant();
@@ -99,16 +258,17 @@ service cloud.firestore {
         || isTypingStatusUpdate();
 
       match /messages/{messageId} {
-        allow read: if request.auth != null
+        allow read: if signedIn()
           && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
-        allow create: if request.auth != null
+        allow create: if signedIn()
           && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId())
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 200
           && request.resource.data.timestampMillis is int
           && request.resource.data.read is bool;
-        allow update: if request.auth != null
+        allow update: if signedIn()
           && isChatParticipant()
           && request.auth.uid != resource.data.senderId
           && resource.data.read == false
@@ -121,16 +281,24 @@ service cloud.firestore {
     }
 
     match /chatMessages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.senderId == request.auth.uid;
+      allow read: if signedIn()
+        && (request.auth.uid == resource.data.senderId
+          || request.auth.uid in resource.data.get('participantIds', [])
+          || (resource.data.get('conversationId', '').matches('.*' + request.auth.uid + '.*')));
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 200
+        && request.resource.data.timestampMillis is int
+        && (request.auth.uid in request.resource.data.get('participantIds', [])
+          || request.resource.data.get('conversationId', '').matches('.*' + request.auth.uid + '.*'));
       allow update, delete: if false;
     }
 
     match /homeReviews/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null
-        && request.auth.uid == userId
+      allow create, update: if isOwner(userId)
         && request.resource.data.userId == userId
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1
@@ -145,9 +313,8 @@ service cloud.firestore {
     }
 
     match /homeReviewRateLimit/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null
-        && request.auth.uid == userId
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
         && request.resource.data.userId == userId
         && request.resource.data.writeLogMillis is list
         && request.resource.data.writeLogMillis.size() <= 10;
@@ -156,7 +323,14 @@ service cloud.firestore {
 
     match /website_messages/{messageId} {
       allow read: if false;
-      allow create: if true;
+      allow create: if request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.createdAt is string
+        && request.resource.data.createdAt.size() <= 40
+        && (!('email' in request.resource.data)
+          || (request.resource.data.email is string
+            && request.resource.data.email.size() <= 254));
     }
   }
 }

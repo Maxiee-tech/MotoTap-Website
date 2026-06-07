@@ -8,6 +8,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Inject browser keys at build time (never commit real .env to git).
+ARG VITE_GOOGLE_MAPS_API_KEY
+ARG VITE_FIREBASE_API_KEY
+ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+
 # Build static site into /app/dist
 COPY . .
 RUN npm run build
