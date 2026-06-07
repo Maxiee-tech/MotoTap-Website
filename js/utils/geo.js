@@ -45,3 +45,48 @@ export function getAllConversationIdsForParticipants(userIdA, userIdB) {
 export function buildDriverMechanicConversationId(userIdA, userIdB) {
   return getChatRoomId(userIdA, userIdB);
 }
+
+function readLatLng(lat, lng) {
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
+    return { lat: latNum, lng: lngNum };
+  }
+  return null;
+}
+
+/** Read mechanic coordinates from fields used by web and Android. */
+export function getMechanicPosition(mechanic) {
+  if (!mechanic || typeof mechanic !== "object") return null;
+
+  const candidates = [
+    [mechanic.latitude, mechanic.longitude],
+    [mechanic.lat, mechanic.lng],
+    [mechanic.location?.latitude, mechanic.location?.longitude],
+    [mechanic.lastKnownLocation?.latitude, mechanic.lastKnownLocation?.longitude],
+    [mechanic.currentLocation?.latitude, mechanic.currentLocation?.longitude],
+    [mechanic.geoLocation?.latitude, mechanic.geoLocation?.longitude],
+  ];
+
+  for (const [lat, lng] of candidates) {
+    const position = readLatLng(lat, lng);
+    if (position) return position;
+  }
+  return null;
+}
+
+export function isMechanicRole(role) {
+  return String(role || "").trim().toLowerCase() === "mechanic";
+}
+
+/** Match mechanic skills to catalog service names (exact or case-insensitive). */
+export function mechanicOffersService(mechanic, serviceName) {
+  const target = String(serviceName || "").trim();
+  if (!target) return false;
+  const skills = Array.isArray(mechanic?.skills) ? mechanic.skills : [];
+  const targetLower = target.toLowerCase();
+  return skills.some((skill) => {
+    const value = String(skill || "").trim();
+    return value === target || value.toLowerCase() === targetLower;
+  });
+}

@@ -6,7 +6,10 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
+  limit,
   onSnapshot,
+  getDoc,
   getDocs,
 } from "firebase/firestore";
 import { db } from "../../firebase.js";
@@ -78,25 +81,29 @@ export default class FirebaseChatService extends ChatRepository {
 
     const [userA, userB] = participants;
     const sortedParticipants = [...participants].sort();
+    const trimmedPreview = String(preview || "").trim();
     const writes = [
       [userA, userB],
       [userB, userA],
-    ].map(([ownerId, partnerId]) =>
-      setDoc(
+    ].map(([ownerId, partnerId]) => {
+      const payload = {
+        partnerId,
+        partnerName: participantNames[partnerId] || "User",
+        participantIds: sortedParticipants,
+        roomId: getChatRoomId(userA, userB),
+        updatedAtMillis: millis,
+      };
+      if (trimmedPreview) {
+        payload.lastMessageText = trimmedPreview;
+        payload.lastMessageSenderId = senderId;
+        payload.lastMessageMillis = millis;
+      }
+      return setDoc(
         doc(this.firestore, "users", ownerId, "chatPartners", partnerId),
-        {
-          partnerId,
-          partnerName: participantNames[partnerId] || "User",
-          participantIds: sortedParticipants,
-          roomId: getChatRoomId(userA, userB),
-          lastMessageText: preview,
-          lastMessageSenderId: senderId,
-          lastMessageMillis: millis,
-          updatedAtMillis: millis,
-        },
+        payload,
         { merge: true }
-      )
-    );
+      );
+    });
 
     await Promise.all(writes);
   }
@@ -246,6 +253,24 @@ export default class FirebaseChatService extends ChatRepository {
     }
   }
 
+  async syncPartnerTypingInbox({ participantIds, userId, isTyping, millis }) {
+    const participants = [...new Set(participantIds || [])].filter(Boolean);
+    if (participants.length < 2 || !userId) return;
+
+    const partnerId = participants.find((id) => id !== userId);
+    if (!partnerId) return;
+
+    await setDoc(
+      doc(this.firestore, "users", partnerId, "chatPartners", userId),
+      {
+        partnerId: userId,
+        partnerIsTyping: Boolean(isTyping),
+        partnerTypingAtMillis: millis,
+      },
+      { merge: true }
+    );
+  }
+
   async setTypingStatus({
     roomId,
     roomIds,
@@ -271,11 +296,29 @@ export default class FirebaseChatService extends ChatRepository {
       payload.participants = participants;
     }
 
-    await Promise.allSettled(
+    const roomResults = await Promise.allSettled(
       targetRoomIds.map((chatRoomId) =>
         setDoc(doc(this.firestore, "chats", chatRoomId), payload, { merge: true })
       )
     );
+
+    const inboxResult = await Promise.allSettled([
+      this.syncPartnerTypingInbox({
+        participantIds: participants,
+        userId,
+        isTyping,
+        millis: now,
+      }),
+    ]);
+
+    const hadRoomWrite = roomResults.some((result) => result.status === "fulfilled");
+    const hadInboxWrite = inboxResult.some((result) => result.status === "fulfilled");
+    if (!hadRoomWrite && !hadInboxWrite) {
+      const firstError =
+        roomResults.find((result) => result.status === "rejected")?.reason ||
+        inboxResult.find((result) => result.status === "rejected")?.reason;
+      throw firstError || new Error("Failed to update typing status");
+    }
   }
 
   async markMessagesAsRead(roomId, readerId, messages) {
@@ -303,6 +346,141 @@ export default class FirebaseChatService extends ChatRepository {
     return this.sortMessages(
       snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))
     );
+  }
+
+  async fetchRecentMessagesForRoom(roomId, maxResults = 25) {
+    if (!roomId) return [];
+    try {
+      const snapshot = await getDocs(
+        query(
+          this.messagesCollection(roomId),
+          orderBy("timestampMillis", "desc"),
+          limit(maxResults)
+        )
+      );
+      return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+    } catch (error) {
+      const snapshot = await getDocs(this.messagesCollection(roomId));
+      return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+    }
+  }
+
+  async fetchRecentLegacyMessages({ conversationId, participantIds }) {
+    const messages = [];
+    if (conversationId) {
+      try {
+        const snapshot = await getDocs(
+          query(
+            this.legacyMessagesCollection(),
+            where("conversationId", "==", conversationId),
+            orderBy("timestampMillis", "desc"),
+            limit(25)
+          )
+        );
+        messages.push(...snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
+      } catch (error) {
+        const snapshot = await getDocs(
+          query(
+            this.legacyMessagesCollection(),
+            where("conversationId", "==", conversationId)
+          )
+        );
+        messages.push(...snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
+      }
+    }
+
+    const ids = [...new Set(participantIds || [])].filter(Boolean);
+    if (ids.length >= 2) {
+      const participantKey = [...ids].sort().join("|");
+      try {
+        const snapshot = await getDocs(
+          query(
+            this.legacyMessagesCollection(),
+            where("participantIds", "array-contains", ids[0]),
+            orderBy("timestampMillis", "desc"),
+            limit(50)
+          )
+        );
+        snapshot.docs.forEach((entry) => {
+          const message = { id: entry.id, ...entry.data() };
+          const messageIds = [...new Set(message.participantIds || [])].sort();
+          if (messageIds.join("|") === participantKey) {
+            messages.push(message);
+          }
+        });
+      } catch (error) {
+        // Participant-based legacy query is best-effort only.
+      }
+    }
+
+    return messages;
+  }
+
+  pickInboxPreviewMessage(messages, { myId, partnerId }) {
+    const sorted = this.sortMessages(
+      this.dedupeMessages(
+        (messages || []).map((message) => ({
+          ...message,
+          _source: message._source || "preview",
+        }))
+      )
+    );
+    if (!sorted.length) return null;
+
+    const partnerMessage = [...sorted].reverse().find((message) => message.senderId === partnerId);
+    return partnerMessage || sorted[sorted.length - 1];
+  }
+
+  async getInboxPreviewMessage({ myId, partnerId, entry = {} }) {
+    const trimmedPreview = String(entry.lastMessageText || "").trim();
+    if (trimmedPreview) {
+      return {
+        text: trimmedPreview,
+        senderId: entry.lastMessageSenderId || "",
+        timestampMillis: entry.lastMessageMillis || entry.updatedAtMillis || 0,
+      };
+    }
+
+    const conversationIds = getAllConversationIdsForParticipants(myId, partnerId);
+    let bestRoomPreview = null;
+
+    for (const roomId of conversationIds) {
+      const snapshot = await getDoc(doc(this.firestore, "chats", roomId));
+      if (!snapshot.exists()) continue;
+      const data = snapshot.data();
+      const text = String(data.lastMessageText || "").trim();
+      if (!text) continue;
+      const millis = data.lastMessageMillis || data.lastActiveMillis || data.lastActive || 0;
+      if (!bestRoomPreview || millis > bestRoomPreview.timestampMillis) {
+        bestRoomPreview = {
+          text,
+          senderId: data.lastMessageSenderId || "",
+          timestampMillis: millis,
+        };
+      }
+    }
+
+    if (bestRoomPreview) return bestRoomPreview;
+
+    const collected = [];
+    for (const roomId of conversationIds) {
+      const roomMessages = await this.fetchRecentMessagesForRoom(roomId);
+      collected.push(...roomMessages);
+      const legacyMessages = await this.fetchRecentLegacyMessages({
+        conversationId: roomId,
+        participantIds: [myId, partnerId],
+      });
+      collected.push(...legacyMessages);
+    }
+
+    const picked = this.pickInboxPreviewMessage(collected, { myId, partnerId });
+    if (!picked?.text) return null;
+
+    return {
+      text: String(picked.text).trim(),
+      senderId: picked.senderId || "",
+      timestampMillis: picked.timestampMillis || 0,
+    };
   }
 
   listenForMessages(roomId, onMessages, onError) {
@@ -449,6 +627,19 @@ export default class FirebaseChatService extends ChatRepository {
 
   listenToChatRoom(roomId, onRoomUpdate, onError) {
     return this.listenToChatRoomsMerged([roomId], onRoomUpdate, onError);
+  }
+
+  listenToPartnerTyping(userId, partnerId, onPartnerTyping, onError) {
+    return onSnapshot(
+      doc(this.firestore, "users", userId, "chatPartners", partnerId),
+      (snapshot) => {
+        onPartnerTyping(snapshot.exists() ? snapshot.data() : null);
+      },
+      (error) => {
+        console.error("Partner typing listener error:", error);
+        if (onError) onError(error);
+      }
+    );
   }
 
   listenToChatRoomsMerged(roomIds, onRoomUpdate, onError) {

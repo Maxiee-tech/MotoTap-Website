@@ -8,10 +8,20 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == userId;
 
       match /chatPartners/{partnerId} {
+        function isChatPartnerTypingUpdate() {
+          return request.auth != null
+            && (request.auth.uid == userId || request.auth.uid == partnerId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['partnerIsTyping', 'partnerTypingAtMillis', 'partnerId']);
+        }
+
         allow read: if request.auth != null && request.auth.uid == userId;
         allow create, update: if request.auth != null
           && (request.auth.uid == userId || request.auth.uid == partnerId)
-          && request.resource.data.partnerId == partnerId;
+          && (
+            request.resource.data.partnerId == partnerId
+            || isChatPartnerTypingUpdate()
+          );
         allow delete: if false;
       }
     }
@@ -74,7 +84,13 @@ service cloud.firestore {
       function isTypingStatusUpdate() {
         return uidInRoomId()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['typingStatus', 'lastActive', 'lastActiveMillis']);
+            .hasOnly([
+              'typingStatus',
+              'lastActive',
+              'lastActiveMillis',
+              'participants',
+              'participantNames'
+            ]);
       }
 
       allow create: if isIncomingChatParticipant();
