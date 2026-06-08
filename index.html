@@ -781,7 +781,8 @@
     #messages-section.active,
     #requests-section.active,
     #login-section.active,
-    #signup-section.active {
+    #signup-section.active,
+    #forgot-password-section.active {
       margin-top: 20px;
     }
 
@@ -942,7 +943,8 @@
     }
 
     #login-section.active,
-    #signup-section.active {
+    #signup-section.active,
+    #forgot-password-section.active {
       max-width: 480px;
       margin-left: auto;
       margin-right: auto;
@@ -1359,6 +1361,34 @@
       margin-bottom: 16px;
       text-align: center;
       min-height: 20px;
+    }
+
+    .auth-form-intro {
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .forgot-password-link {
+      display: block;
+      width: 100%;
+      margin: -4px 0 16px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: #ffb3b3;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: right;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .forgot-password-link:hover {
+      color: #fff;
     }
 
     .status-message {
@@ -2338,6 +2368,7 @@
     .page-footer {
       margin-top: 32px;
       padding: 28px 20px 32px;
+      scroll-margin-top: var(--header-offset);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(255, 255, 255, 0.02);
       border-radius: 20px;
@@ -2713,10 +2744,37 @@
             <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
           </button>
         </div>
+        <button type="button" class="forgot-password-link" id="forgot-password-link">
+          Forgot password?
+        </button>
       </div>
       <button class="btn-primary" id="login-btn">Sign In</button>
       <div class="divider">OR</div>
       <button class="btn-secondary" id="to-signup">Create Account</button>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="forgot-password-section" class="form-section">
+      <div class="panel-header">
+        <h3>Reset your password</h3>
+        <p class="auth-form-intro">
+          Enter the email you used for Moto Tap. If an account exists, we'll send a secure reset link.
+          Open the email, choose a new password, then return here to sign in.
+        </p>
+      </div>
+      <div class="error-message" id="forgot-password-error"></div>
+      <div class="status-message" id="forgot-password-status"></div>
+      <div class="form-group">
+        <input
+          type="email"
+          id="forgot-password-email"
+          placeholder="Email"
+          autocomplete="email"
+        />
+      </div>
+      <button class="btn-primary" id="forgot-password-submit-btn">Send reset link</button>
+      <div class="divider">OR</div>
+      <button class="btn-secondary" id="forgot-password-back-btn">Back to Sign In</button>
     </div>
 
     <!-- Signup Form -->

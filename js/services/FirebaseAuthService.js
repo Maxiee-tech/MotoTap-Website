@@ -2,6 +2,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
@@ -65,6 +66,26 @@ export default class FirebaseAuthService extends AuthRepository {
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.signUp error:", error);
+      return { success: false, error: this.mapError(error) };
+    }
+  }
+
+  async sendPasswordReset(email) {
+    const trimmed = String(email || "").trim();
+    if (!trimmed) {
+      return { success: false, error: "Please enter your email address." };
+    }
+
+    try {
+      await withTimeout(
+        sendPasswordResetEmail(this.auth, trimmed, {
+          url: `${window.location.origin}/`,
+          handleCodeInApp: false,
+        })
+      );
+      return { success: true };
+    } catch (error) {
+      console.error("FirebaseAuthService.sendPasswordReset error:", error);
       return { success: false, error: this.mapError(error) };
     }
   }
@@ -163,8 +184,12 @@ export default class FirebaseAuthService extends AuthRepository {
       case "auth/wrong-password":
       case "auth/user-not-found":
         return "Wrong Email or Password.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
       case "auth/email-already-in-use":
         return "This email is already registered.";
+      case "auth/too-many-requests":
+        return "Too many attempts. Please wait a few minutes and try again.";
       case "auth/network-request-failed":
         return "Network error. Please check your connection.";
       case "auth/weak-password":

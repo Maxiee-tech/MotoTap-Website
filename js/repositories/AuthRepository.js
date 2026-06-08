@@ -7,6 +7,10 @@ export default class AuthRepository {
     throw new Error("AuthRepository.signUp() not implemented.");
   }
 
+  async sendPasswordReset(email) {
+    throw new Error("AuthRepository.sendPasswordReset() not implemented.");
+  }
+
   async signOut() {
     throw new Error("AuthRepository.signOut() not implemented.");
   }

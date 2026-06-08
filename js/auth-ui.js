@@ -48,6 +48,7 @@ import { onAuthStateChanged } from "firebase/auth";
 const landingSection = document.getElementById("landing-section");
 const loginSection = document.getElementById("login-section");
 const signupSection = document.getElementById("signup-section");
+const forgotPasswordSection = document.getElementById("forgot-password-section");
 const dashboardSection = document.getElementById("dashboard");
 const driverDashboard = document.getElementById("driver-dashboard");
 const mechanicDashboard = document.getElementById("mechanic-dashboard");
@@ -112,6 +113,7 @@ function showWelcomeScreen() {
   landingSection.classList.remove("active");
   loginSection.classList.remove("active");
   signupSection.classList.remove("active");
+  forgotPasswordSection?.classList.remove("active");
   dashboardSection.classList.remove("active");
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
@@ -152,6 +154,7 @@ function hideAllSections() {
   landingSection.classList.remove("active");
   loginSection.classList.remove("active");
   signupSection.classList.remove("active");
+  forgotPasswordSection?.classList.remove("active");
   dashboardSection.classList.remove("active");
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
@@ -263,6 +266,47 @@ function renderRequestHistoryList() {
   }
   requestHistoryList.innerHTML =
     '<p class="request-history-empty">No past requests yet. Your submitted requests will show here.</p>';
+}
+
+function scrollToHomeContactsFooter() {
+  window.requestAnimationFrame(() => {
+    const footer =
+      document.getElementById("site-contacts-footer") ||
+      landingSection?.querySelector(".page-footer");
+    footer?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function showContactsFromMenu() {
+  closeMenu();
+  hideWelcomeScreen();
+  hideAllSections();
+  landingSection.classList.add("active");
+  setHomeMenuVisible(true);
+
+  if (auth.currentUser) {
+    const role = currentUserProfile?.role || "customer";
+    updateMenuProfile(role, auth.currentUser.email || "");
+    if (role === "mechanic") {
+      setLandingGuestViewVisible(true);
+      setLandingGuestActionsVisible(false);
+      driverDashboard.classList.remove("active");
+      dashboardSection.classList.remove("active");
+      mechanicDashboard.classList.remove("active");
+    } else {
+      setLandingGuestViewVisible(false);
+      setLandingGuestActionsVisible(false);
+      driverDashboard.classList.add("active");
+    }
+  } else {
+    setLandingGuestViewVisible(true);
+    setLandingGuestActionsVisible(true);
+    updateMenuProfile("Guest", "Not signed in");
+  }
+
+  refreshHomeReviews(auth, homeReviewsMount);
+  scheduleServiceCategoryCardBalance();
+  scrollToHomeContactsFooter();
 }
 
 function showHomePage() {
@@ -380,6 +424,12 @@ const menuDeleteBtn = document.getElementById("menu-delete-btn");
 
 const loginEmailInput = document.getElementById("login-email");
 const loginPasswordInput = document.getElementById("login-password");
+const forgotPasswordLink = document.getElementById("forgot-password-link");
+const forgotPasswordEmailInput = document.getElementById("forgot-password-email");
+const forgotPasswordSubmitBtn = document.getElementById("forgot-password-submit-btn");
+const forgotPasswordBackBtn = document.getElementById("forgot-password-back-btn");
+const forgotPasswordErrorDiv = document.getElementById("forgot-password-error");
+const forgotPasswordStatusDiv = document.getElementById("forgot-password-status");
 const signupNameInput = document.getElementById("signup-name");
 const signupEmailInput = document.getElementById("signup-email");
 const signupPasswordInput = document.getElementById("signup-password");
@@ -542,10 +592,29 @@ function showLoginForm() {
   loginSection.classList.add("active");
   loginErrorDiv.textContent = "";
   signupErrorDiv.textContent = "";
+  forgotPasswordErrorDiv.textContent = "";
+  forgotPasswordStatusDiv.textContent = "";
   bookStatus.textContent = "";
   bookError.textContent = "";
   mechanicStatus.textContent = "";
   mechanicError.textContent = "";
+}
+
+function showForgotPasswordForm(prefillEmail = "") {
+  hideWelcomeScreen();
+  closeMenu();
+  hideAllSections();
+  forgotPasswordSection?.classList.add("active");
+  loginErrorDiv.textContent = "";
+  signupErrorDiv.textContent = "";
+  forgotPasswordErrorDiv.textContent = "";
+  forgotPasswordStatusDiv.textContent = "";
+
+  const email = prefillEmail || loginEmailInput?.value?.trim() || "";
+  if (forgotPasswordEmailInput) {
+    forgotPasswordEmailInput.value = email;
+  }
+  forgotPasswordEmailInput?.focus();
 }
 
 function showSignupForm() {
@@ -1955,6 +2024,44 @@ toLoginBtn.addEventListener("click", (e) => {
   showLoginForm();
 });
 
+forgotPasswordLink?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showForgotPasswordForm(loginEmailInput?.value?.trim() || "");
+});
+
+forgotPasswordBackBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showLoginForm();
+});
+
+forgotPasswordSubmitBtn?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  forgotPasswordErrorDiv.textContent = "";
+  forgotPasswordStatusDiv.textContent = "";
+
+  const email = forgotPasswordEmailInput?.value?.trim() || "";
+  if (!email) {
+    forgotPasswordErrorDiv.textContent = "Please enter your email address.";
+    return;
+  }
+
+  forgotPasswordSubmitBtn.disabled = true;
+  forgotPasswordSubmitBtn.textContent = "Sending…";
+
+  const result = await authService.sendPasswordReset(email);
+
+  forgotPasswordSubmitBtn.disabled = false;
+  forgotPasswordSubmitBtn.textContent = "Send reset link";
+
+  if (!result.success) {
+    forgotPasswordErrorDiv.textContent = result.error || "Unable to send reset email.";
+    return;
+  }
+
+  forgotPasswordStatusDiv.textContent =
+    "If an account exists for that email, a reset link has been sent. Check your inbox and spam folder, then sign in with your new password.";
+});
+
 loginBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   loginErrorDiv.textContent = "";
@@ -2032,9 +2139,7 @@ document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
   showWelcomeScreen();
 });
 
-menuContactsBtn?.addEventListener("click", () => {
-  alert("Contacts are coming soon. Stay tuned for driver and mechanic support.");
-});
+menuContactsBtn?.addEventListener("click", showContactsFromMenu);
 
 menuSettingsBtn?.addEventListener("click", () => {
   alert("Settings will be available soon in the dashboard.");
@@ -2220,12 +2325,23 @@ function mountPageFooters() {
   const template = document.getElementById("page-footer-template");
   if (!template) return;
 
-  [landingSection, requestsSection].forEach((section) => {
+  [landingSection, requestsSection, messagesSection].forEach((section) => {
     if (!section || section.querySelector(".page-footer")) return;
-    section.appendChild(template.content.cloneNode(true));
+
+    const fragment = template.content.cloneNode(true);
+    const footer = fragment.querySelector(".page-footer");
+    if (!footer) return;
+
+    if (section === landingSection) {
+      footer.id = "site-contacts-footer";
+    }
+
+    section.appendChild(footer);
   });
 
   document.querySelectorAll(".page-footer-social-link.is-placeholder").forEach((link) => {
+    if (link.dataset.placeholderBound === "1") return;
+    link.dataset.placeholderBound = "1";
     link.addEventListener("click", (event) => {
       event.preventDefault();
     });
