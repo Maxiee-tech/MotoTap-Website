@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase.js";
 import AuthRepository from "../repositories/AuthRepository.js";
+import { normalizeUserRole } from "../utils/geo.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -56,7 +57,7 @@ export default class FirebaseAuthService extends AuthRepository {
         uid: userId,
         name,
         email,
-        role: role.toLowerCase().trim(),
+        role: normalizeUserRole(role),
         phoneNumber: phoneNumber || "",
         skills: [],
       };
@@ -106,7 +107,7 @@ export default class FirebaseAuthService extends AuthRepository {
         getDoc(doc(collection(this.firestore, "users"), userId))
       );
       if (!docSnap.exists()) return null;
-      return docSnap.data().role?.toLowerCase().trim() || null;
+      return normalizeUserRole(docSnap.data().role);
     } catch (error) {
       console.error("FirebaseAuthService.getUserRole error:", error);
       return null;
@@ -124,10 +125,7 @@ export default class FirebaseAuthService extends AuthRepository {
         id: userId,
         name: data.name || "",
         phone: data.phoneNumber || "",
-        role:
-          String(data.role || "").trim().toLowerCase() === "mechanic"
-            ? "mechanic"
-            : "customer",
+        role: normalizeUserRole(data.role),
         skills: data.skills || [],
         isAdmin: data.isAdmin === true,
       };

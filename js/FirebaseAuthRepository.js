@@ -12,6 +12,7 @@ import {
   getDoc,
   deleteDoc,
 } from "firebase/firestore";
+import { normalizeUserRole } from "./utils/geo.js";
 
 class FirebaseAuthRepository {
   constructor(auth, firestore) {
@@ -44,7 +45,7 @@ class FirebaseAuthRepository {
         uid: userId,
         name: name,
         email: email,
-        role: role.toLowerCase().trim(),
+        role: normalizeUserRole(role),
         phoneNumber: phoneNumber || null,
       };
 
@@ -72,8 +73,7 @@ class FirebaseAuthRepository {
       const usersCollection = collection(this.firestore, "users");
       const docSnap = await getDoc(doc(usersCollection, userId));
       if (!docSnap.exists()) return null;
-      const role = docSnap.data().role;
-      return role ? role.toLowerCase().trim() : null;
+      return normalizeUserRole(docSnap.data().role);
     } catch (error) {
       console.error("Get user role error:", error.message);
       return null;
@@ -91,10 +91,7 @@ class FirebaseAuthRepository {
         id: userId,
         name: data.name || "",
         phone: data.phoneNumber || "",
-        role:
-          String(data.role || "").trim().toLowerCase() === "mechanic"
-            ? "mechanic"
-            : "customer",
+        role: normalizeUserRole(data.role),
         skills: data.skills || [],
       };
     } catch (error) {

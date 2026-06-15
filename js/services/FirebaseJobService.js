@@ -9,9 +9,11 @@ import {
   where,
   orderBy,
   getDocs,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../firebase.js";
 import JobRepository from "../repositories/JobRepository.js";
+import { OPEN_JOB_STATUSES } from "../utils/jobSync.js";
 
 export const JobStatus = {
   REQUESTED: "REQUESTED",
@@ -67,19 +69,21 @@ export default class FirebaseJobService extends JobRepository {
       price = locationLabelOrPrice;
     }
 
+    const issueType = serviceName;
+
     try {
       const docRef = await addDoc(collection(this.firestore, "jobs"), {
         driverId,
         mechanicId: mechanicId || null,
-        serviceCategory,
-        serviceName,
-        issueType: serviceName,
+        issueType,
         description,
         locationLabel,
         status: JobStatus.REQUESTED,
         price,
-        loyaltyPointsStarted: Boolean(mechanicId),
         createdAtMillis: Date.now(),
+        ...(serviceCategory ? { serviceCategory } : {}),
+        ...(issueType ? { serviceName: issueType } : {}),
+        ...(mechanicId ? { loyaltyPointsStarted: true } : {}),
       });
       return docRef.id;
     } catch (error) {
@@ -106,6 +110,94 @@ export default class FirebaseJobService extends JobRepository {
     }
     const snapshot = await getDocs(q);
     return snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }));
+  }
+
+  async listJobs(filter = {}) {
+    const constraints = [];
+    if (filter.driverId) constraints.push(where("driverId", "==", filter.driverId));
+    if (filter.mechanicId) constraints.push(where("mechanicId", "==", filter.mechanicId));
+    if (filter.status) constraints.push(where("status", "==", filter.status));
+
+    const collectionRef = collection(this.firestore, "jobs");
+    const q = constraints.length
+      ? query(collectionRef, ...constraints)
+      : query(collectionRef, orderBy("createdAtMillis", "desc"));
+
+    const snapshot = await getDocs(q);
+    const jobs = snapshot.docs.map((docItem) => ({
+      id: docItem.id,
+      ...docItem.data(),
+    }));
+
+    if (constraints.length) {
+      jobs.sort(
+        (a, b) => (b.createdAtMillis || 0) - (a.createdAtMillis || 0)
+      );
+    }
+
+    return jobs;
+  }
+
+  mapSnapshotToJobs(snapshot) {
+    return snapshot.docs.map((docItem) => ({
+      id: docItem.id,
+      ...docItem.data(),
+    }));
+  }
+
+  /** Real-time open jobs — matches Android observeOpenJobs() */
+  subscribeOpenJobs(onChange, onError) {
+    const jobsRef = collection(this.firestore, "jobs");
+    const q = query(
+      jobsRef,
+      where("status", "in", OPEN_JOB_STATUSES),
+      orderBy("createdAtMillis", "desc")
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => onChange(this.mapSnapshotToJobs(snapshot)),
+      (error) => {
+        console.error("Open jobs listener error:", error);
+        onError?.(error);
+      }
+    );
+  }
+
+  /** Real-time driver history — matches Android observeDriverJobs() */
+  subscribeDriverJobs(driverId, onChange, onError) {
+    const q = query(
+      collection(this.firestore, "jobs"),
+      where("driverId", "==", driverId),
+      orderBy("createdAtMillis", "desc")
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => onChange(this.mapSnapshotToJobs(snapshot)),
+      (error) => {
+        console.error("Driver jobs listener error:", error);
+        onError?.(error);
+      }
+    );
+  }
+
+  /** Real-time mechanic assigned jobs (request history) */
+  subscribeMechanicJobs(mechanicId, onChange, onError) {
+    const q = query(
+      collection(this.firestore, "jobs"),
+      where("mechanicId", "==", mechanicId),
+      orderBy("createdAtMillis", "desc")
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => onChange(this.mapSnapshotToJobs(snapshot)),
+      (error) => {
+        console.error("Mechanic jobs listener error:", error);
+        onError?.(error);
+      }
+    );
   }
 
   async updateJobRequest(jobId, updates) {

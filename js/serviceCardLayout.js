@@ -18,6 +18,7 @@ export function createServiceCategoryCardShell(category) {
   icon.setAttribute("aria-hidden", "true");
 
   const title = document.createElement("h3");
+  title.className = "service-category-title";
   title.textContent = category.name;
 
   header.appendChild(icon);

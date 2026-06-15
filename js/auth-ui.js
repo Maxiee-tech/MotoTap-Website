@@ -5,6 +5,14 @@ import FirebaseJobService from "./services/FirebaseJobService.js";
 import FirebaseChatService from "./services/FirebaseChatService.js";
 import FirebaseServiceCatalogService from "./services/FirebaseServiceCatalogService.js";
 import {
+  filterDriverHistoryJobs,
+  filterMechanicAvailableJobs,
+  filterMechanicHistoryJobs,
+  getJobIssueType,
+  normalizeJob,
+  sortJobsNewestFirst,
+} from "./utils/jobSync.js";
+import {
   distanceMeters,
   formatDistanceMeters,
   buildDriverMechanicConversationId,
@@ -12,6 +20,7 @@ import {
   getMechanicPosition,
   isMechanicRole,
   mechanicOffersService,
+  normalizeUserRole,
 } from "./utils/geo.js";
 import {
   loadGoogleMapsScript,
@@ -36,11 +45,7 @@ import {
   setupServiceCardResizeListener,
 } from "./serviceCardLayout.js";
 import PasswordValidator from "./PasswordValidator.js";
-import {
-  initHomeReviews,
-  refreshHomeReviews,
-  setPendingReviewAfterAuth,
-} from "./homeReviews.js";
+import { appendDriverJobReviewSection } from "./jobReviewUi.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
 import { onAuthStateChanged } from "firebase/auth";
@@ -54,13 +59,12 @@ const driverDashboard = document.getElementById("driver-dashboard");
 const mechanicDashboard = document.getElementById("mechanic-dashboard");
 const messagesSection = document.getElementById("messages-section");
 const requestsSection = document.getElementById("requests-section");
+const aboutSection = document.getElementById("about-section");
 const mechanicMapSection = document.getElementById("mechanic-map-section");
 const requestsDriverIntro = document.getElementById("requests-driver-intro");
 const requestsMechanicIntro = document.getElementById("requests-mechanic-intro");
 const requestHistoryList = document.getElementById("request-history-list");
 const landingGuestView = document.getElementById("landing-guest-view");
-const landingGuestActions = document.getElementById("landing-guest-actions");
-const homeReviewsMount = document.getElementById("home-reviews-mount");
 const landingHero = document.getElementById("landing-hero");
 const welcomeScreen = document.getElementById("welcome-screen");
 const mainNavbar = document.getElementById("main-navbar");
@@ -70,25 +74,6 @@ const menuOverlay = document.getElementById("menu-overlay");
 const menuToggle = document.getElementById("menu-toggle");
 const homeMenuBtn = document.getElementById("home-menu-btn");
 const logoButton = document.getElementById("logo-button");
-
-const WELCOME_DURATION_MS = 3000;
-let welcomeDismissTimer = null;
-
-function clearWelcomeDismissTimer() {
-  if (welcomeDismissTimer) {
-    clearTimeout(welcomeDismissTimer);
-    welcomeDismissTimer = null;
-  }
-}
-
-function scheduleWelcomeDismiss() {
-  clearWelcomeDismissTimer();
-  welcomeDismissTimer = setTimeout(() => {
-    if (welcomeScreen && !welcomeScreen.classList.contains("hidden")) {
-      showHomePage();
-    }
-  }, WELCOME_DURATION_MS);
-}
 
 function closeMenu() {
   menuPanel.classList.remove("open");
@@ -117,11 +102,11 @@ function showWelcomeScreen() {
   dashboardSection.classList.remove("active");
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
-  scheduleWelcomeDismiss();
+  aboutSection?.classList.remove("active");
+  updateNavActiveState(null);
 }
 
 function hideWelcomeScreen() {
-  clearWelcomeDismissTimer();
   document.body.classList.remove("welcome-active");
   welcomeScreen.classList.add("hidden");
   if (mainNavbar) {
@@ -151,6 +136,7 @@ function setMechanicMapPageLayout(active) {
 }
 
 function hideAllSections() {
+  document.body.classList.remove("auth-screen-active");
   landingSection.classList.remove("active");
   loginSection.classList.remove("active");
   signupSection.classList.remove("active");
@@ -158,12 +144,31 @@ function hideAllSections() {
   dashboardSection.classList.remove("active");
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
+  aboutSection?.classList.remove("active");
   mechanicMapSection?.classList.remove("active");
   driverDashboard.classList.remove("active");
   mechanicDashboard.classList.remove("active");
   clearMapMatchNotification();
   setMechanicMapPageLayout(false);
   setHomeMenuVisible(false);
+}
+
+const NAV_ACTIVE_MAP = {
+  home: ["nav-home", "nav-home-2", "nav-home-old"],
+  requests: ["nav-requests", "nav-requests-2", "nav-requests-old"],
+  messages: ["nav-messages", "nav-messages-2", "nav-messages-old"],
+  auth: ["nav-signup", "nav-signup-2", "nav-signup-old"],
+};
+
+function updateNavActiveState(section) {
+  const allIds = Object.values(NAV_ACTIVE_MAP).flat();
+  allIds.forEach((id) => {
+    document.getElementById(id)?.classList.remove("is-nav-active");
+  });
+  if (!section) return;
+  (NAV_ACTIVE_MAP[section] || []).forEach((id) => {
+    document.getElementById(id)?.classList.add("is-nav-active");
+  });
 }
 
 function showMapNotification(message) {
@@ -251,12 +256,6 @@ function setLandingGuestViewVisible(visible) {
   }
 }
 
-function setLandingGuestActionsVisible(visible) {
-  if (landingGuestActions) {
-    landingGuestActions.classList.toggle("hidden", !visible);
-  }
-}
-
 function renderRequestHistoryList() {
   if (!requestHistoryList) return;
   if (!auth.currentUser) {
@@ -264,8 +263,188 @@ function renderRequestHistoryList() {
       "<p>Sign in to submit a request and view your request history here.</p>";
     return;
   }
+
   requestHistoryList.innerHTML =
-    '<p class="request-history-empty">No past requests yet. Your submitted requests will show here.</p>';
+    '<p class="request-history-empty">Loading request history…</p>';
+  startJobSync();
+}
+
+function formatJobStatus(status) {
+  const labels = {
+    REQUESTED: "Requested",
+    MATCHING: "Matching",
+    ASSIGNED: "Assigned",
+    IN_PROGRESS: "In progress",
+    COMPLETED: "Completed",
+    PAID: "Paid",
+    CLOSED: "Closed",
+  };
+  return labels[status] || status || "Unknown";
+}
+
+function formatJobCreatedAt(createdAtMillis) {
+  if (!createdAtMillis) return "";
+  return new Date(createdAtMillis).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function buildJobCard(job, { includeStatus = false, actionButton = null, role = null } = {}) {
+  const normalized = normalizeJob(job);
+  const card = document.createElement("article");
+  card.className = "job-card";
+
+  const title = document.createElement("h4");
+  const issueType = getJobIssueType(normalized);
+  title.textContent = normalized.serviceCategory
+    ? `${issueType} - ${normalized.serviceCategory}`
+    : issueType;
+  card.appendChild(title);
+
+  if (includeStatus) {
+    const status = document.createElement("p");
+    status.className = "job-card-status";
+    status.textContent = `Status: ${formatJobStatus(normalized.status)}`;
+    card.appendChild(status);
+  }
+
+  const createdAt = document.createElement("p");
+  const when = formatJobCreatedAt(normalized.createdAtMillis);
+  if (when) {
+    createdAt.textContent = `Submitted: ${when}`;
+    card.appendChild(createdAt);
+  }
+
+  const location = document.createElement("p");
+  location.textContent = `Location: ${normalized.locationLabel || "Not provided"}`;
+  card.appendChild(location);
+
+  const description = document.createElement("p");
+  description.textContent = `Details: ${normalized.description || "No additional details"}`;
+  card.appendChild(description);
+
+  const price = document.createElement("p");
+  price.textContent = `Offered Price: KSh ${normalized.price ?? 0}`;
+  card.appendChild(price);
+
+  if (actionButton) {
+    card.appendChild(actionButton);
+  }
+
+  if (role === "driver") {
+    appendDriverJobReviewSection(card, normalized);
+  }
+
+  return card;
+}
+
+function paintRequestHistory(jobs, role) {
+  if (!requestHistoryList) return;
+
+  const sorted = sortJobsNewestFirst(jobs);
+  if (!sorted.length) {
+    const emptyMsg =
+      role === "mechanic"
+        ? "No accepted jobs yet. Jobs you accept in the app or on the web will appear here."
+        : "No past requests yet. Your submitted requests will show here.";
+    requestHistoryList.innerHTML = `<p class="request-history-empty">${emptyMsg}</p>`;
+    return;
+  }
+
+  requestHistoryList.innerHTML = "";
+  sorted.forEach((job) => {
+    requestHistoryList.appendChild(buildJobCard(job, { includeStatus: true, role }));
+  });
+}
+
+function paintAvailableJobs(jobs) {
+  if (!availableJobsList || !currentUserProfile || currentUserProfile.role !== "mechanic") {
+    return;
+  }
+
+  const availableJobs = filterMechanicAvailableJobs(jobs, currentUserProfile);
+  jobsStatus.textContent = "";
+
+  if (!availableJobs.length) {
+    showNoCurrentJobsAvailable();
+    return;
+  }
+
+  availableJobsList.innerHTML = "";
+  sortJobsNewestFirst(availableJobs).forEach((job) => {
+    const acceptBtn = document.createElement("button");
+    acceptBtn.className = "btn-secondary";
+    acceptBtn.textContent = job.mechanicId ? "Confirm Job" : "Accept Job";
+    acceptBtn.addEventListener("click", async () => {
+      try {
+        await jobService.acceptJob(job.id, currentUserProfile.id);
+        jobsStatus.textContent = "Job accepted successfully!";
+      } catch (error) {
+        console.error("Error accepting job:", error);
+        jobsStatus.textContent = "Error accepting job. Please try again.";
+      }
+    });
+
+    availableJobsList.appendChild(buildJobCard(job, { actionButton: acceptBtn }));
+  });
+}
+
+let openJobsUnsubscribe = null;
+let requestHistoryUnsubscribe = null;
+
+function stopJobSync() {
+  openJobsUnsubscribe?.();
+  openJobsUnsubscribe = null;
+  requestHistoryUnsubscribe?.();
+  requestHistoryUnsubscribe = null;
+}
+
+function startJobSync() {
+  stopJobSync();
+
+  if (!auth.currentUser || !currentUserProfile) return;
+
+  const role = normalizeUserRole(currentUserProfile.role);
+  const uid = auth.currentUser.uid;
+
+  if (role === "mechanic") {
+    if (availableJobsList) {
+      jobsStatus.textContent = "Loading available jobs...";
+    }
+
+    openJobsUnsubscribe = jobService.subscribeOpenJobs(
+      (jobs) => paintAvailableJobs(jobs),
+      () => showNoCurrentJobsAvailable()
+    );
+
+    requestHistoryUnsubscribe = jobService.subscribeMechanicJobs(
+      uid,
+      (jobs) =>
+        paintRequestHistory(
+          filterMechanicHistoryJobs(jobs, uid),
+          "mechanic"
+        ),
+      () => {
+        if (requestHistoryList) {
+          requestHistoryList.innerHTML =
+            '<p class="request-history-empty">Unable to load request history. Please try again.</p>';
+        }
+      }
+    );
+    return;
+  }
+
+  requestHistoryUnsubscribe = jobService.subscribeDriverJobs(
+    uid,
+    (jobs) => paintRequestHistory(filterDriverHistoryJobs(jobs), "driver"),
+    () => {
+      if (requestHistoryList) {
+        requestHistoryList.innerHTML =
+          '<p class="request-history-empty">Unable to load request history. Please try again.</p>';
+      }
+    }
+  );
 }
 
 function scrollToHomeContactsFooter() {
@@ -285,28 +464,45 @@ function showContactsFromMenu() {
   setHomeMenuVisible(true);
 
   if (auth.currentUser) {
-    const role = currentUserProfile?.role || "customer";
+    const role = normalizeUserRole(currentUserProfile?.role);
     updateMenuProfile(role, auth.currentUser.email || "");
     if (role === "mechanic") {
       setLandingGuestViewVisible(true);
-      setLandingGuestActionsVisible(false);
       driverDashboard.classList.remove("active");
       dashboardSection.classList.remove("active");
       mechanicDashboard.classList.remove("active");
     } else {
       setLandingGuestViewVisible(false);
-      setLandingGuestActionsVisible(false);
       driverDashboard.classList.add("active");
     }
   } else {
     setLandingGuestViewVisible(true);
-    setLandingGuestActionsVisible(true);
     updateMenuProfile("Guest", "Not signed in");
   }
 
-  refreshHomeReviews(auth, homeReviewsMount);
   scheduleServiceCategoryCardBalance();
+  updateNavActiveState("home");
   scrollToHomeContactsFooter();
+}
+
+function showAboutFromMenu() {
+  closeMenu();
+  hideWelcomeScreen();
+  hideAllSections();
+  aboutSection?.classList.add("active");
+  setHomeMenuVisible(true);
+  updateNavActiveState(null);
+
+  if (auth.currentUser) {
+    const role = normalizeUserRole(currentUserProfile?.role);
+    updateMenuProfile(role, auth.currentUser.email || "");
+  } else {
+    updateMenuProfile("Guest", "Not signed in");
+  }
+
+  window.requestAnimationFrame(() => {
+    aboutSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function showHomePage() {
@@ -314,29 +510,27 @@ function showHomePage() {
   closeMenu();
   hideAllSections();
   if (auth.currentUser) {
-    const role = currentUserProfile?.role || "customer";
+    const role = normalizeUserRole(currentUserProfile?.role);
     updateMenuProfile(role, auth.currentUser.email || "");
     if (role === "mechanic") {
       setHomeMenuVisible(true);
       dashboardSection.classList.add("active");
       mechanicDashboard.classList.add("active");
-      renderAvailableJobs();
+      startJobSync();
     } else {
       landingSection.classList.add("active");
       setLandingGuestViewVisible(false);
-      setLandingGuestActionsVisible(false);
       driverDashboard.classList.add("active");
       setHomeMenuVisible(true);
     }
   } else {
     landingSection.classList.add("active");
     setLandingGuestViewVisible(true);
-    setLandingGuestActionsVisible(true);
     setHomeMenuVisible(true);
     updateMenuProfile("Guest", "Not signed in");
   }
-  refreshHomeReviews(auth, homeReviewsMount);
   scheduleServiceCategoryCardBalance();
+  updateNavActiveState("home");
 }
 
 menuToggle?.addEventListener("click", toggleMenu);
@@ -413,11 +607,10 @@ const toSignupBtn = document.getElementById("to-signup");
 const toLoginBtn = document.getElementById("to-login");
 const landingToLoginBtn = document.getElementById("landing-to-login");
 const landingToSignupBtn = document.getElementById("landing-to-signup");
-const landingToLoginSecondaryBtn = document.getElementById("landing-to-login-secondary");
-const landingToSignupSecondaryBtn = document.getElementById("landing-to-signup-secondary");
 const menuUserRole = document.getElementById("menu-user-role");
 const menuUserEmail = document.getElementById("menu-user-email");
 const menuContactsBtn = document.getElementById("menu-contacts-btn");
+const menuAboutBtn = document.getElementById("menu-about-btn");
 const menuSettingsBtn = document.getElementById("menu-settings-btn");
 const menuLogoutBtn = document.getElementById("menu-logout-btn");
 const menuDeleteBtn = document.getElementById("menu-delete-btn");
@@ -558,7 +751,7 @@ function clearPendingServiceSelection() {
 function resumePendingServiceAfterAuth() {
   if (!pendingServiceSelection || !auth.currentUser) return false;
 
-  const role = currentUserProfile?.role || "customer";
+  const role = normalizeUserRole(currentUserProfile?.role);
   if (role === "mechanic") {
     clearPendingServiceSelection();
     return false;
@@ -589,6 +782,7 @@ function showLoginForm() {
   hideWelcomeScreen();
   closeMenu();
   hideAllSections();
+  document.body.classList.add("auth-screen-active");
   loginSection.classList.add("active");
   loginErrorDiv.textContent = "";
   signupErrorDiv.textContent = "";
@@ -598,6 +792,7 @@ function showLoginForm() {
   bookError.textContent = "";
   mechanicStatus.textContent = "";
   mechanicError.textContent = "";
+  updateNavActiveState("auth");
 }
 
 function showForgotPasswordForm(prefillEmail = "") {
@@ -615,17 +810,20 @@ function showForgotPasswordForm(prefillEmail = "") {
     forgotPasswordEmailInput.value = email;
   }
   forgotPasswordEmailInput?.focus();
+  updateNavActiveState("auth");
 }
 
 function showSignupForm() {
   hideWelcomeScreen();
   closeMenu();
   hideAllSections();
+  document.body.classList.add("auth-screen-active");
   signupSection.classList.add("active");
   bookStatus.textContent = "";
   bookError.textContent = "";
   mechanicStatus.textContent = "";
   mechanicError.textContent = "";
+  updateNavActiveState("auth");
 }
 
 
@@ -641,7 +839,7 @@ function showDashboard(role, email) {
 }
 
 function updateMessagesIntro() {
-  const role = currentUserProfile?.role || "customer";
+  const role = normalizeUserRole(currentUserProfile?.role);
   const isMechanic = auth.currentUser && role === "mechanic";
 
   messagesDriverIntro?.classList.toggle("hidden", isMechanic);
@@ -659,6 +857,7 @@ function showMessagesPage() {
   if (!activeChatConversationId) {
     showMessagesInbox();
   }
+  updateNavActiveState("messages");
 }
 
 function stopChatInboxListener() {
@@ -828,7 +1027,7 @@ function showRequestsPage() {
   requestsSection.classList.add("active");
   renderRequestHistoryList();
 
-  const role = currentUserProfile?.role || "customer";
+  const role = normalizeUserRole(currentUserProfile?.role);
   const isMechanic = auth.currentUser && role === "mechanic";
 
   if (requestsDriverIntro) {
@@ -841,6 +1040,7 @@ function showRequestsPage() {
   if (auth.currentUser) {
     updateMenuProfile(role, auth.currentUser.email || "");
   }
+  updateNavActiveState("requests");
 }
 
 function updateMenuProfile(role, email) {
@@ -1859,73 +2059,6 @@ function showNoCurrentJobsAvailable() {
   availableJobsList.appendChild(noJobsMsg);
 }
 
-async function renderAvailableJobs() {
-  if (!currentUserProfile || currentUserProfile.role !== "mechanic") {
-    return;
-  }
-
-  availableJobsList.innerHTML = "";
-  jobsStatus.textContent = "Loading available jobs...";
-
-  try {
-    // Get jobs that match the mechanic's skills and are in REQUESTED status
-    const mechanicSkills = new Set(currentUserProfile.skills || []);
-    const allJobs = await jobService.listJobRequests({ status: "REQUESTED" });
-    
-    const availableJobs = allJobs.filter(job => 
-      mechanicSkills.has(job.serviceName)
-    );
-
-    if (availableJobs.length === 0) {
-      showNoCurrentJobsAvailable();
-      return;
-    }
-
-    jobsStatus.textContent = "";
-
-    availableJobs.forEach((job) => {
-      const jobCard = document.createElement("div");
-      jobCard.className = "job-card";
-
-      const title = document.createElement("h4");
-      title.textContent = `${job.serviceName} - ${job.serviceCategory}`;
-      jobCard.appendChild(title);
-
-      const location = document.createElement("p");
-      location.textContent = `Location: ${job.locationLabel}`;
-      jobCard.appendChild(location);
-
-      const description = document.createElement("p");
-      description.textContent = `Details: ${job.description}`;
-      jobCard.appendChild(description);
-
-      const price = document.createElement("p");
-      price.textContent = `Offered Price: KSh ${job.suggestedPrice}`;
-      jobCard.appendChild(price);
-
-      const acceptBtn = document.createElement("button");
-      acceptBtn.className = "btn-secondary";
-      acceptBtn.textContent = "Accept Job";
-      acceptBtn.addEventListener("click", async () => {
-        try {
-          await jobService.acceptJob(job.id, currentUserProfile.id);
-          jobsStatus.textContent = "Job accepted successfully!";
-          await renderAvailableJobs(); // Refresh the list
-        } catch (error) {
-          console.error("Error accepting job:", error);
-          jobsStatus.textContent = "Error accepting job. Please try again.";
-        }
-      });
-      jobCard.appendChild(acceptBtn);
-
-      availableJobsList.appendChild(jobCard);
-    });
-  } catch (error) {
-    console.error("Error loading available jobs:", error);
-    showNoCurrentJobsAvailable();
-  }
-}
-
 function renderCatalogFromLocal() {
   serviceCategories = SERVICE_CATEGORIES;
   renderServiceCategories();
@@ -1950,6 +2083,7 @@ function syncCatalogToFirestoreInBackground() {
 async function loadUserProfile(user) {
   if (!user) {
     currentUserProfile = null;
+    stopJobSync();
     return;
   }
 
@@ -1958,14 +2092,14 @@ async function loadUserProfile(user) {
     currentUserProfile = {
       id: user.uid,
       name: user.email || "",
-      role: "customer",
+      role: "driver",
       skills: [],
       isAdmin: false,
     };
   }
 
   renderMechanicServiceSelection();
-  renderAvailableJobs();
+  startJobSync();
   syncCatalogToFirestoreInBackground();
 }
 
@@ -1992,7 +2126,7 @@ async function handleMechanicSaveServices() {
     mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s).`;
     mechanicError.textContent = "";
     currentUserProfile.skills = selectedSkills;
-    await renderAvailableJobs(); // Refresh available jobs after skills update
+    startJobSync();
   } catch (error) {
     mechanicError.textContent = `Unable to save services: ${error.message}`;
   } finally {
@@ -2124,14 +2258,9 @@ landingToSignupBtn?.addEventListener("click", (e) => {
   showSignupForm();
 });
 
-landingToLoginSecondaryBtn?.addEventListener("click", (e) => {
+document.getElementById("welcome-get-started")?.addEventListener("click", (e) => {
   e.preventDefault();
-  showLoginForm();
-});
-
-landingToSignupSecondaryBtn?.addEventListener("click", (e) => {
-  e.preventDefault();
-  showSignupForm();
+  showHomePage();
 });
 
 document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
@@ -2140,6 +2269,8 @@ document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
 });
 
 menuContactsBtn?.addEventListener("click", showContactsFromMenu);
+
+menuAboutBtn?.addEventListener("click", showAboutFromMenu);
 
 menuSettingsBtn?.addEventListener("click", () => {
   alert("Settings will be available soon in the dashboard.");
@@ -2297,26 +2428,18 @@ initPasswordToggles();
 
 saveServicesBtn.addEventListener("click", handleMechanicSaveServices);
 
-homeReviewsMount?.addEventListener("home-review-request-sign-in", () => {
-  setPendingReviewAfterAuth(true);
-  showLoginForm();
-});
-
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     wasLoggedIn = true;
-    clearWelcomeDismissTimer();
     await loadUserProfile(user);
-    await refreshHomeReviews(auth, homeReviewsMount);
     if (!resumePendingServiceAfterAuth()) {
       showHomePage();
     }
   } else if (wasLoggedIn) {
     clearPendingServiceSelection();
+    stopJobSync();
     showHomePage();
     wasLoggedIn = false;
-  } else {
-    await refreshHomeReviews(auth, homeReviewsMount);
   }
   updateNavAuthButton();
 });
@@ -2325,7 +2448,7 @@ function mountPageFooters() {
   const template = document.getElementById("page-footer-template");
   if (!template) return;
 
-  [landingSection, requestsSection, messagesSection].forEach((section) => {
+  [landingSection, dashboardSection, requestsSection, messagesSection, aboutSection].forEach((section) => {
     if (!section || section.querySelector(".page-footer")) return;
 
     const fragment = template.content.cloneNode(true);
@@ -2348,13 +2471,9 @@ function mountPageFooters() {
   });
 }
 
-initHomeReviews(auth, homeReviewsMount);
 mountPageFooters();
 renderCatalogFromLocal();
 updateNavAuthButton();
 setupServiceCardResizeListener();
 scheduleServiceCategoryCardBalance();
 syncCatalogToFirestoreInBackground();
-
-// First visit: welcome splash for 3 seconds, then HOME
-scheduleWelcomeDismiss();

@@ -79,6 +79,13 @@ export function isMechanicRole(role) {
   return String(role || "").trim().toLowerCase() === "mechanic";
 }
 
+/** Driver and legacy customer roles are equivalent; default non-mechanic users to driver. */
+export function normalizeUserRole(role) {
+  const value = String(role || "").trim().toLowerCase();
+  if (value === "mechanic") return "mechanic";
+  return "driver";
+}
+
 /** Match mechanic skills to catalog service names (exact or case-insensitive). */
 export function mechanicOffersService(mechanic, serviceName) {
   const target = String(serviceName || "").trim();

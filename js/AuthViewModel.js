@@ -8,7 +8,7 @@ class AuthViewModel {
     this.password = "";
     this.name = "";
     this.phoneNumber = "";
-    this.role = "customer"; // Default
+    this.role = "driver"; // Default
     this.stateChangeListeners = [];
   }
 
@@ -113,7 +113,7 @@ class AuthViewModel {
     this.password = "";
     this.name = "";
     this.phoneNumber = "";
-    this.role = "customer";
+    this.role = "driver";
     this.notifyStateChange();
   }
 

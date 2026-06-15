@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function validUserRole(role) {
-      return role in ['customer', 'mechanic', 'driver', 'CUSTOMER', 'MECHANIC', 'DRIVER'];
+      return role in ['mechanic', 'driver', 'MECHANIC', 'DRIVER'];
     }
 
     function validJobStatus(status) {
@@ -126,8 +126,30 @@ service cloud.firestore {
         && (!('price' in request.resource.data)
           || (request.resource.data.price is number && request.resource.data.price >= 0));
 
+      function isCompletedJob() {
+        return resource.data.status in ['COMPLETED', 'PAID', 'CLOSED'];
+      }
+
+      function isDriverReviewUpdate() {
+        return isJobDriver()
+          && isCompletedJob()
+          && resource.data.mechanicId != null
+          && !('driverReviewRating' in resource.data)
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.driverReviewRating is int
+          && request.resource.data.driverReviewRating >= 1
+          && request.resource.data.driverReviewRating <= 5
+          && request.resource.data.driverReviewComment is string
+          && request.resource.data.driverReviewComment.size() > 0
+          && request.resource.data.driverReviewComment.size() <= 150
+          && request.resource.data.driverReviewedAtMillis is int;
+      }
+
       allow update: if signedIn() && (
-        (isJobDriver()
+        isDriverReviewUpdate()
+        || (isJobDriver()
           && request.resource.data.driverId == resource.data.driverId
           && request.resource.data.mechanicId == resource.data.mechanicId
           && validJobStatus(request.resource.data.status))

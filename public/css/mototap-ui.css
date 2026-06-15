@@ -1,0 +1,1430 @@
+/* MotoTap Autosystems — brand theme (Product Launch Strategy deck) */
+
+:root {
+  --mt-red: #c00000;
+  --mt-red-dark: #9a0000;
+  --mt-red-light: #e02020;
+  --mt-blue: #0066cc;
+  --mt-blue-dark: #0052a3;
+  --mt-black: #1a1a1a;
+  --mt-charcoal: #2d2d2d;
+  --mt-white: #ffffff;
+  --mt-gray-50: #fafafa;
+  --mt-gray-100: #f5f5f5;
+  --mt-gray-200: #e8e8e8;
+  --mt-gray-300: #d0d0d0;
+  --mt-gray-500: #888888;
+  --mt-gray-700: #444444;
+  --mt-font: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --mt-radius-sm: 8px;
+  --mt-radius-md: 12px;
+  --mt-radius-lg: 16px;
+  --mt-radius-xl: 20px;
+  --mt-radius-pill: 999px;
+  --mt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --mt-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --mt-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.07);
+  --mt-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --mt-transition: 0.22s var(--mt-ease);
+  --glass-blur: blur(20px) saturate(160%);
+  --glass-surface: rgba(255, 255, 255, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-highlight: rgba(255, 255, 255, 0.55);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Base (overrides inline dark theme) ── */
+body.mt-brand {
+  font-family: var(--mt-font) !important;
+  background: var(--mt-gray-100) !important;
+  color: var(--mt-black) !important;
+  background-image: none !important;
+  min-height: 100dvh !important;
+  overflow-y: auto !important;
+}
+
+body.mt-brand.auth-screen-active {
+  overflow: hidden !important;
+  padding-top: 0 !important;
+}
+
+body.mt-brand ::selection {
+  background: rgba(192, 0, 0, 0.2);
+  color: var(--mt-black);
+}
+
+body.mt-brand :focus-visible {
+  outline: 2px solid var(--mt-red);
+  outline-offset: 2px;
+}
+
+/* ── Brand lockup ── */
+.navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.navbar-brand-sub {
+  font-size: clamp(0.5rem, 1.8vw, 0.625rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: var(--mt-red);
+  margin-top: 2px;
+}
+
+body.mt-brand .fixed-navbar .navbar-brand {
+  color: var(--mt-white) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--mt-white) !important;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+/* ── Navbar ── */
+body.mt-brand .fixed-navbar {
+  background: #000000 !important;
+  border-bottom: 2px solid var(--mt-red) !important;
+  box-shadow: var(--mt-shadow-sm) !important;
+  backdrop-filter: none !important;
+}
+
+body.mt-brand .navbar-center button {
+  background: var(--mt-gray-100) !important;
+  color: var(--mt-black) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  font-size: clamp(0.625rem, 2vw, 0.8125rem) !important;
+}
+
+body.mt-brand .navbar-center button:hover {
+  background: var(--mt-gray-200) !important;
+  border-color: var(--mt-gray-300) !important;
+  transform: translateY(-1px);
+}
+
+body.mt-brand .navbar-center button.is-nav-active {
+  background: var(--mt-blue) !important;
+  color: var(--mt-white) !important;
+  border-color: var(--mt-blue) !important;
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25) !important;
+}
+
+body.mt-brand .navbar-logo-img {
+  box-shadow: 0 0 0 2px var(--mt-red), var(--mt-shadow-sm);
+}
+
+body.mt-brand .home-menu-btn {
+  background: var(--mt-blue) !important;
+  color: var(--mt-white) !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 102, 204, 0.35) !important;
+}
+
+/* ── Welcome screen ── */
+body.mt-brand .welcome-screen {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.35) 45%,
+      rgba(0, 0, 0, 0.55) 100%
+    ),
+    url("/welcome-bg.jpg") center / cover no-repeat !important;
+  background-color: #1a1a1a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+body.mt-brand .welcome-screen.hidden {
+  display: none !important;
+}
+
+body.mt-brand .welcome-screen::before,
+body.mt-brand .welcome-screen::after {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+body.mt-brand .welcome-content {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  width: 100%;
+}
+
+body.mt-brand .welcome-content span {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+
+body.mt-brand .welcome-content h1,
+body.mt-brand .brand-title {
+  color: var(--mt-white) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--mt-white) !important;
+  filter: none !important;
+  font-style: italic;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+body.mt-brand .brand-slogan {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: clamp(1.125rem, 3.5vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--mt-red-light) !important;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+}
+
+body.mt-brand .brand-tagline {
+  font-size: clamp(0.9375rem, 2.5vw, 1.125rem);
+  color: rgba(255, 255, 255, 0.92) !important;
+  max-width: 560px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
+
+body.mt-brand .welcome-content p {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+body.mt-brand .welcome-feature {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+  box-shadow: var(--mt-shadow-sm);
+}
+
+body.mt-brand .welcome-feature .material-symbols-outlined {
+  color: var(--mt-red) !important;
+}
+
+/* ── Buttons ── */
+body.mt-brand .btn-primary {
+  background: var(--mt-blue) !important;
+  color: var(--mt-white) !important;
+  border: none !important;
+  border-radius: var(--mt-radius-sm) !important;
+  box-shadow: 0 4px 14px rgba(0, 102, 204, 0.3) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.mt-brand .btn-primary:hover:not(:disabled) {
+  background: var(--mt-blue-dark) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.35) !important;
+}
+
+body.mt-brand .btn-primary:disabled {
+  background: var(--mt-gray-300) !important;
+}
+
+body.mt-brand .btn-secondary {
+  background: var(--mt-white) !important;
+  color: var(--mt-blue) !important;
+  border: 2px solid var(--mt-blue) !important;
+  border-radius: var(--mt-radius-sm) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body.mt-brand .btn-secondary:hover {
+  background: rgba(0, 102, 204, 0.06) !important;
+}
+
+body.mt-brand .landing-actions .btn-primary,
+body.mt-brand .landing-actions .btn-secondary {
+  box-sizing: border-box !important;
+  min-height: 48px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+}
+
+body.mt-brand .landing-actions .btn-primary {
+  border-color: transparent !important;
+}
+
+body.mt-brand .landing-actions .btn-secondary {
+  background: var(--mt-white) !important;
+}
+
+/* ── About page ── */
+#about-section .mt-value-banner,
+#about-section .mt-advantages,
+#about-section .mt-persona-strip {
+  margin-bottom: var(--section-gap, 24px);
+}
+
+#about-section .mt-advantages:last-child,
+#about-section .mt-persona-strip:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Value banner (deck: Our Shared Goal) ── */
+.mt-value-banner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: var(--section-gap);
+  border-radius: var(--mt-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--mt-shadow-md);
+}
+
+.mt-value-banner-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 14px;
+  background: var(--mt-red);
+  color: var(--mt-white);
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mt-value-banner-item:last-child {
+  border-right: none;
+}
+
+.mt-value-banner-item .material-symbols-outlined {
+  font-size: 28px;
+  opacity: 0.95;
+}
+
+.mt-value-banner-item strong {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.mt-value-banner-heading {
+  grid-column: 1 / -1;
+  background: var(--mt-charcoal);
+  color: var(--mt-white);
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  .mt-value-banner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mt-value-banner-item:nth-child(odd) {
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .mt-value-banner-item:nth-child(2),
+  .mt-value-banner-item:nth-child(4) {
+    border-right: none;
+  }
+
+  .mt-value-banner-item:nth-child(1),
+  .mt-value-banner-item:nth-child(2) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ── Advantages (deck: numbered red circles) ── */
+.mt-advantages {
+  margin-bottom: var(--section-gap);
+  padding: 24px 22px;
+  border-radius: var(--mt-radius-lg);
+  background: var(--mt-white);
+  border: 1px solid var(--mt-gray-200);
+  box-shadow: var(--mt-shadow-card);
+}
+
+.mt-advantages-heading {
+  margin: 0 0 18px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mt-red);
+  text-align: center;
+}
+
+.mt-advantages-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mt-advantages-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--mt-gray-700);
+}
+
+.mt-advantage-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--mt-red);
+  color: var(--mt-white);
+  font-size: 0.875rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(192, 0, 0, 0.3);
+}
+
+.mt-advantage-num .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.mt-advantages-list li strong {
+  color: var(--mt-black);
+}
+
+/* ── Landing hero ── */
+body.mt-brand .landing-hero-strip {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  border-top: 4px solid var(--mt-red) !important;
+  box-shadow: var(--mt-shadow-card) !important;
+  border-radius: var(--mt-radius-lg) !important;
+}
+
+body.mt-brand .landing-hero-strip::before {
+  display: none;
+}
+
+body.mt-brand .landing-hero-eyebrow {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .landing-hero-title {
+  color: var(--mt-black) !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+body.mt-brand .landing-hero-desc {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .landing-stat {
+  background: var(--mt-gray-100) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+}
+
+body.mt-brand .landing-stat strong {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .landing-stat span {
+  color: var(--mt-gray-500) !important;
+}
+
+/* ── Panel headers ── */
+body.mt-brand .panel-header::before {
+  background: var(--mt-red) !important;
+}
+
+body.mt-brand .panel-header h3 {
+  color: var(--mt-black) !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
+}
+
+body.mt-brand .panel-header p {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand #requests-section .requests-history-note {
+  color: var(--mt-red) !important;
+}
+
+/* ── Cards & surfaces ── */
+body.mt-brand .service-category-card {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  box-shadow: var(--mt-shadow-card) !important;
+}
+
+body.mt-brand .service-category-card:hover {
+  border-color: var(--mt-red) !important;
+  background: var(--mt-white) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+  transform: translateY(-4px);
+}
+
+body.mt-brand .service-category-card[data-category-id="road-assistance"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/3a/12/8f/3a128f64e9a44bd7bf85ec46109fb698.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="road-assistance"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/3a/12/8f/3a128f64e9a44bd7bf85ec46109fb698.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="towing-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/1200x/29/13/ee/2913ee38985146785f482bb5387f99cc.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="towing-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/1200x/29/13/ee/2913ee38985146785f482bb5387f99cc.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="mobile-mechanic"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="mobile-mechanic"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="emergency-tire-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/15/e4/c7/15e4c7d0d2f1f838363dc0f8076cfb2f.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="emergency-tire-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/15/e4/c7/15e4c7d0d2f1f838363dc0f8076cfb2f.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="emergency-battery-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/34/92/a1/3492a1585ecad60d8cdef02509fc705d.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="emergency-battery-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/34/92/a1/3492a1585ecad60d8cdef02509fc705d.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="garage-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/1200x/09/1d/ba/091dba403a52c949fed4e229ee96a7ac.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="garage-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/1200x/09/1d/ba/091dba403a52c949fed4e229ee96a7ac.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="preventive-routine-maintenance"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/d0/ef/69/d0ef69a491962673eaaa67f79ff8ddca.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="preventive-routine-maintenance"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/d0/ef/69/d0ef69a491962673eaaa67f79ff8ddca.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="vehicle-diagnostics"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/61/e1/58/61e15885a2d931191af0af8a75f4a406.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="vehicle-diagnostics"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/61/e1/58/61e15885a2d931191af0af8a75f4a406.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="auto-electrical-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/1200x/07/82/a7/0782a7227e7a7a78e96872f25cf6948c.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="auto-electrical-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/1200x/07/82/a7/0782a7227e7a7a78e96872f25cf6948c.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="ac-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/a1/93/f6/a193f66a645588357b24af06dc88883b.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="ac-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/a1/93/f6/a193f66a645588357b24af06dc88883b.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="tire-wheel-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/1200x/87/e5/98/87e598f60afe613cd8b9d70e41e683f8.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="tire-wheel-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/1200x/87/e5/98/87e598f60afe613cd8b9d70e41e683f8.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-wash-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/c3/19/0a/c3190af7b9678cad0b8f054f27e9b40c.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-wash-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/c3/19/0a/c3190af7b9678cad0b8f054f27e9b40c.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-body-cosmetic-services"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/65/c4/8e/65c48e382d11e128d2875af86b82b785.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-body-cosmetic-services"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/65/c4/8e/65c48e382d11e128d2875af86b82b785.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-customization-upgrades"] {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.62),
+      rgba(255, 255, 255, 0.72)
+    ),
+    url("https://i.pinimg.com/736x/6a/d7/c9/6ad7c9f12a79fb5fe969324f7b133adf.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+body.mt-brand .service-category-card[data-category-id="car-customization-upgrades"]:hover {
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.65)
+    ),
+    url("https://i.pinimg.com/736x/6a/d7/c9/6ad7c9f12a79fb5fe969324f7b133adf.jpg") !important;
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .service-category-icon {
+  background: rgba(192, 0, 0, 0.08) !important;
+  border-color: rgba(192, 0, 0, 0.15) !important;
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .service-category-card-header h3,
+body.mt-brand .service-category-title {
+  color: var(--mt-black) !important;
+  font-weight: 800 !important;
+}
+
+body.mt-brand .service-group-card h4 {
+  font-weight: 700 !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .service-display-group-title {
+  color: var(--mt-red) !important;
+  border-bottom-color: var(--mt-gray-200) !important;
+}
+
+body.mt-brand .service-group-card {
+  background: var(--mt-gray-50) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+}
+
+body.mt-brand .service-tag,
+body.mt-brand .service-checkbox-label {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .service-tag:hover,
+body.mt-brand .service-checkbox-label:hover {
+  background: var(--mt-gray-100) !important;
+  border-color: #ffc107 !important;
+  box-shadow: 0 0 0 1px #ffc107 !important;
+}
+
+body.mt-brand .service-tag.selected {
+  background: var(--mt-blue) !important;
+  border-color: var(--mt-blue) !important;
+  color: var(--mt-white) !important;
+}
+
+body.mt-brand .service-card-see-more {
+  color: var(--mt-red) !important;
+  background: rgba(192, 0, 0, 0.08) !important;
+  border-color: rgba(192, 0, 0, 0.25) !important;
+}
+
+body.mt-brand .service-category-card.has-overflow .service-card-body::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--mt-white) 75%) !important;
+}
+
+/* ── APK banner ── */
+body.mt-brand .app-download-banner,
+body.mt-brand #android-apk-download {
+  background: var(--mt-white) !important;
+  border: 2px solid var(--mt-red) !important;
+  box-shadow: var(--mt-shadow-card) !important;
+}
+
+body.mt-brand .app-download-banner p {
+  color: var(--mt-gray-700) !important;
+}
+
+/* ── Job reviews (post-completion on REQUESTS) ── */
+body.mt-brand .job-review-section {
+  border-top-color: var(--mt-gray-200) !important;
+}
+
+body.mt-brand .job-review-prompt {
+  color: #2e7d32 !important;
+}
+
+body.mt-brand .job-review-label {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .job-review-comment {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .job-review-comment-display {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .job-review-char-count {
+  color: var(--mt-gray-500) !important;
+}
+
+body.mt-brand .job-review-error {
+  color: var(--mt-red) !important;
+}
+
+/* ── Auth ── */
+body.mt-brand .auth-card {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  box-shadow: var(--mt-shadow-md) !important;
+  border-top: 4px solid var(--mt-red) !important;
+}
+
+body.mt-brand .auth-card-icon {
+  background: rgba(192, 0, 0, 0.08) !important;
+  border-color: rgba(192, 0, 0, 0.2) !important;
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .auth-card-header h3 {
+  color: var(--mt-black) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.mt-brand .auth-card-header p {
+  color: var(--mt-gray-500) !important;
+}
+
+/* ── Sign In & Sign Up: glass morphism ── */
+body.mt-brand #login-section.active,
+body.mt-brand #signup-section.active {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding:
+    calc(var(--header-offset, 68px) + 16px)
+    max(var(--content-pad-x, 16px), env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(var(--content-pad-x, 16px), env(safe-area-inset-left, 0px)) !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(165deg, rgba(0, 102, 204, 0.38) 0%, rgba(0, 0, 0, 0.52) 100%),
+    url("/welcome-bg.jpg") center / cover no-repeat !important;
+  background-color: #1a1a1a !important;
+  box-shadow: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+body.mt-brand #login-section .auth-card,
+body.mt-brand #signup-section .auth-card {
+  width: 100% !important;
+  max-width: 440px !important;
+  margin: auto !important;
+  padding: 28px 24px 26px !important;
+  border-radius: var(--mt-radius-xl) !important;
+  background: var(--glass-surface) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-top: 1px solid var(--glass-border) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 var(--glass-highlight) !important;
+}
+
+body.mt-brand #login-section .auth-card-header,
+body.mt-brand #signup-section .auth-card-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+body.mt-brand #login-section .auth-card-header h3,
+body.mt-brand #signup-section .auth-card-header h3 {
+  color: var(--mt-white) !important;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+}
+
+body.mt-brand #login-section .auth-card-header p,
+body.mt-brand #signup-section .auth-card-header p {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+body.mt-brand #login-section input[type="email"],
+body.mt-brand #login-section input[type="password"],
+body.mt-brand #signup-section input[type="text"],
+body.mt-brand #signup-section input[type="email"],
+body.mt-brand #signup-section input[type="password"],
+body.mt-brand #signup-section input[type="tel"] {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.mt-brand #login-section input[type="email"]:focus,
+body.mt-brand #login-section input[type="password"]:focus,
+body.mt-brand #signup-section input[type="text"]:focus,
+body.mt-brand #signup-section input[type="email"]:focus,
+body.mt-brand #signup-section input[type="password"]:focus,
+body.mt-brand #signup-section input[type="tel"]:focus {
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.22),
+    inset 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.mt-brand #login-section .password-toggle-btn,
+body.mt-brand #signup-section .password-toggle-btn {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand #login-section .password-toggle-btn:hover,
+body.mt-brand #signup-section .password-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand #login-section .forgot-password-link,
+body.mt-brand #login-section #forgot-password-link {
+  color: var(--mt-red) !important;
+  -webkit-text-fill-color: var(--mt-red) !important;
+  text-decoration: underline !important;
+  text-decoration-color: var(--mt-red) !important;
+  text-underline-offset: 3px !important;
+}
+
+body.mt-brand #login-section .forgot-password-link:hover,
+body.mt-brand #login-section #forgot-password-link:hover {
+  color: var(--mt-red-dark) !important;
+  -webkit-text-fill-color: var(--mt-red-dark) !important;
+  text-decoration-color: var(--mt-red-dark) !important;
+}
+
+body.mt-brand #login-section .divider,
+body.mt-brand #signup-section .divider {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+body.mt-brand #login-section .divider::before,
+body.mt-brand #login-section .divider::after,
+body.mt-brand #signup-section .divider::before,
+body.mt-brand #signup-section .divider::after {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+body.mt-brand #login-section .error-message,
+body.mt-brand #signup-section .error-message {
+  color: #ffcdd2 !important;
+}
+
+body.mt-brand #login-section .btn-secondary,
+body.mt-brand #signup-section .btn-secondary {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--mt-white) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+body.mt-brand #login-section .btn-secondary:hover,
+body.mt-brand #signup-section .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+}
+
+body.mt-brand #signup-section label {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+body.mt-brand #signup-section .role-option label {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: var(--mt-white) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+body.mt-brand #signup-section .role-option:has(input:checked) label {
+  background: rgba(0, 102, 204, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+}
+
+body.mt-brand #signup-section #strength-text {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.mt-brand #login-section .auth-card,
+  body.mt-brand #signup-section .auth-card {
+    background: rgba(255, 255, 255, 0.92) !important;
+  }
+
+  body.mt-brand #login-section .auth-card-header h3,
+  body.mt-brand #signup-section .auth-card-header h3 {
+    color: var(--mt-black) !important;
+    text-shadow: none;
+  }
+
+  body.mt-brand #login-section .auth-card-header p,
+  body.mt-brand #signup-section .auth-card-header p {
+    color: var(--mt-gray-700) !important;
+  }
+}
+
+body.mt-brand input[type="text"],
+body.mt-brand input[type="email"],
+body.mt-brand input[type="password"],
+body.mt-brand input[type="tel"],
+body.mt-brand .job-review-comment,
+body.mt-brand .chat-compose input,
+body.mt-brand .dashboard-form input[type="text"],
+body.mt-brand .dashboard-form textarea,
+body.mt-brand .dashboard-form input[type="number"] {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-300) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand input:focus,
+body.mt-brand .job-review-comment:focus,
+body.mt-brand .chat-compose input:focus {
+  border-color: var(--mt-red) !important;
+  box-shadow: 0 0 0 3px rgba(192, 0, 0, 0.12) !important;
+}
+
+body.mt-brand .role-option label {
+  background: var(--mt-gray-50) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .role-option:has(input:checked) label {
+  border-color: var(--mt-red) !important;
+  background: rgba(192, 0, 0, 0.06) !important;
+}
+
+body.mt-brand .forgot-password-link {
+  color: var(--mt-red) !important;
+  -webkit-text-fill-color: var(--mt-red) !important;
+  text-decoration-color: var(--mt-red) !important;
+}
+
+body.mt-brand .forgot-password-link:hover {
+  color: var(--mt-red-dark) !important;
+  -webkit-text-fill-color: var(--mt-red-dark) !important;
+  text-decoration-color: var(--mt-red-dark) !important;
+}
+
+body.mt-brand .divider {
+  color: var(--mt-gray-500) !important;
+}
+
+body.mt-brand .divider::before,
+body.mt-brand .divider::after {
+  background: var(--mt-gray-200) !important;
+}
+
+body.mt-brand .error-message {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .status-message,
+body.mt-brand .dashboard-status {
+  color: #2e7d32 !important;
+}
+
+body.mt-brand .dashboard-error {
+  color: var(--mt-red) !important;
+}
+
+/* ── Messages & requests ── */
+body.mt-brand .message-placeholder,
+body.mt-brand .request-history-list {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .request-history-list .job-card {
+  border-bottom-color: var(--mt-gray-200) !important;
+}
+
+body.mt-brand .request-history-list .job-card p {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .request-history-list .job-card-status {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .request-history-list .job-card h4 {
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .message-placeholder p {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .empty-state-icon {
+  background: rgba(192, 0, 0, 0.08) !important;
+  border-color: rgba(192, 0, 0, 0.15) !important;
+}
+
+body.mt-brand .empty-state-icon .material-symbols-outlined {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .messages-inbox-item {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .messages-inbox-item:hover {
+  border-color: var(--mt-red) !important;
+  background: var(--mt-gray-50) !important;
+}
+
+body.mt-brand .messages-inbox-item-preview {
+  color: var(--mt-gray-500) !important;
+}
+
+/* ── Chat ── */
+body.mt-brand .chat-messages {
+  background: var(--mt-gray-50) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+}
+
+body.mt-brand .chat-bubble.mine {
+  background: var(--mt-red) !important;
+  border-color: var(--mt-red-dark) !important;
+  color: var(--mt-white) !important;
+}
+
+body.mt-brand .chat-bubble.theirs {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .chat-compose {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+}
+
+body.mt-brand .chat-header-title {
+  color: var(--mt-black) !important;
+}
+
+/* ── Menu ── */
+body.mt-brand .menu-panel {
+  background: var(--mt-white) !important;
+  border-right: 1px solid var(--mt-gray-200) !important;
+  box-shadow: var(--mt-shadow-md) !important;
+}
+
+body.mt-brand .menu-label {
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .menu-actions button {
+  background: var(--mt-gray-50) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .menu-actions button:hover {
+  background: var(--mt-gray-100) !important;
+}
+
+body.mt-brand .menu-actions button.danger {
+  border-color: rgba(192, 0, 0, 0.35) !important;
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .menu-profile .avatar {
+  background: var(--mt-red) !important;
+  color: var(--mt-white) !important;
+  box-shadow: 0 4px 12px rgba(192, 0, 0, 0.3);
+}
+
+body.mt-brand .menu-profile .menu-email {
+  color: var(--mt-gray-500) !important;
+}
+
+/* ── Footer (deck style) ── */
+body.mt-brand .page-footer {
+  background: var(--mt-charcoal) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: var(--mt-white) !important;
+  padding-top: 0 !important;
+  margin-top: 20px !important;
+  margin-bottom: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+body.mt-brand .form-section.active:has(.page-footer)::before {
+  content: "";
+  flex: 1 1 auto;
+  order: 8;
+  min-height: 0;
+}
+
+.page-footer-slogan {
+  background: var(--mt-red);
+  color: var(--mt-white);
+  text-align: center;
+  padding: 14px 20px;
+  font-size: clamp(0.75rem, 2.5vw, 0.9375rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 24px;
+  border-radius: 0;
+}
+
+.page-footer-slogan span {
+  opacity: 0.85;
+  margin: 0 8px;
+}
+
+body.mt-brand .page-footer-heading {
+  color: var(--mt-white) !important;
+}
+
+body.mt-brand .page-footer-social-link {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: var(--mt-white) !important;
+}
+
+body.mt-brand .page-footer-social-link:hover:not(.is-placeholder) {
+  background: var(--mt-red) !important;
+  border-color: var(--mt-red) !important;
+}
+
+body.mt-brand .page-footer-contact a {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+body.mt-brand .page-footer-contact a:hover {
+  color: var(--mt-white) !important;
+}
+
+body.mt-brand .page-footer-contact-icon {
+  color: var(--mt-red-light) !important;
+}
+
+/* ── Map (keep functional dark map, brand toolbar) ── */
+body.mt-brand .mechanic-map-toolbar {
+  background: var(--mt-blue) !important;
+}
+
+/* ── Dark persona strip (deck: What are we really selling) ── */
+.mt-persona-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: var(--section-gap);
+}
+
+.mt-persona-card {
+  padding: 20px 18px;
+  border-radius: var(--mt-radius-lg);
+  background: var(--mt-charcoal);
+  color: var(--mt-white);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mt-persona-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mt-persona-card-header .material-symbols-outlined {
+  font-size: 28px;
+  color: var(--mt-red-light);
+}
+
+.mt-persona-card-header h4 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mt-persona-card p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 575px) {
+  .mt-persona-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Animations ── */
+@keyframes mt-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.mt-brand .welcome-content,
+body.mt-brand .form-section.active,
+body.mt-brand #landing-section.active > *:not(.page-footer),
+body.mt-brand #dashboard.active > *:not(.page-footer) {
+  animation: mt-fade-up 0.4s var(--mt-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
