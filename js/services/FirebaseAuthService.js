@@ -18,6 +18,12 @@ import {
 import { auth, db } from "../../firebase.js";
 import AuthRepository from "../repositories/AuthRepository.js";
 import { normalizeUserRole } from "../utils/geo.js";
+import {
+  mapFirestoreUserDoc,
+  toFirestoreRole,
+  ProfileStatus,
+} from "../models/UserProfile.js";
+import { vehiclesForFirestore } from "../models/VehicleProfile.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -37,6 +43,10 @@ export default class FirebaseAuthService extends AuthRepository {
     this.firestore = firestore;
   }
 
+  userDocRef(userId) {
+    return doc(collection(this.firestore, "users"), userId);
+  }
+
   async signIn(email, password) {
     try {
       await withTimeout(signInWithEmailAndPassword(this.auth, email, password));
@@ -47,28 +57,87 @@ export default class FirebaseAuthService extends AuthRepository {
     }
   }
 
+  /** Step 1: Firebase Auth account + minimal Firestore profile (Android-aligned). */
   async signUp(email, password, name, role, phoneNumber) {
     try {
       const result = await withTimeout(
         createUserWithEmailAndPassword(this.auth, email, password)
       );
       const userId = result.user.uid;
+      const phone = String(phoneNumber || "").trim();
+      const firestoreRole = toFirestoreRole(role);
       const userData = {
         uid: userId,
-        name,
-        email,
-        role: normalizeUserRole(role),
-        phoneNumber: phoneNumber || "",
+        id: userId,
+        name: String(name || "").trim(),
+        email: String(email || "").trim(),
+        phone,
+        phoneNumber: phone,
+        role: firestoreRole,
+        status: ProfileStatus.PENDING,
+        onboardingStep: 1,
+        onboardingComplete: false,
+        rating: 0,
+        reviewCount: 0,
         skills: [],
       };
-      await withTimeout(
-        setDoc(doc(collection(this.firestore, "users"), userId), userData)
-      );
-      return { success: true };
+      await withTimeout(setDoc(this.userDocRef(userId), userData));
+      return { success: true, userId };
     } catch (error) {
       console.error("FirebaseAuthService.signUp error:", error);
       return { success: false, error: this.mapError(error) };
     }
+  }
+
+  async updateSignupProfile(userId, partialData) {
+    try {
+      await withTimeout(updateDoc(this.userDocRef(userId), partialData));
+      return { success: true };
+    } catch (error) {
+      console.error("FirebaseAuthService.updateSignupProfile error:", error);
+      return { success: false, error: "Failed to save profile. Please try again." };
+    }
+  }
+
+  async completeSignupStep2(userId, { profilePhotoUrl, idNumber, idPhotoUrl, role }) {
+    const firestoreRole = toFirestoreRole(role);
+    const payload = {
+      profilePhotoUrl,
+      idPhotoUrl,
+      idNumber: String(idNumber || "").trim(),
+      onboardingStep: 2,
+    };
+    if (firestoreRole === "MECHANIC") {
+      payload.certificateNumber = payload.idNumber;
+    }
+    return this.updateSignupProfile(userId, payload);
+  }
+
+  async completeSignupStep3Driver(userId, data) {
+    return this.updateSignupProfile(userId, {
+      vehicleType: String(data.vehicleType || "").trim(),
+      vehicleModel: String(data.vehicleModel || "").trim(),
+      numberPlate: String(data.numberPlate || "").trim(),
+      vehiclePhotoUrl: data.vehiclePhotoUrl,
+      onboardingStep: 3,
+      onboardingComplete: true,
+      status: ProfileStatus.PENDING,
+    });
+  }
+
+  async completeSignupStep3Mechanic(userId, data) {
+    return this.updateSignupProfile(userId, {
+      institutionName: String(data.institutionName || "").trim(),
+      experienceYears: String(data.experienceYears || "").trim(),
+      certificatePhotoUrl: data.certificatePhotoUrl,
+      garagePhotos: Array.isArray(data.garagePhotos) ? data.garagePhotos : [],
+      latitude: Number(data.latitude),
+      longitude: Number(data.longitude),
+      address: String(data.address || "").trim(),
+      onboardingStep: 3,
+      onboardingComplete: true,
+      status: ProfileStatus.PENDING,
+    });
   }
 
   async sendPasswordReset(email) {
@@ -103,9 +172,7 @@ export default class FirebaseAuthService extends AuthRepository {
 
   async getUserRole(userId) {
     try {
-      const docSnap = await withTimeout(
-        getDoc(doc(collection(this.firestore, "users"), userId))
-      );
+      const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
       if (!docSnap.exists()) return null;
       return normalizeUserRole(docSnap.data().role);
     } catch (error) {
@@ -116,18 +183,13 @@ export default class FirebaseAuthService extends AuthRepository {
 
   async getUserProfile(userId) {
     try {
-      const docSnap = await withTimeout(
-        getDoc(doc(collection(this.firestore, "users"), userId))
-      );
+      const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
       if (!docSnap.exists()) return null;
-      const data = docSnap.data();
+      const profile = mapFirestoreUserDoc(userId, docSnap.data());
       return {
-        id: userId,
-        name: data.name || "",
-        phone: data.phoneNumber || "",
-        role: normalizeUserRole(data.role),
-        skills: data.skills || [],
-        isAdmin: data.isAdmin === true,
+        ...profile,
+        phone: profile.phone || docSnap.data().phoneNumber || "",
+        role: normalizeUserRole(profile.role),
       };
     } catch (error) {
       console.error("FirebaseAuthService.getUserProfile error:", error);
@@ -138,14 +200,30 @@ export default class FirebaseAuthService extends AuthRepository {
   async updateMechanicSkills(userId, skills) {
     try {
       await withTimeout(
-        updateDoc(doc(collection(this.firestore, "users"), userId), {
-          skills: skills
+        updateDoc(this.userDocRef(userId), {
+          skills: skills,
         })
       );
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.updateMechanicSkills error:", error);
       return { success: false, error: "Failed to update skills" };
+    }
+  }
+
+  /** Persist the driver's vehicles[] array (Android-aligned fleet management). */
+  async updateUserVehicles(userId, vehicles) {
+    try {
+      const payload = vehiclesForFirestore(vehicles);
+      await withTimeout(
+        updateDoc(this.userDocRef(userId), {
+          vehicles: payload,
+        })
+      );
+      return { success: true, vehicles: payload };
+    } catch (error) {
+      console.error("FirebaseAuthService.updateUserVehicles error:", error);
+      return { success: false, error: "Failed to save vehicles. Please try again." };
     }
   }
 
@@ -164,9 +242,7 @@ export default class FirebaseAuthService extends AuthRepository {
         reauthenticateWithCredential(currentUser, credential)
       );
 
-      await withTimeout(
-        deleteDoc(doc(collection(this.firestore, "users"), currentUser.uid))
-      );
+      await withTimeout(deleteDoc(this.userDocRef(currentUser.uid)));
 
       await withTimeout(deleteUser(currentUser));
       return { success: true };

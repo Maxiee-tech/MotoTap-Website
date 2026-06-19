@@ -23,6 +23,35 @@ service cloud.firestore {
       return role in ['mechanic', 'driver', 'MECHANIC', 'DRIVER'];
     }
 
+    function validExperienceYears(value) {
+      return value in ['0-1', '1-3', '3-5', '5-10', '10+'];
+    }
+
+    function validOnboardingFields(data) {
+      return (!('onboardingStep' in data) || (data.onboardingStep is int && data.onboardingStep >= 1 && data.onboardingStep <= 3))
+        && (!('onboardingComplete' in data) || data.onboardingComplete is bool)
+        && (!('status' in data) || data.status in ['PENDING', 'APPROVED', 'REJECTED'])
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 32))
+        && (!('profilePhotoUrl' in data) || (data.profilePhotoUrl is string && data.profilePhotoUrl.size() <= 2048))
+        && (!('idPhotoUrl' in data) || (data.idPhotoUrl is string && data.idPhotoUrl.size() <= 2048))
+        && (!('idNumber' in data) || (data.idNumber is string && data.idNumber.size() <= 64))
+        && (!('vehicleType' in data) || (data.vehicleType is string && data.vehicleType.size() <= 64))
+        && (!('vehicleModel' in data) || (data.vehicleModel is string && data.vehicleModel.size() <= 64))
+        && (!('numberPlate' in data) || (data.numberPlate is string && data.numberPlate.size() <= 32))
+        && (!('vehiclePhotoUrl' in data) || (data.vehiclePhotoUrl is string && data.vehiclePhotoUrl.size() <= 2048))
+        && (!('certificateNumber' in data) || (data.certificateNumber is string && data.certificateNumber.size() <= 64))
+        && (!('certificatePhotoUrl' in data) || (data.certificatePhotoUrl is string && data.certificatePhotoUrl.size() <= 2048))
+        && (!('institutionName' in data) || (data.institutionName is string && data.institutionName.size() <= 120))
+        && (!('experienceYears' in data) || (data.experienceYears is string && validExperienceYears(data.experienceYears)))
+        && (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+        && (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
+        && (!('vehicles' in data) || (data.vehicles is list && data.vehicles.size() <= 20))
+        && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
+        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0));
+    }
+
     function validJobStatus(status) {
       return status in [
         'REQUESTED',
@@ -44,7 +73,8 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
         && validUserRole(request.resource.data.role)
-        && request.resource.data.get('isAdmin', false) == false;
+        && request.resource.data.get('isAdmin', false) == false
+        && validOnboardingFields(request.resource.data);
       allow update: if isOwner(userId)
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.email == resource.data.email
@@ -56,7 +86,8 @@ service cloud.firestore {
         && (!('skills' in request.resource.data) || request.resource.data.skills is list)
         && (!('phoneNumber' in request.resource.data)
           || (request.resource.data.phoneNumber is string
-            && request.resource.data.phoneNumber.size() <= 32));
+            && request.resource.data.phoneNumber.size() <= 32))
+        && validOnboardingFields(request.resource.data);
       allow delete: if isOwner(userId);
 
       match /chatPartners/{partnerId} {

@@ -36,4 +36,33 @@ export function getGoogleMapsApiKey() {
   return readEnv("VITE_GOOGLE_MAPS_API_KEY");
 }
 
+/** `unsigned` = Spark / no Cloud Functions. `signed` = Blaze + getCloudinaryUploadSignature. */
+export function getCloudinaryUploadMode() {
+  const mode = readEnv("VITE_CLOUDINARY_UPLOAD_MODE", "unsigned").toLowerCase();
+  return mode === "signed" ? "signed" : "unsigned";
+}
+
+export function getCloudinaryConfig() {
+  return {
+    cloudName: readEnv("VITE_CLOUDINARY_CLOUD_NAME", "deoquaz6p"),
+    presets: {
+      profile_photos: readEnv("VITE_CLOUDINARY_PRESET_PROFILE_PHOTOS", "profile_photos"),
+      signup_documents: readEnv(
+        "VITE_CLOUDINARY_PRESET_SIGNUP_DOCUMENTS",
+        "signup_documents"
+      ),
+      vehicles: readEnv("VITE_CLOUDINARY_PRESET_VEHICLES", "vehicles"),
+      user_uploads: readEnv("VITE_CLOUDINARY_PRESET_USER_UPLOADS", "user_uploads"),
+    },
+    fallbackPreset: readEnv("VITE_CLOUDINARY_UPLOAD_PRESET", "profile_photos"),
+  };
+}
+
+export function getCloudinaryPresetForCategory(category) {
+  const { presets, fallbackPreset } = getCloudinaryConfig();
+  const categoryPreset = presets[category];
+  if (categoryPreset) return categoryPreset;
+  return fallbackPreset || "";
+}
+
 export const MAX_CHAT_MESSAGE_LENGTH = 200;

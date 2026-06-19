@@ -46,6 +46,15 @@ import {
 } from "./serviceCardLayout.js";
 import PasswordValidator from "./PasswordValidator.js";
 import { appendDriverJobReviewSection } from "./jobReviewUi.js";
+import { renderProfilePage } from "./profileUi.js";
+import { paintDriverActiveVehicleCard } from "./activeVehicleUi.js";
+import { getActiveVehicle } from "./models/VehicleProfile.js";
+import {
+  initSignupWizard,
+  showSignupWizard,
+  resumeSignupWizardFromProfile,
+  isProfileOnboardingComplete,
+} from "./signupWizard.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
 import { onAuthStateChanged } from "firebase/auth";
@@ -56,10 +65,13 @@ const signupSection = document.getElementById("signup-section");
 const forgotPasswordSection = document.getElementById("forgot-password-section");
 const dashboardSection = document.getElementById("dashboard");
 const driverDashboard = document.getElementById("driver-dashboard");
+const driverActiveVehicleRoot = document.getElementById("driver-active-vehicle-root");
 const mechanicDashboard = document.getElementById("mechanic-dashboard");
 const messagesSection = document.getElementById("messages-section");
 const requestsSection = document.getElementById("requests-section");
 const aboutSection = document.getElementById("about-section");
+const profileSection = document.getElementById("profile-section");
+const profilePageRoot = document.getElementById("profile-page-root");
 const mechanicMapSection = document.getElementById("mechanic-map-section");
 const requestsDriverIntro = document.getElementById("requests-driver-intro");
 const requestsMechanicIntro = document.getElementById("requests-mechanic-intro");
@@ -103,6 +115,8 @@ function showWelcomeScreen() {
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
   aboutSection?.classList.remove("active");
+  profileSection?.classList.remove("active");
+  stopProfileJobSync();
   updateNavActiveState(null);
 }
 
@@ -145,12 +159,14 @@ function hideAllSections() {
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
   aboutSection?.classList.remove("active");
+  profileSection?.classList.remove("active");
   mechanicMapSection?.classList.remove("active");
   driverDashboard.classList.remove("active");
   mechanicDashboard.classList.remove("active");
   clearMapMatchNotification();
   setMechanicMapPageLayout(false);
   setHomeMenuVisible(false);
+  stopProfileJobSync();
 }
 
 const NAV_ACTIVE_MAP = {
@@ -392,6 +408,12 @@ function paintAvailableJobs(jobs) {
 
 let openJobsUnsubscribe = null;
 let requestHistoryUnsubscribe = null;
+let profileJobsUnsubscribe = null;
+
+function stopProfileJobSync() {
+  profileJobsUnsubscribe?.();
+  profileJobsUnsubscribe = null;
+}
 
 function stopJobSync() {
   openJobsUnsubscribe?.();
@@ -474,6 +496,7 @@ function showContactsFromMenu() {
     } else {
       setLandingGuestViewVisible(false);
       driverDashboard.classList.add("active");
+      paintDriverHomeActiveVehicle();
     }
   } else {
     setLandingGuestViewVisible(true);
@@ -505,6 +528,170 @@ function showAboutFromMenu() {
   });
 }
 
+function paintProfilePage(jobs = []) {
+  if (!profilePageRoot) return;
+  lastProfileJobs = jobs;
+  renderProfilePage(profilePageRoot, {
+    profile: currentUserProfile,
+    email: auth.currentUser?.email || "",
+    jobs,
+    onViewAllRequests: showRequestsPage,
+    onSaveVehicles: async (vehicles) => {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        return { success: false, error: "You must be signed in to save vehicles." };
+      }
+      const result = await authService.updateUserVehicles(userId, vehicles);
+      if (result.success) {
+        currentUserProfile = {
+          ...currentUserProfile,
+          vehicles: result.vehicles || vehicles,
+        };
+        paintProfilePage(lastProfileJobs);
+        paintDriverHomeActiveVehicle();
+      }
+      return result;
+    },
+    onLogout: async () => {
+      await authViewModel.logout(() => {
+        showHomePage();
+      });
+    },
+    onDeleteAccount: async (password) => {
+      await authViewModel.deleteAccount(password, () => {
+        showHomePage();
+      });
+      if (authViewModel.uiState === "error") {
+        const errorEl = profilePageRoot.querySelector("#profile-delete-error");
+        if (errorEl) {
+          errorEl.textContent =
+            authViewModel.errorMessage || "Unable to delete account. Please try again.";
+          errorEl.classList.remove("hidden");
+        }
+      }
+    },
+  });
+}
+
+function paintDriverHomeActiveVehicle() {
+  if (!driverActiveVehicleRoot) return;
+
+  const role = normalizeUserRole(currentUserProfile?.role);
+  if (role !== "driver" || !auth.currentUser) {
+    driverActiveVehicleRoot.innerHTML = "";
+    return;
+  }
+
+  paintDriverActiveVehicleCard(driverActiveVehicleRoot, {
+    profile: currentUserProfile,
+    onNavigateToVehicles: () => showProfilePage({ focusVehicles: true }),
+  });
+
+  void syncDriverActiveVehicleCard();
+}
+
+function activeVehicleCardSignature(profile) {
+  const vehicle = getActiveVehicle(profile);
+  if (!vehicle) return "";
+  return [
+    vehicle.make,
+    vehicle.model,
+    vehicle.year,
+    vehicle.licensePlate,
+    vehicle.mileage,
+  ].join("|");
+}
+
+async function syncDriverActiveVehicleCard() {
+  if (!driverActiveVehicleRoot || !auth.currentUser) return;
+
+  const role = normalizeUserRole(currentUserProfile?.role);
+  if (role !== "driver") return;
+
+  const previousSignature = activeVehicleCardSignature(currentUserProfile);
+  const freshProfile = await authService.getUserProfile(auth.currentUser.uid);
+  if (!freshProfile) return;
+
+  currentUserProfile = {
+    ...currentUserProfile,
+    ...freshProfile,
+  };
+
+  if (activeVehicleCardSignature(currentUserProfile) === previousSignature) return;
+
+  paintDriverActiveVehicleCard(driverActiveVehicleRoot, {
+    profile: currentUserProfile,
+    onNavigateToVehicles: () => showProfilePage({ focusVehicles: true }),
+  });
+}
+
+async function showProfilePage({ focusVehicles = false } = {}) {
+  closeMenu();
+  hideWelcomeScreen();
+  hideAllSections();
+  profileSection?.classList.add("active");
+  setHomeMenuVisible(true);
+  updateNavActiveState(null);
+
+  if (!auth.currentUser) {
+    showLoginForm();
+    return;
+  }
+
+  await loadUserProfile(auth.currentUser);
+
+  if (!isProfileOnboardingComplete(currentUserProfile)) {
+    document.body.classList.add("auth-screen-active");
+    signupSection.classList.add("active");
+    resumeSignupWizardFromProfile(currentUserProfile);
+    updateNavActiveState("auth");
+    return;
+  }
+
+  const role = normalizeUserRole(currentUserProfile?.role);
+  updateMenuProfile(role, auth.currentUser.email || "");
+
+  if (profilePageRoot) {
+    profilePageRoot.innerHTML = '<p class="profile-page-loading">Loading profile…</p>';
+  }
+
+  stopProfileJobSync();
+  const uid = auth.currentUser.uid;
+  let scrollToVehiclesOnPaint = focusVehicles;
+
+  const handleJobs = (jobs) => {
+    if (!profileSection?.classList.contains("active")) return;
+    paintProfilePage(jobs);
+    if (scrollToVehiclesOnPaint) {
+      scrollToVehiclesOnPaint = false;
+      window.requestAnimationFrame(() => {
+        document.getElementById("profile-vehicles-block")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  };
+
+  if (role === "mechanic") {
+    profileJobsUnsubscribe = jobService.subscribeMechanicJobs(
+      uid,
+      (jobs) => handleJobs(filterMechanicHistoryJobs(jobs, uid)),
+      () => handleJobs([])
+    );
+  } else {
+    profileJobsUnsubscribe = jobService.subscribeDriverJobs(
+      uid,
+      (jobs) => handleJobs(filterDriverHistoryJobs(jobs)),
+      () => handleJobs([])
+    );
+  }
+
+  window.requestAnimationFrame(() => {
+    profileSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 function showHomePage() {
   hideWelcomeScreen();
   closeMenu();
@@ -522,6 +709,7 @@ function showHomePage() {
       setLandingGuestViewVisible(false);
       driverDashboard.classList.add("active");
       setHomeMenuVisible(true);
+      paintDriverHomeActiveVehicle();
     }
   } else {
     landingSection.classList.add("active");
@@ -601,7 +789,7 @@ logoButton?.addEventListener("click", () => {
 });
 
 const loginBtn = document.getElementById("login-btn");
-const signupBtn = document.getElementById("signup-btn");
+const signupBtn = document.getElementById("signup-step1-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const toSignupBtn = document.getElementById("to-signup");
 const toLoginBtn = document.getElementById("to-login");
@@ -609,8 +797,10 @@ const landingToLoginBtn = document.getElementById("landing-to-login");
 const landingToSignupBtn = document.getElementById("landing-to-signup");
 const menuUserRole = document.getElementById("menu-user-role");
 const menuUserEmail = document.getElementById("menu-user-email");
+const menuUserAvatar = document.getElementById("menu-user-avatar");
 const menuContactsBtn = document.getElementById("menu-contacts-btn");
 const menuAboutBtn = document.getElementById("menu-about-btn");
+const menuProfileLinkBtn = document.getElementById("menu-profile-link-btn");
 const menuSettingsBtn = document.getElementById("menu-settings-btn");
 const menuLogoutBtn = document.getElementById("menu-logout-btn");
 const menuDeleteBtn = document.getElementById("menu-delete-btn");
@@ -736,6 +926,7 @@ let selectedSubservice = null;
 let pendingServiceSelection = null;
 let currentUserProfile = null;
 let wasLoggedIn = false;
+let lastProfileJobs = [];
 
 function setPendingServiceSelection(category, serviceName) {
   pendingServiceSelection = {
@@ -768,13 +959,17 @@ function resumePendingServiceAfterAuth() {
 
 function setLoadingState(isLoading) {
   loginBtn.disabled = isLoading;
-  signupBtn.disabled = isLoading;
+  if (signupBtn) signupBtn.disabled = isLoading;
   if (isLoading) {
     loginBtn.innerHTML = '<span class="loading-spinner"></span>Loading...';
-    signupBtn.innerHTML = '<span class="loading-spinner"></span>Processing...';
+    if (signupBtn && signupBtn.id === "signup-step1-btn") {
+      signupBtn.innerHTML = '<span class="loading-spinner"></span>Processing...';
+    }
   } else {
     loginBtn.textContent = "Sign In";
-    signupBtn.textContent = "Create Account";
+    if (signupBtn && signupBtn.id === "signup-step1-btn") {
+      signupBtn.textContent = "Continue";
+    }
   }
 }
 
@@ -813,7 +1008,7 @@ function showForgotPasswordForm(prefillEmail = "") {
   updateNavActiveState("auth");
 }
 
-function showSignupForm() {
+function showSignupForm({ step = 1, role = "driver" } = {}) {
   hideWelcomeScreen();
   closeMenu();
   hideAllSections();
@@ -823,6 +1018,7 @@ function showSignupForm() {
   bookError.textContent = "";
   mechanicStatus.textContent = "";
   mechanicError.textContent = "";
+  showSignupWizard({ step, role });
   updateNavActiveState("auth");
 }
 
@@ -1043,9 +1239,54 @@ function showRequestsPage() {
   updateNavActiveState("requests");
 }
 
+function getProfileInitial(name, email) {
+  const source = String(name || email || "G").trim();
+  return source.charAt(0).toUpperCase() || "G";
+}
+
+function updateMenuAvatar({ profilePhotoUrl, name, email } = {}) {
+  if (!menuUserAvatar) return;
+
+  const initial = getProfileInitial(name, email);
+  const url = String(profilePhotoUrl || "").trim();
+
+  menuUserAvatar.replaceChildren();
+
+  if (url) {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "Profile photo";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener(
+      "error",
+      () => {
+        menuUserAvatar.classList.remove("has-photo");
+        menuUserAvatar.textContent = initial;
+      },
+      { once: true }
+    );
+    menuUserAvatar.appendChild(img);
+    menuUserAvatar.classList.add("has-photo");
+    menuUserAvatar.setAttribute("aria-label", "Profile photo");
+  } else {
+    menuUserAvatar.classList.remove("has-photo");
+    menuUserAvatar.textContent = initial;
+    menuUserAvatar.setAttribute("aria-label", `Profile initial ${initial}`);
+  }
+}
+
 function updateMenuProfile(role, email) {
-  if (menuUserRole) menuUserRole.textContent = role ? role.charAt(0).toUpperCase() + role.slice(1) : "Guest";
+  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1) : "Guest";
+  if (menuUserRole) menuUserRole.textContent = displayRole;
   if (menuUserEmail) menuUserEmail.textContent = email || "Not signed in";
+
+  const signedIn = Boolean(auth.currentUser) && displayRole !== "Guest";
+  updateMenuAvatar({
+    profilePhotoUrl: signedIn ? currentUserProfile?.profilePhotoUrl : "",
+    name: signedIn ? currentUserProfile?.name : "",
+    email,
+  });
   updateNavAuthButton();
 }
 
@@ -2101,6 +2342,12 @@ async function loadUserProfile(user) {
   renderMechanicServiceSelection();
   startJobSync();
   syncCatalogToFirestoreInBackground();
+  paintDriverHomeActiveVehicle();
+
+  if (auth.currentUser) {
+    const role = normalizeUserRole(currentUserProfile?.role);
+    updateMenuProfile(role, auth.currentUser.email || "");
+  }
 }
 
 async function handleMechanicSaveServices() {
@@ -2215,32 +2462,6 @@ signupPasswordInput.addEventListener("input", (e) => {
   updatePasswordStrength(e.target.value);
 });
 
-signupBtn.addEventListener("click", async (e) => {
-  e.preventDefault();
-  signupErrorDiv.textContent = "";
-
-  authViewModel.name = signupNameInput.value.trim();
-  authViewModel.email = signupEmailInput.value.trim();
-  authViewModel.password = signupPasswordInput.value;
-  authViewModel.phoneNumber = signupPhoneInput.value.trim();
-  authViewModel.role = document.querySelector(
-    'input[name="role"]:checked'
-  ).value;
-
-  if (!authViewModel.name || !authViewModel.email || !authViewModel.password) {
-    signupErrorDiv.textContent = "Please fill in all required fields.";
-    return;
-  }
-
-  const validation = PasswordValidator.validate(authViewModel.password);
-  if (!validation.isValid) {
-    signupErrorDiv.textContent = validation.errors[0];
-    return;
-  }
-
-  await authViewModel.signUp();
-});
-
 logoutBtn.addEventListener("click", async (e) => {
   e.preventDefault();
   await authViewModel.logout(() => {
@@ -2271,6 +2492,8 @@ document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
 menuContactsBtn?.addEventListener("click", showContactsFromMenu);
 
 menuAboutBtn?.addEventListener("click", showAboutFromMenu);
+
+menuProfileLinkBtn?.addEventListener("click", showProfilePage);
 
 menuSettingsBtn?.addEventListener("click", () => {
   alert("Settings will be available soon in the dashboard.");
@@ -2432,16 +2655,43 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     wasLoggedIn = true;
     await loadUserProfile(user);
+    if (!isProfileOnboardingComplete(currentUserProfile)) {
+      hideWelcomeScreen();
+      closeMenu();
+      hideAllSections();
+      document.body.classList.add("auth-screen-active");
+      signupSection.classList.add("active");
+      resumeSignupWizardFromProfile(currentUserProfile);
+      updateNavActiveState("auth");
+      return;
+    }
     if (!resumePendingServiceAfterAuth()) {
       showHomePage();
     }
   } else if (wasLoggedIn) {
+    currentUserProfile = null;
     clearPendingServiceSelection();
     stopJobSync();
     showHomePage();
     wasLoggedIn = false;
   }
   updateNavAuthButton();
+});
+
+initSignupWizard({
+  authService,
+  authViewModel,
+  onProfileSaved: async () => {
+    if (auth.currentUser) {
+      await loadUserProfile(auth.currentUser);
+    }
+  },
+  onComplete: async () => {
+    if (auth.currentUser) {
+      await loadUserProfile(auth.currentUser);
+    }
+    showHomePage();
+  },
 });
 
 function mountPageFooters() {

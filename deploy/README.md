@@ -64,4 +64,6 @@ curl -sI https://mototap.co.ke | head
   loads in the production container build.
 - Deploy Firestore rules after security updates:
   `firebase deploy --only firestore:rules`
-```
+- **Cloudinary uploads:** require Firebase Functions (`getCloudinaryUploadSignature`).
+  See [deploy/CLOUDINARY_FUNCTIONS.md](./CLOUDINARY_FUNCTIONS.md). Deploy with:
+  `npm run deploy:functions`

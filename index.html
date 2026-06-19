@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta name="mototap-build" content="brand-ui-v4-2026-06-03" />
-  <title>MotoTap</title>
+  <title>MotoTap Autosystems</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -213,6 +213,24 @@
       flex-wrap: wrap;
       justify-content: center;
       gap: 14px;
+      width: auto;
+      max-width: 100%;
+    }
+
+    #welcome-get-started {
+      width: auto !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0 !important;
+      padding: 12px 16px !important;
+      box-sizing: border-box;
+      transform: scaleX(1.3);
+      transform-origin: center center;
+    }
+
+    #welcome-get-started:hover:not(:disabled) {
+      transform: scaleX(1.3) translateY(-1px);
     }
 
     @media (max-height: 640px) {
@@ -406,6 +424,18 @@
       font-size: 18px;
       color: #080808;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .menu-profile .avatar.has-photo {
+      background: #1a1a1a;
+    }
+
+    .menu-profile .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .menu-profile .menu-role {
@@ -818,6 +848,7 @@
     #messages-section.active,
     #requests-section.active,
     #about-section.active,
+    #profile-section.active,
     #forgot-password-section.active {
       margin-top: 20px;
     }
@@ -1195,6 +1226,118 @@
 
     #signup-section .error-message {
       color: #ffcdd2;
+    }
+
+    .signup-wizard-progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .signup-step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.25);
+      color: rgba(255, 255, 255, 0.75);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .signup-step-dot.active,
+    .signup-step-dot.completed {
+      background: var(--brand-blue, #0066cc);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .signup-step-connector {
+      width: 28px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .signup-step-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: -8px 0 16px;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.72);
+      text-align: center;
+    }
+
+    .signup-step-label {
+      flex: 1;
+    }
+
+    .signup-step-label.active {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .signup-wizard-step {
+      display: none;
+    }
+
+    .signup-wizard-step.active {
+      display: block;
+    }
+
+    .signup-wizard-step h4 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    #signup-section input[type="file"] {
+      width: 100%;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    #signup-section select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.78);
+      font-size: 1rem;
+    }
+
+    .signup-file-hint {
+      margin: 4px 0 12px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    #signup-location-map {
+      width: 100%;
+      height: 220px;
+      border-radius: 12px;
+      margin: 8px 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .signup-wizard-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .signup-wizard-actions .btn-primary,
+    .signup-wizard-actions .btn-secondary {
+      flex: 1;
+    }
+
+    .auth-card.signup-wizard-card {
+      max-width: 480px;
     }
 
     .panel-header h3 {
@@ -3001,8 +3144,185 @@
       -webkit-text-fill-color: #ffffff !important;
       background: none !important;
     }
+
+    /* Profile header — inline so layout updates are not blocked by cached CSS */
+    .profile-hero {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 20px;
+      text-align: left;
+      padding: 8px 0 16px;
+    }
+
+    .profile-hero-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 100px;
+      text-align: center;
+    }
+
+    .profile-hero-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(192, 0, 0, 0.12);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .profile-hero-details {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 6px;
+      padding-top: 4px;
+    }
+
+    .profile-hero-info {
+      width: 100%;
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .profile-hero-info .profile-info-card {
+      padding: 10px 12px;
+      gap: 10px;
+      min-width: 0;
+      box-shadow: 0 2px 12px rgba(0, 102, 204, 0.14) !important;
+    }
+
+    .profile-hero-info .profile-info-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .profile-hero-info .profile-info-label {
+      font-size: 0.6875rem;
+    }
+
+    .profile-hero-info .profile-info-value {
+      font-size: 0.8125rem;
+      word-break: break-word;
+    }
+
+    @media (min-width: 992px) {
+      .profile-hero-info {
+        width: 50%;
+        max-width: 50%;
+      }
+    }
+
+    .profile-hero-name {
+      margin: 10px 0 0;
+      font-size: 1rem;
+      font-weight: 900;
+      color: #000000 !important;
+      -webkit-text-fill-color: #000000 !important;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .profile-hero-role {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: #888;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .profile-hero-points {
+      margin: 0;
+      color: #c00000;
+      font-weight: 800;
+      font-size: 0.9375rem;
+    }
+
+    @media (max-width: 575px) {
+      .profile-hero {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      .profile-hero-left {
+        width: 88px;
+      }
+
+      .profile-hero-avatar {
+        width: 88px;
+        height: 88px;
+      }
+
+      .profile-hero-name {
+        font-size: 0.875rem;
+      }
+    }
+
+    /* Driver homepage — active vehicle card (inline fallback) */
+    .driver-active-vehicle-card {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto !important;
+      column-gap: 8px !important;
+      align-items: center !important;
+      width: 100% !important;
+      background: #1a1a1a !important;
+    }
+
+    .driver-active-vehicle-copy {
+      min-width: 0 !important;
+    }
+
+    .driver-active-vehicle-label {
+      color: #e31e24 !important;
+      -webkit-text-fill-color: #e31e24 !important;
+      white-space: nowrap !important;
+    }
+
+    .driver-active-vehicle-title {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      white-space: nowrap !important;
+    }
+
+    .driver-active-vehicle-stats {
+      color: #9ca3af !important;
+      -webkit-text-fill-color: #9ca3af !important;
+      white-space: nowrap !important;
+    }
+
+    .driver-active-vehicle-edit {
+      justify-self: end !important;
+    }
+
+    .profile-vehicle-dialog-title {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      white-space: nowrap !important;
+      font-size: 1.125rem !important;
+      font-weight: 700 !important;
+    }
+
+    .profile-vehicle-dialog .btn-primary,
+    .profile-vehicle-dialog .btn-secondary {
+      min-height: 42px !important;
+      height: 42px !important;
+      margin: 0 !important;
+      padding: 0 16px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260614i" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260615t" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
@@ -3155,6 +3475,7 @@
       </div>
     </div>
     <div class="menu-actions">
+      <button type="button" id="menu-profile-link-btn">My Profile</button>
       <button type="button" id="menu-welcome-btn">Welcome</button>
       <button type="button" id="menu-about-btn">About</button>
       <button type="button" id="menu-contacts-btn">Contacts</button>
@@ -3210,6 +3531,7 @@
       </div>
 
       <div id="driver-dashboard" class="dashboard-panel">
+        <div id="driver-active-vehicle-root"></div>
         <div class="panel-header">
           <h3>Our Services</h3>
           <p>Tap any service to open the map and find nearby mechanics who offer it.</p>
@@ -3274,6 +3596,17 @@
         <p class="requests-history-note">All history requests will appear here.</p>
       </div>
       <div id="request-history-list" class="request-history-list" aria-live="polite"></div>
+    </div>
+
+    <!-- PROFILE: signed-in account overview (mirrors mobile app ProfileScreen) -->
+    <div id="profile-section" class="form-section">
+      <div class="panel-header profile-page-header">
+        <h3>My Profile</h3>
+        <p>View your account details, vehicle or garage info, and service history.</p>
+      </div>
+      <div id="profile-page-root" class="profile-page-root" aria-live="polite">
+        <p class="profile-page-loading">Loading profile…</p>
+      </div>
     </div>
 
     <!-- ABOUT: mission, advantages, and who we serve -->
@@ -3414,82 +3747,157 @@
       </div>
     </div>
 
-    <!-- Signup Form -->
+    <!-- Signup Wizard (3 steps — mirrors Android app) -->
     <div id="signup-section" class="form-section">
-      <div class="auth-card">
+      <div class="auth-card signup-wizard-card">
         <div class="auth-card-header">
           <h3>Create your account</h3>
-          <p>Join as a driver or mechanic and start using Moto Tap today.</p>
+          <p>Join as a driver or mechanic. Complete all three steps to submit your profile for review.</p>
         </div>
+
+        <div class="signup-wizard-progress" aria-hidden="true">
+          <div class="signup-step-dot active" data-step="1">1</div>
+          <div class="signup-step-connector"></div>
+          <div class="signup-step-dot" data-step="2">2</div>
+          <div class="signup-step-connector"></div>
+          <div class="signup-step-dot" data-step="3">3</div>
+        </div>
+        <div class="signup-step-labels">
+          <span class="signup-step-label active" data-step="1">Basic Info</span>
+          <span class="signup-step-label" data-step="2">Identity</span>
+          <span class="signup-step-label" data-step="3">Details</span>
+        </div>
+
         <div class="error-message" id="signup-error"></div>
-        <div class="form-group">
-        <input
-          type="text"
-          id="signup-name"
-          placeholder="Full Name"
-          autocomplete="name"
-        />
-      </div>
-      <div class="form-group">
-        <input
-          type="email"
-          id="signup-email"
-          placeholder="Email"
-          autocomplete="email"
-        />
-      </div>
-      <div class="form-group">
-        <div class="password-field">
-          <input
-            type="password"
-            id="signup-password"
-            placeholder="Password"
-            autocomplete="new-password"
-          />
-          <button
-            type="button"
-            class="password-toggle-btn"
-            data-target="signup-password"
-            aria-label="Show password"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-          </button>
-        </div>
-        <div class="password-strength" id="password-strength" style="display: none;">
-          <div class="strength-bar">
-            <div class="strength-fill" id="strength-fill"></div>
+
+        <!-- Step 1: Basic Information -->
+        <div id="signup-step-1" class="signup-wizard-step active">
+          <h4>Step 1 — Basic Information</h4>
+          <div class="form-group">
+            <input type="text" id="signup-name" placeholder="Full Name (first and last)" autocomplete="name" />
           </div>
-          <span id="strength-text">Password strength: </span>
-        </div>
-      </div>
-      <div class="form-group">
-        <input
-          type="tel"
-          id="signup-phone"
-          placeholder="Phone Number"
-          autocomplete="tel"
-        />
-      </div>
-      <div class="form-group">
-        <label>Select Role</label>
-        <div class="role-selection">
-          <div class="role-option">
-            <label>
-              <input type="radio" name="role" value="driver" checked />
-              Driver
-            </label>
+          <div class="form-group">
+            <input type="email" id="signup-email" placeholder="Email" autocomplete="email" />
           </div>
-          <div class="role-option">
-            <label>
-              <input type="radio" name="role" value="mechanic" />
-              Mechanic
-            </label>
+          <div class="form-group">
+            <div class="password-field">
+              <input type="password" id="signup-password" placeholder="Password" autocomplete="new-password" />
+              <button type="button" class="password-toggle-btn" data-target="signup-password" aria-label="Show password">
+                <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+              </button>
+            </div>
+            <div class="password-strength" id="password-strength" style="display: none;">
+              <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+              <span id="strength-text">Password strength: </span>
+            </div>
+          </div>
+          <div class="form-group">
+            <input type="tel" id="signup-phone" placeholder="Phone Number" autocomplete="tel" required />
+          </div>
+          <div class="form-group">
+            <label>Select Role</label>
+            <div class="role-selection">
+              <div class="role-option">
+                <label><input type="radio" name="role" value="driver" checked /> Driver</label>
+              </div>
+              <div class="role-option">
+                <label><input type="radio" name="role" value="mechanic" /> Mechanic</label>
+              </div>
+            </div>
+          </div>
+          <button class="btn-primary" id="signup-step1-btn" type="button">Continue</button>
+          <div class="divider">OR</div>
+          <button class="btn-secondary" id="to-login" type="button">Have an Account? Sign In</button>
+        </div>
+
+        <!-- Step 2: Identity Verification -->
+        <div id="signup-step-2" class="signup-wizard-step">
+          <h4>Step 2 — Identity Verification</h4>
+          <div class="form-group">
+            <label for="signup-profile-photo">Profile Photo</label>
+            <input type="file" id="signup-profile-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="user" />
+            <p class="signup-file-hint">Upload a clear photo of your face.</p>
+          </div>
+          <div class="form-group">
+            <label for="signup-id-number" id="signup-id-number-label">Driving License Number</label>
+            <input type="text" id="signup-id-number" placeholder="License number" />
+          </div>
+          <div class="form-group">
+            <label for="signup-id-front-photo">ID Front Photo</label>
+            <input type="file" id="signup-id-front-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+            <p class="signup-file-hint">Photo of the front of your license or certification.</p>
+          </div>
+          <div class="signup-wizard-actions">
+            <button class="btn-secondary" id="signup-step2-back" type="button">Back</button>
+            <button class="btn-primary" id="signup-step2-btn" type="button">Continue</button>
           </div>
         </div>
-      </div>
-      <button class="btn-primary" id="signup-btn">Create Account</button>
-      <div class="divider">OR</div>
-      <button class="btn-secondary" id="to-login">Have an Account? Sign In</button>
+
+        <!-- Step 3: Driver -->
+        <div id="signup-step-3-driver" class="signup-wizard-step">
+          <h4>Step 3 — Vehicle Details</h4>
+          <div class="form-group">
+            <label for="signup-vehicle-type">Vehicle Type</label>
+            <select id="signup-vehicle-type">
+              <option value="">Select type</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="Car">Car</option>
+              <option value="Tuk Tuk">Tuk Tuk</option>
+              <option value="Van">Van</option>
+              <option value="Truck">Truck</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <input type="text" id="signup-vehicle-model" placeholder="Vehicle Model" />
+          </div>
+          <div class="form-group">
+            <input type="text" id="signup-number-plate" placeholder="Number Plate" />
+          </div>
+          <div class="form-group">
+            <label for="signup-vehicle-photo">Vehicle Photo</label>
+            <input type="file" id="signup-vehicle-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" />
+          </div>
+          <div class="signup-wizard-actions">
+            <button class="btn-secondary" id="signup-step3-driver-back" type="button">Back</button>
+            <button class="btn-primary" id="signup-step3-driver-btn" type="button">Finish Sign Up</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Mechanic -->
+        <div id="signup-step-3-mechanic" class="signup-wizard-step">
+          <h4>Step 3 — Garage &amp; Certification</h4>
+          <div class="form-group">
+            <input type="text" id="signup-institution-name" placeholder="Institution Name" />
+          </div>
+          <div class="form-group">
+            <label for="signup-experience-years">Experience Years</label>
+            <select id="signup-experience-years">
+              <option value="">Select experience</option>
+              <option value="0-1">0–1 years</option>
+              <option value="1-3">1–3 years</option>
+              <option value="3-5">3–5 years</option>
+              <option value="5-10">5–10 years</option>
+              <option value="10+">10+ years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="signup-certificate-photo">Mechanic Certification Photo</label>
+            <input type="file" id="signup-certificate-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+          </div>
+          <div class="form-group">
+            <label for="signup-garage-photo">Garage Front Photo</label>
+            <input type="file" id="signup-garage-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+          </div>
+          <div class="form-group">
+            <label>Garage Location — tap the map to pin</label>
+            <div id="signup-location-map" role="application" aria-label="Garage location map"></div>
+            <input type="text" id="signup-garage-address" placeholder="Address" readonly />
+          </div>
+          <div class="signup-wizard-actions">
+            <button class="btn-secondary" id="signup-step3-mechanic-back" type="button">Back</button>
+            <button class="btn-primary" id="signup-step3-mechanic-btn" type="button">Finish Sign Up</button>
+          </div>
+        </div>
       </div>
     </div>
 
