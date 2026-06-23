@@ -13,6 +13,12 @@ import {
   sortJobsNewestFirst,
 } from "./utils/jobSync.js";
 import {
+  buildServicePricesPayload,
+  formatKsh,
+  getMechanicServicePrice,
+  normalizeServicePrices,
+} from "./utils/mechanicServicePrices.js";
+import {
   distanceMeters,
   formatDistanceMeters,
   buildDriverMechanicConversationId,
@@ -536,6 +542,10 @@ function paintProfilePage(jobs = []) {
     email: auth.currentUser?.email || "",
     jobs,
     onViewAllRequests: showRequestsPage,
+    onBookMaintenance: () => {
+      const category = serviceCategories.find((c) => c.id === "preventive-routine-maintenance");
+      if (category) showMechanicMapPage(category, "General Request");
+    },
     onSaveVehicles: async (vehicles) => {
       const userId = auth.currentUser?.uid;
       if (!userId) {
@@ -642,6 +652,11 @@ async function showProfilePage({ focusVehicles = false } = {}) {
 
   if (!isProfileOnboardingComplete(currentUserProfile)) {
     document.body.classList.add("auth-screen-active");
+    if (mainNavbar) {
+      mainNavbar.hidden = true;
+      mainNavbar.style.display = "none";
+    }
+    setHomeMenuVisible(false);
     signupSection.classList.add("active");
     resumeSignupWizardFromProfile(currentUserProfile);
     updateNavActiveState("auth");
@@ -816,7 +831,8 @@ const forgotPasswordStatusDiv = document.getElementById("forgot-password-status"
 const signupNameInput = document.getElementById("signup-name");
 const signupEmailInput = document.getElementById("signup-email");
 const signupPasswordInput = document.getElementById("signup-password");
-const signupPhoneInput = document.getElementById("signup-phone");
+const loginBackBtn = document.getElementById("login-back-btn");
+const signupBackBtn = document.getElementById("signup-back-btn");
 
 const loginErrorDiv = document.getElementById("login-error");
 const signupErrorDiv = document.getElementById("signup-error");
@@ -852,6 +868,7 @@ const mechanicPanelName = document.getElementById("mechanic-panel-name");
 const mechanicPanelDistance = document.getElementById("mechanic-panel-distance");
 const mechanicPanelMeta = document.getElementById("mechanic-panel-meta");
 const mechanicPanelService = document.getElementById("mechanic-panel-service");
+const mechanicPanelPrice = document.getElementById("mechanic-panel-price");
 const mechanicChatBtn = document.getElementById("mechanic-chat-btn");
 const mechanicBookBtn = document.getElementById("mechanic-book-btn");
 const mechanicCallBtn = document.getElementById("mechanic-call-btn");
@@ -978,6 +995,11 @@ function showLoginForm() {
   closeMenu();
   hideAllSections();
   document.body.classList.add("auth-screen-active");
+  if (mainNavbar) {
+    mainNavbar.hidden = true;
+    mainNavbar.style.display = "none";
+  }
+  setHomeMenuVisible(false);
   loginSection.classList.add("active");
   loginErrorDiv.textContent = "";
   signupErrorDiv.textContent = "";
@@ -1013,6 +1035,11 @@ function showSignupForm({ step = 1, role = "driver" } = {}) {
   closeMenu();
   hideAllSections();
   document.body.classList.add("auth-screen-active");
+  if (mainNavbar) {
+    mainNavbar.hidden = true;
+    mainNavbar.style.display = "none";
+  }
+  setHomeMenuVisible(false);
   signupSection.classList.add("active");
   bookStatus.textContent = "";
   bookError.textContent = "";
@@ -1545,6 +1572,19 @@ function renderMechanicPanel(entry, { showClosestBadge = false } = {}) {
     mechanicPanelService.textContent = selectedSubservice
       ? `Service: ${selectedSubservice}`
       : "";
+  }
+  if (mechanicPanelPrice) {
+    const price =
+      selectedSubservice != null
+        ? getMechanicServicePrice(mechanic, selectedSubservice)
+        : null;
+    if (price != null && price > 0) {
+      mechanicPanelPrice.textContent = `Price: KSh ${formatKsh(price)}`;
+      mechanicPanelPrice.classList.remove("hidden");
+    } else {
+      mechanicPanelPrice.textContent = "";
+      mechanicPanelPrice.classList.add("hidden");
+    }
   }
   updateAdminContactButtons(mechanic);
 }
@@ -2129,7 +2169,8 @@ async function handleBookNow() {
     ? `GPS: ${driverPosition.lat.toFixed(5)}, ${driverPosition.lng.toFixed(5)}`
     : "Location not provided";
   const description = "";
-  const suggestedPrice = 0;
+  const suggestedPrice =
+    getMechanicServicePrice(selectedMechanicEntry.mechanic, selectedSubservice) ?? 0;
 
   mechanicBookBtn.disabled = true;
   mechanicBookBtn.textContent = "Booking…";
@@ -2248,7 +2289,7 @@ function renderServiceCategories() {
   scheduleServiceCategoryCardBalance();
 }
 
-function buildMechanicCategoryCard(category, existingSkills) {
+function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}) {
   const { card, body } = createServiceCategoryCardShell(category);
 
   category.groups.forEach((group) => {
@@ -2260,19 +2301,49 @@ function buildMechanicCategoryCard(category, existingSkills) {
     groupCard.appendChild(groupTitle);
 
     group.items.forEach((serviceName) => {
+      const row = document.createElement("div");
+      row.className = "mechanic-service-offer-row";
+
       const label = document.createElement("label");
-      label.className = "service-checkbox-label";
+      label.className = "mechanic-service-offer-label";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = serviceName;
       checkbox.checked = existingSkills.has(serviceName);
-      checkbox.style.cursor = "pointer";
-      checkbox.style.marginRight = "8px";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "mechanic-service-offer-name";
+      nameSpan.textContent = serviceName;
+
+      const priceInput = document.createElement("input");
+      priceInput.type = "number";
+      priceInput.min = "0";
+      priceInput.step = "1";
+      priceInput.inputMode = "numeric";
+      priceInput.className = "mechanic-service-price-input";
+      priceInput.placeholder = "Ksh";
+      priceInput.setAttribute("aria-label", `Price for ${serviceName} in Kenyan Shillings`);
+      const savedPrice = existingPrices[serviceName];
+      if (savedPrice != null && savedPrice !== "") {
+        priceInput.value = String(savedPrice);
+      }
+      priceInput.disabled = !checkbox.checked;
+
+      checkbox.addEventListener("change", () => {
+        priceInput.disabled = !checkbox.checked;
+        if (!checkbox.checked) {
+          priceInput.value = "";
+        } else {
+          priceInput.focus();
+        }
+      });
 
       label.appendChild(checkbox);
-      label.appendChild(document.createTextNode(serviceName));
-      groupCard.appendChild(label);
+      label.appendChild(nameSpan);
+      row.appendChild(label);
+      row.appendChild(priceInput);
+      groupCard.appendChild(row);
     });
 
     body.appendChild(groupCard);
@@ -2284,9 +2355,10 @@ function buildMechanicCategoryCard(category, existingSkills) {
 function renderMechanicServiceSelection() {
   mechanicServiceList.innerHTML = "";
   const existingSkills = new Set(currentUserProfile?.skills || []);
+  const existingPrices = normalizeServicePrices(currentUserProfile?.servicePrices);
 
   appendCatalogByDisplayGroup(mechanicServiceList, (category) =>
-    buildMechanicCategoryCard(category, existingSkills)
+    buildMechanicCategoryCard(category, existingSkills, existingPrices)
   );
 
   scheduleServiceCategoryCardBalance();
@@ -2359,20 +2431,42 @@ async function handleMechanicSaveServices() {
     return;
   }
 
-  const selectedSkills = Array.from(
-    mechanicServiceList.querySelectorAll("input[type='checkbox']")
-  )
-    .filter((checkbox) => checkbox.checked)
-    .map((checkbox) => checkbox.value);
+  const selectedSkills = [];
+  const pricesByName = {};
+
+  mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (!checkbox?.checked) return;
+
+    const serviceName = String(checkbox.value || "").trim();
+    if (!serviceName) return;
+
+    selectedSkills.push(serviceName);
+    const priceInput = row.querySelector(".mechanic-service-price-input");
+    const price = Number(priceInput?.value);
+    if (Number.isFinite(price) && price >= 0) {
+      pricesByName[serviceName] = price;
+    }
+  });
+
+  const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
 
   saveServicesBtn.disabled = true;
   saveServicesBtn.textContent = "Saving...";
 
   try {
-    await authService.updateMechanicSkills(auth.currentUser.uid, selectedSkills);
-    mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s).`;
+    const result = await authService.updateMechanicSkills(
+      auth.currentUser.uid,
+      selectedSkills,
+      servicePrices
+    );
+    if (!result.success) {
+      throw new Error(result.error || "Failed to save services.");
+    }
+    mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s) with prices.`;
     mechanicError.textContent = "";
     currentUserProfile.skills = selectedSkills;
+    currentUserProfile.servicePrices = servicePrices;
     startJobSync();
   } catch (error) {
     mechanicError.textContent = `Unable to save services: ${error.message}`;
@@ -2480,6 +2574,16 @@ landingToSignupBtn?.addEventListener("click", (e) => {
 });
 
 document.getElementById("welcome-get-started")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showHomePage();
+});
+
+loginBackBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  showHomePage();
+});
+
+signupBackBtn?.addEventListener("click", (e) => {
   e.preventDefault();
   showHomePage();
 });
@@ -2660,6 +2764,11 @@ onAuthStateChanged(auth, async (user) => {
       closeMenu();
       hideAllSections();
       document.body.classList.add("auth-screen-active");
+      if (mainNavbar) {
+        mainNavbar.hidden = true;
+        mainNavbar.style.display = "none";
+      }
+      setHomeMenuVisible(false);
       signupSection.classList.add("active");
       resumeSignupWizardFromProfile(currentUserProfile);
       updateNavActiveState("auth");

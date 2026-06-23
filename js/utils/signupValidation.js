@@ -21,12 +21,28 @@ export function validateEmail(email) {
   return "";
 }
 
+export function sanitizeKenyanPhoneInput(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.length > 10) {
+    digits = digits.slice(0, 10);
+  }
+  if (digits.length >= 1 && digits[0] !== "0") {
+    digits = "";
+  }
+  if (digits.length >= 2 && digits[1] !== "7" && digits[1] !== "1") {
+    digits = digits.slice(0, 1);
+  }
+  return digits;
+}
+
 export function validatePhone(phone) {
-  const trimmed = String(phone || "").trim();
-  if (!trimmed) return "Phone number is required.";
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits.length < 9 || digits.length > 15) {
-    return "Please enter a valid phone number.";
+  const digits = sanitizeKenyanPhoneInput(phone);
+  if (!digits) return "Phone number is required.";
+  if (digits.length !== 10) {
+    return "Phone number must be exactly 10 digits.";
+  }
+  if (!/^0[17]\d{8}$/.test(digits)) {
+    return "Phone number must start with 07 or 01.";
   }
   return "";
 }

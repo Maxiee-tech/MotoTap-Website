@@ -153,6 +153,14 @@
       display: flex;
     }
 
+    body.auth-screen-active #main-navbar {
+      display: none !important;
+    }
+
+    body.auth-screen-active .home-menu-btn {
+      display: none !important;
+    }
+
     .welcome-content {
       text-align: center;
       max-width: 780px;
@@ -1090,7 +1098,7 @@
       width: 100%;
       margin: 0;
       padding:
-        calc(var(--header-offset) + 16px)
+        max(16px, env(safe-area-inset-top, 0px))
         max(var(--content-pad-x, 16px), env(safe-area-inset-right, 0px))
         max(24px, env(safe-area-inset-bottom, 0px))
         max(var(--content-pad-x, 16px), env(safe-area-inset-left, 0px));
@@ -1103,6 +1111,35 @@
       overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+    }
+
+    .auth-screen-back-btn {
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top, 0px));
+      left: max(16px, env(safe-area-inset-left, 0px));
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.28);
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .auth-screen-back-btn .material-symbols-outlined {
+      font-size: 24px;
+    }
+
+    .auth-screen-back-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.55);
     }
 
     #login-section .auth-card,
@@ -2397,6 +2434,56 @@
       border-color: #3399ff;
     }
 
+    .mechanic-service-offer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mechanic-service-offer-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .mechanic-service-offer-name {
+      line-height: 1.35;
+    }
+
+    .mechanic-service-price-input {
+      width: 96px;
+      flex-shrink: 0;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .mechanic-service-price-input:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .mechanic-service-price-input:focus {
+      outline: none;
+      border-color: #ffc107;
+      box-shadow: 0 0 0 1px #ffc107;
+    }
+
     .dashboard-form {
       margin-top: 16px;
       text-align: left;
@@ -2667,11 +2754,21 @@
     }
 
     .mechanic-map-float-panel .mechanic-panel-meta,
-    .mechanic-map-float-panel .mechanic-panel-service {
+    .mechanic-map-float-panel .mechanic-panel-service,
+    .mechanic-map-float-panel .mechanic-panel-price {
       font-size: 0.8125rem;
       color: #555;
       margin: 0 0 4px;
       line-height: 1.45;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-price {
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-price.hidden {
+      display: none;
     }
 
     .mechanic-map-float-panel .mechanic-panel-book-status {
@@ -3322,7 +3419,7 @@
       justify-content: center !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260615t" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260615v" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
@@ -3682,6 +3779,9 @@
 
     <!-- Login Form -->
     <div id="login-section" class="form-section">
+      <button type="button" class="auth-screen-back-btn" id="login-back-btn" aria-label="Back to homepage">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      </button>
       <div class="auth-card">
         <div class="auth-card-header">
           <h3>Welcome back</h3>
@@ -3749,6 +3849,9 @@
 
     <!-- Signup Wizard (3 steps — mirrors Android app) -->
     <div id="signup-section" class="form-section">
+      <button type="button" class="auth-screen-back-btn" id="signup-back-btn" aria-label="Back to homepage">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      </button>
       <div class="auth-card signup-wizard-card">
         <div class="auth-card-header">
           <h3>Create your account</h3>
@@ -3792,7 +3895,15 @@
             </div>
           </div>
           <div class="form-group">
-            <input type="tel" id="signup-phone" placeholder="Phone Number" autocomplete="tel" required />
+            <input
+              type="tel"
+              id="signup-phone"
+              placeholder="Phone Number: 0712345678"
+              autocomplete="tel"
+              inputmode="numeric"
+              maxlength="10"
+              required
+            />
           </div>
           <div class="form-group">
             <label>Select Role</label>
@@ -3910,7 +4021,7 @@
       <div id="mechanic-dashboard" class="dashboard-panel">
         <div class="panel-header">
           <h3>Mechanic Service Selection</h3>
-          <p>Choose the sub-services you can deliver. Your profile will be matched to requests for those services.</p>
+          <p>Choose the sub-services you can deliver and set your price for each in Ksh. Drivers will see your prices when booking.</p>
         </div>
         <div class="mechanic-service-list" id="mechanic-service-list"></div>
         <button class="btn-primary" id="save-services-btn">Save Offered Services</button>
@@ -3946,6 +4057,7 @@
             <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
             <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
             <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
+            <p id="mechanic-panel-price" class="mechanic-panel-price hidden"></p>
             <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
             <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
           </div>

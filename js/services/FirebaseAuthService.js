@@ -197,13 +197,16 @@ export default class FirebaseAuthService extends AuthRepository {
     }
   }
 
-  async updateMechanicSkills(userId, skills) {
+  async updateMechanicSkills(userId, skills, servicePrices = null) {
     try {
-      await withTimeout(
-        updateDoc(this.userDocRef(userId), {
-          skills: skills,
-        })
-      );
+      const payload = {
+        skills,
+        availableServices: skills,
+      };
+      if (servicePrices !== null) {
+        payload.servicePrices = servicePrices;
+      }
+      await withTimeout(updateDoc(this.userDocRef(userId), payload));
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.updateMechanicSkills error:", error);

@@ -84,6 +84,11 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
         && (!('skills' in request.resource.data) || request.resource.data.skills is list)
+        && (!('availableServices' in request.resource.data)
+          || request.resource.data.availableServices is list)
+        && (!('servicePrices' in request.resource.data)
+          || (request.resource.data.servicePrices is map
+            && request.resource.data.servicePrices.size() <= 200))
         && (!('phoneNumber' in request.resource.data)
           || (request.resource.data.phoneNumber is string
             && request.resource.data.phoneNumber.size() <= 32))

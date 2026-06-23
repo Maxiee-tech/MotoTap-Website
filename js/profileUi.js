@@ -2,6 +2,7 @@ import { escapeHtml } from "./utils/html.js";
 import { normalizeUserRole } from "./utils/geo.js";
 import { getJobIssueType, sortJobsNewestFirst } from "./utils/jobSync.js";
 import { renderDriverVehicleSection, bindVehicleProfileUi } from "./vehicleProfileUi.js";
+import { renderDriverProfileHub, bindDriverProfileHub } from "./driverProfileHubUi.js";
 
 export function getProfileDisplayPhoto(profile) {
   const primary = String(profile?.profilePhotoUrl || "").trim();
@@ -77,14 +78,38 @@ function renderServiceHistoryItems(jobs) {
     .join("");
 }
 
-function renderDriverExtras(profile) {
+function getRewardProgressData(profile) {
+  const loyaltyPoints = Number(profile?.loyaltyPoints) || 0;
+  const membershipStatus = loyaltyPoints >= 100 ? "Gold Member" : "Silver Member";
+  const pointsToNextReward = 50 - (loyaltyPoints % 50);
+
+  return {
+    loyaltyPoints,
+    membershipStatus,
+    pointsToNextReward,
+  };
+}
+
+function renderRewardProgressCard(profile) {
+  const { membershipStatus, pointsToNextReward } = getRewardProgressData(profile);
+
+  return `
+    <article class="profile-reward-progress-card">
+      <span class="material-symbols-outlined profile-reward-progress-icon" aria-hidden="true">star</span>
+      <div class="profile-reward-progress-copy">
+        <strong class="profile-reward-progress-title">Reward Progress</strong>
+        <span class="profile-reward-progress-status">${escapeHtml(membershipStatus)}</span>
+      </div>
+      <span class="profile-reward-progress-remaining">${escapeHtml(String(pointsToNextReward))} pts to next reward</span>
+    </article>
+  `;
+}
+
+function renderDriverExtras(profile, jobs = []) {
   return `
     ${renderDriverVehicleSection(profile)}
-    <section class="profile-block profile-loyalty-card">
-      <h4 class="profile-block-title">Loyalty &amp; Rewards</h4>
-      <p class="profile-loyalty-balance">${escapeHtml(String(profile?.loyaltyPoints || 0))} points</p>
-      <p class="profile-muted">Earn points for every completed service.</p>
-    </section>
+    ${renderRewardProgressCard(profile)}
+    ${renderDriverProfileHub(profile, jobs)}
   `;
 }
 
@@ -116,6 +141,7 @@ export function renderProfilePage(
     email,
     jobs = [],
     onViewAllRequests,
+    onBookMaintenance,
     onLogout,
     onDeleteAccount,
     onSaveVehicles,
@@ -155,8 +181,12 @@ export function renderProfilePage(
       </div>
     </div>
 
-    ${isDriver ? renderDriverExtras(profile) : renderMechanicExtras(profile)}
+    ${isDriver ? renderDriverExtras(profile, jobs) : renderMechanicExtras(profile)}
 
+    ${
+      isDriver
+        ? ""
+        : `
     <section class="profile-block">
       <div class="profile-block-heading">
         <h4 class="profile-block-title">Service History</h4>
@@ -166,6 +196,8 @@ export function renderProfilePage(
         ${renderServiceHistoryItems(jobs)}
       </div>
     </section>
+    `
+    }
 
     <section class="profile-actions">
       <button type="button" class="btn-primary profile-action-btn" data-profile-action="logout">Log Out</button>
@@ -229,7 +261,10 @@ export function renderProfilePage(
     await onDeleteAccount?.(password);
   });
 
-  if (isDriver && typeof onSaveVehicles === "function") {
-    bindVehicleProfileUi(container, { profile, onSaveVehicles });
+  if (isDriver) {
+    bindDriverProfileHub(container, { onViewAllRequests, onBookMaintenance });
+    if (typeof onSaveVehicles === "function") {
+      bindVehicleProfileUi(container, { profile, onSaveVehicles });
+    }
   }
 }

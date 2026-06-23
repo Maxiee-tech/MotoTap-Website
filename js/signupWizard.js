@@ -7,6 +7,7 @@ import {
   validateFullName,
   validateEmail,
   validatePhone,
+  sanitizeKenyanPhoneInput,
   validateRole,
   validateSignupFile,
   validateIdNumber,
@@ -105,7 +106,7 @@ function readStep1Fields() {
     name: document.getElementById("signup-name")?.value?.trim() || "",
     email: document.getElementById("signup-email")?.value?.trim() || "",
     password: document.getElementById("signup-password")?.value || "",
-    phone: document.getElementById("signup-phone")?.value?.trim() || "",
+    phone: sanitizeKenyanPhoneInput(document.getElementById("signup-phone")?.value || ""),
     role:
       document.querySelector('input[name="role"]:checked')?.value || wizardState.role,
   };
@@ -231,6 +232,19 @@ export function resumeSignupWizardFromProfile(profile) {
 }
 
 export function initSignupWizard({ authService, authViewModel, onComplete, onProfileSaved }) {
+  const phoneInput = document.getElementById("signup-phone");
+  phoneInput?.addEventListener("input", () => {
+    const sanitized = sanitizeKenyanPhoneInput(phoneInput.value);
+    if (phoneInput.value !== sanitized) {
+      phoneInput.value = sanitized;
+    }
+  });
+  phoneInput?.addEventListener("paste", (event) => {
+    event.preventDefault();
+    const pasted = event.clipboardData?.getData("text") || "";
+    phoneInput.value = sanitizeKenyanPhoneInput(pasted);
+  });
+
   const step1Btn = document.getElementById("signup-step1-btn");
   const step2Btn = document.getElementById("signup-step2-btn");
   const step2BackBtn = document.getElementById("signup-step2-back");

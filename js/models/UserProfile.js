@@ -53,6 +53,10 @@ export function createUserProfile(data = {}) {
     rating: Number(data.rating) || 0,
     reviewCount: Number(data.reviewCount) || 0,
     skills: Array.isArray(data.skills) ? data.skills : [],
+    servicePrices:
+      data.servicePrices && typeof data.servicePrices === "object" && !Array.isArray(data.servicePrices)
+        ? data.servicePrices
+        : {},
     onboardingStep: data.onboardingStep ?? null,
     onboardingComplete: data.onboardingComplete === true,
     isAdmin: data.isAdmin === true,
@@ -90,6 +94,7 @@ export function mapFirestoreUserDoc(userId, data) {
     rating: data.rating,
     reviewCount: data.reviewCount,
     skills: data.skills,
+    servicePrices: data.servicePrices,
     onboardingStep: data.onboardingStep,
     onboardingComplete: data.onboardingComplete,
     isAdmin: data.isAdmin,
