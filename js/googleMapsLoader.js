@@ -16,8 +16,54 @@ export function isMapsAuthFailed() {
   return window.__mototapMapsAuthFailed === true;
 }
 
+async function bootstrapGoogleMapsLibraries() {
+  if (typeof google === "undefined" || !google.maps) {
+    throw new Error("MAPS_NOT_AVAILABLE");
+  }
+
+  if (typeof google.maps.Map === "function") {
+    return;
+  }
+
+  if (typeof google.maps.importLibrary === "function") {
+    await Promise.all([
+      google.maps.importLibrary("maps"),
+      google.maps.importLibrary("marker"),
+    ]);
+  }
+
+  if (typeof google.maps.Map !== "function") {
+    throw new Error("MAPS_NOT_AVAILABLE");
+  }
+}
+
+function injectMapsScript(key) {
+  return new Promise((resolve, reject) => {
+    const callbackName = "__mototapMapsReady";
+
+    window[callbackName] = () => {
+      delete window[callbackName];
+      if (isMapsAuthFailed()) {
+        reject(new Error("MAPS_AUTH_FAILURE"));
+        return;
+      }
+      bootstrapGoogleMapsLibraries().then(resolve).catch(reject);
+    };
+
+    const script = document.createElement("script");
+    script.dataset.mototapMaps = "1";
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
+      key
+    )}&v=weekly&callback=${callbackName}`;
+    script.onerror = () => reject(new Error("MAPS_SCRIPT_ERROR"));
+    document.head.appendChild(script);
+  });
+}
+
 export function loadGoogleMapsScript() {
-  if (typeof google !== "undefined" && google.maps) {
+  if (typeof google !== "undefined" && google.maps?.Map) {
     return Promise.resolve();
   }
   if (loadPromise) return loadPromise;
@@ -29,39 +75,21 @@ export function loadGoogleMapsScript() {
 
   registerMapsAuthFailureHandler();
 
-  loadPromise = new Promise((resolve, reject) => {
-    const callbackName = "__mototapMapsReady";
+  const existing = document.querySelector("script[data-mototap-maps]");
+  if (existing && typeof google !== "undefined" && google.maps) {
+    loadPromise = bootstrapGoogleMapsLibraries();
+    return loadPromise;
+  }
 
-    window[callbackName] = () => {
-      delete window[callbackName];
-      if (isMapsAuthFailed()) {
-        reject(new Error("MAPS_AUTH_FAILURE"));
-        return;
-      }
-      if (typeof google === "undefined" || !google.maps) {
-        reject(new Error("MAPS_NOT_AVAILABLE"));
-        return;
-      }
-      resolve();
-    };
-
-    const script = document.createElement("script");
-    script.dataset.mototapMaps = "1";
-    script.async = true;
-    script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-      key
-    )}&loading=async&callback=${callbackName}`;
-    script.onerror = () => reject(new Error("MAPS_SCRIPT_ERROR"));
-    document.head.appendChild(script);
-  });
-
+  loadPromise = injectMapsScript(key);
   return loadPromise;
 }
 
 /** Wait until the map container is visible and has layout dimensions. */
-export function waitForMapLayout(mapEl) {
+export function waitForMapLayout(mapEl, { timeoutMs = 5000 } = {}) {
   return new Promise((resolve) => {
+    const started = performance.now();
+
     const tick = () => {
       if (!mapEl) {
         resolve();
@@ -69,6 +97,10 @@ export function waitForMapLayout(mapEl) {
       }
       const rect = mapEl.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
+        resolve();
+        return;
+      }
+      if (performance.now() - started > timeoutMs) {
         resolve();
         return;
       }

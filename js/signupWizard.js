@@ -180,6 +180,9 @@ async function initMechanicLocationMap() {
       locationMap.addListener("click", async (event) => {
         await setMechanicPin(event.latLng.lat(), event.latLng.lng());
       });
+      google.maps.event.addListenerOnce(locationMap, "idle", () => {
+        google.maps.event.trigger(locationMap, "resize");
+      });
     } else {
       google.maps.event.trigger(locationMap, "resize");
     }

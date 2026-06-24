@@ -64,8 +64,43 @@ service cloud.firestore {
       ];
     }
 
+    function validPublicProfile(data) {
+      return data.userId is string
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.role in ['mechanic', 'driver', 'MECHANIC', 'DRIVER']
+        && (!('status' in data) || data.status in ['PENDING', 'APPROVED', 'REJECTED'])
+        && (!('profilePhotoUrl' in data) || (data.profilePhotoUrl is string && data.profilePhotoUrl.size() <= 2048))
+        && (!('skills' in data) || (data.skills is list && data.skills.size() <= 50))
+        && (!('availableServices' in data) || (data.availableServices is list && data.availableServices.size() <= 50))
+        && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200))
+        && (!('latitude' in data) || data.latitude == null || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+        && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
+        && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
+        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
+        && (!('updatedAtMillis' in data) || data.updatedAtMillis is int);
+    }
+
+    function ownerPublicProfileCreate(data) {
+      return data.status == 'PENDING'
+        && data.rating == 0
+        && data.reviewCount == 0
+        && validPublicProfile(data);
+    }
+
+    function ownerPublicProfileUpdate(data, existing) {
+      return data.userId == existing.userId
+        && (!('status' in data) || data.status == existing.status)
+        && (!('rating' in data) || data.rating == existing.rating)
+        && (!('reviewCount' in data) || data.reviewCount == existing.reviewCount)
+        && validPublicProfile(data);
+    }
+
     match /users/{userId} {
-      allow read: if signedIn();
+      allow read: if isOwner(userId) || isAdminUser();
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
         && request.resource.data.email is string
@@ -80,6 +115,7 @@ service cloud.firestore {
         && request.resource.data.email == resource.data.email
         && request.resource.data.role == resource.data.role
         && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+        && request.resource.data.status == resource.data.status
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
@@ -93,6 +129,10 @@ service cloud.firestore {
           || (request.resource.data.phoneNumber is string
             && request.resource.data.phoneNumber.size() <= 32))
         && validOnboardingFields(request.resource.data);
+      allow update: if isAdminUser()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['PENDING', 'APPROVED', 'REJECTED'];
       allow delete: if isOwner(userId);
 
       match /chatPartners/{partnerId} {
@@ -119,6 +159,34 @@ service cloud.firestore {
           && (validChatPartnerWrite() || isChatPartnerTypingUpdate());
         allow delete: if false;
       }
+    }
+
+    function isChatPartnerOf(userId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/chatPartners/$(userId));
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if signedIn()
+        && (isOwner(userId)
+          || isAdminUser()
+          || resource.data.status == 'APPROVED'
+          || isChatPartnerOf(userId));
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && ownerPublicProfileCreate(request.resource.data);
+      allow update: if isOwner(userId)
+        && ownerPublicProfileUpdate(request.resource.data, resource.data);
+      allow update: if isAdminUser()
+        && request.resource.data.userId == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rating', 'reviewCount'])
+        && request.resource.data.status in ['PENDING', 'APPROVED', 'REJECTED']
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 0
+        && request.resource.data.rating <= 5
+        && request.resource.data.reviewCount is int
+        && request.resource.data.reviewCount >= 0;
+      allow delete: if isOwner(userId) || isAdminUser();
     }
 
     match /serviceCategories/{categoryId} {
@@ -203,9 +271,18 @@ service cloud.firestore {
       allow delete: if isJobDriver();
 
       match /messages/{messageId} {
-        allow read, create: if signedIn()
+        allow read: if signedIn()
           && (get(/databases/$(database)/documents/jobs/$(jobId)).data.driverId == request.auth.uid
             || get(/databases/$(database)/documents/jobs/$(jobId)).data.mechanicId == request.auth.uid);
+        allow create: if signedIn()
+          && (get(/databases/$(database)/documents/jobs/$(jobId)).data.driverId == request.auth.uid
+            || get(/databases/$(database)/documents/jobs/$(jobId)).data.mechanicId == request.auth.uid)
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 200
+          && request.resource.data.timestampMillis is int
+          && request.resource.data.read is bool;
       }
     }
 
@@ -290,7 +367,7 @@ service cloud.firestore {
       }
 
       allow read: if signedIn()
-        && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
+        && (isChatParticipant() || uidInRoomId());
 
       function isTypingStatusUpdate() {
         return uidInRoomId()
@@ -317,9 +394,9 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if signedIn()
-          && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId());
+          && (isChatParticipant() || uidInRoomId());
         allow create: if signedIn()
-          && (isChatParticipant() || chatRoomParticipants().size() == 0 || uidInRoomId())
+          && uidInRoomId()
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
@@ -381,7 +458,8 @@ service cloud.firestore {
 
     match /website_messages/{messageId} {
       allow read: if false;
-      allow create: if request.resource.data.message is string
+      allow create: if signedIn()
+        && request.resource.data.message is string
         && request.resource.data.message.size() > 0
         && request.resource.data.message.size() <= 2000
         && request.resource.data.createdAt is string

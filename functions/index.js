@@ -1,9 +1,11 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const { validateServerUploadRequest } = require("./src/uploadValidation");
 const { signCloudinaryParams } = require("./src/cloudinarySign");
 const { resolveCloudinaryPresetName } = require("./src/cloudinaryPresets");
+const { buildPublicProfileData } = require("./src/publicProfile");
 
 admin.initializeApp();
 
@@ -119,3 +121,24 @@ exports.getCloudinaryUploadSignature = onCall(
     };
   }
 );
+
+/**
+ * Keep publicProfiles in sync whenever users/{uid} changes (web + Android).
+ * Requires Blaze plan — skip deploying functions on Spark; the web client syncs publicProfiles instead.
+ */
+exports.syncPublicProfile = onDocumentWritten("users/{userId}", async (event) => {
+  const userId = event.params.userId;
+  const db = admin.firestore();
+  const publicRef = db.collection("publicProfiles").doc(userId);
+
+  if (!event.data?.after?.exists) {
+    await publicRef.delete().catch(() => {});
+    return;
+  }
+
+  const data = event.data.after.data();
+  const payload = buildPublicProfileData(userId, data);
+  if (!payload.name) return;
+
+  await publicRef.set(payload, { merge: true });
+});

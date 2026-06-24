@@ -145,7 +145,7 @@ body.mt-brand .welcome-screen {
       rgba(0, 0, 0, 0.35) 45%,
       rgba(0, 0, 0, 0.55) 100%
     ),
-    url("/welcome-bg.jpg") center / cover no-repeat !important;
+    url("/images/welcome-bg/welcome-bg.jpg") center / cover no-repeat !important;
   background-color: #1a1a1a !important;
   display: flex !important;
   flex-direction: column !important;
@@ -511,14 +511,14 @@ body.mt-brand #requests-section .requests-history-note {
 
 /* ── Cards & surfaces ── */
 body.mt-brand .service-category-card {
-  background: var(--mt-white) !important;
+  background-color: var(--mt-white) !important;
   border: 1px solid var(--mt-gray-200) !important;
   box-shadow: var(--mt-shadow-card) !important;
 }
 
 body.mt-brand .service-category-card:hover {
   border-color: var(--mt-red) !important;
-  background: var(--mt-white) !important;
+  background-color: var(--mt-white) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
   transform: translateY(-4px);
 }
@@ -528,7 +528,7 @@ body.mt-brand .service-category-card[data-category-id="road-assistance"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/3a/12/8f/3a128f64e9a44bd7bf85ec46109fb698.jpg") !important;
+    url("/images/services/road-assistance.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -539,7 +539,7 @@ body.mt-brand .service-category-card[data-category-id="road-assistance"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/3a/12/8f/3a128f64e9a44bd7bf85ec46109fb698.jpg") !important;
+    url("/images/services/road-assistance.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -549,7 +549,7 @@ body.mt-brand .service-category-card[data-category-id="towing-services"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/1200x/29/13/ee/2913ee38985146785f482bb5387f99cc.jpg") !important;
+    url("/images/services/towing-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -560,7 +560,7 @@ body.mt-brand .service-category-card[data-category-id="towing-services"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/1200x/29/13/ee/2913ee38985146785f482bb5387f99cc.jpg") !important;
+    url("/images/services/towing-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -570,7 +570,7 @@ body.mt-brand .service-category-card[data-category-id="mobile-mechanic"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg") !important;
+    url("/images/services/mobile-mechanic.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -581,7 +581,7 @@ body.mt-brand .service-category-card[data-category-id="mobile-mechanic"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg") !important;
+    url("/images/services/mobile-mechanic.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -591,7 +591,7 @@ body.mt-brand .service-category-card[data-category-id="emergency-tire-services"]
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/15/e4/c7/15e4c7d0d2f1f838363dc0f8076cfb2f.jpg") !important;
+    url("/images/services/emergency-tire-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -602,7 +602,7 @@ body.mt-brand .service-category-card[data-category-id="emergency-tire-services"]
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/15/e4/c7/15e4c7d0d2f1f838363dc0f8076cfb2f.jpg") !important;
+    url("/images/services/emergency-tire-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -612,7 +612,7 @@ body.mt-brand .service-category-card[data-category-id="emergency-battery-service
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/34/92/a1/3492a1585ecad60d8cdef02509fc705d.jpg") !important;
+    url("/images/services/emergency-battery-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -623,7 +623,7 @@ body.mt-brand .service-category-card[data-category-id="emergency-battery-service
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/34/92/a1/3492a1585ecad60d8cdef02509fc705d.jpg") !important;
+    url("/images/services/emergency-battery-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -633,7 +633,7 @@ body.mt-brand .service-category-card[data-category-id="garage-services"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/1200x/09/1d/ba/091dba403a52c949fed4e229ee96a7ac.jpg") !important;
+    url("/images/services/garage-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -644,7 +644,7 @@ body.mt-brand .service-category-card[data-category-id="garage-services"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/1200x/09/1d/ba/091dba403a52c949fed4e229ee96a7ac.jpg") !important;
+    url("/images/services/garage-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -654,7 +654,7 @@ body.mt-brand .service-category-card[data-category-id="preventive-routine-mainte
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/d0/ef/69/d0ef69a491962673eaaa67f79ff8ddca.jpg") !important;
+    url("/images/services/preventive-routine-maintenance.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -665,7 +665,7 @@ body.mt-brand .service-category-card[data-category-id="preventive-routine-mainte
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/d0/ef/69/d0ef69a491962673eaaa67f79ff8ddca.jpg") !important;
+    url("/images/services/preventive-routine-maintenance.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -675,7 +675,7 @@ body.mt-brand .service-category-card[data-category-id="vehicle-diagnostics"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/61/e1/58/61e15885a2d931191af0af8a75f4a406.jpg") !important;
+    url("/images/services/vehicle-diagnostics.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -686,7 +686,7 @@ body.mt-brand .service-category-card[data-category-id="vehicle-diagnostics"]:hov
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/61/e1/58/61e15885a2d931191af0af8a75f4a406.jpg") !important;
+    url("/images/services/vehicle-diagnostics.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -696,7 +696,7 @@ body.mt-brand .service-category-card[data-category-id="auto-electrical-services"
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/1200x/07/82/a7/0782a7227e7a7a78e96872f25cf6948c.jpg") !important;
+    url("/images/services/auto-electrical-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -707,7 +707,7 @@ body.mt-brand .service-category-card[data-category-id="auto-electrical-services"
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/1200x/07/82/a7/0782a7227e7a7a78e96872f25cf6948c.jpg") !important;
+    url("/images/services/auto-electrical-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -717,7 +717,7 @@ body.mt-brand .service-category-card[data-category-id="ac-services"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/a1/93/f6/a193f66a645588357b24af06dc88883b.jpg") !important;
+    url("/images/services/ac-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -728,7 +728,7 @@ body.mt-brand .service-category-card[data-category-id="ac-services"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/a1/93/f6/a193f66a645588357b24af06dc88883b.jpg") !important;
+    url("/images/services/ac-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -738,7 +738,7 @@ body.mt-brand .service-category-card[data-category-id="tire-wheel-services"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/1200x/87/e5/98/87e598f60afe613cd8b9d70e41e683f8.jpg") !important;
+    url("/images/services/tire-wheel-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -749,7 +749,7 @@ body.mt-brand .service-category-card[data-category-id="tire-wheel-services"]:hov
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/1200x/87/e5/98/87e598f60afe613cd8b9d70e41e683f8.jpg") !important;
+    url("/images/services/tire-wheel-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -759,7 +759,7 @@ body.mt-brand .service-category-card[data-category-id="car-wash-services"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/c3/19/0a/c3190af7b9678cad0b8f054f27e9b40c.jpg") !important;
+    url("/images/services/car-wash-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -770,7 +770,7 @@ body.mt-brand .service-category-card[data-category-id="car-wash-services"]:hover
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/c3/19/0a/c3190af7b9678cad0b8f054f27e9b40c.jpg") !important;
+    url("/images/services/car-wash-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -780,7 +780,7 @@ body.mt-brand .service-category-card[data-category-id="car-body-cosmetic-service
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/65/c4/8e/65c48e382d11e128d2875af86b82b785.jpg") !important;
+    url("/images/services/car-body-cosmetic-services.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -791,7 +791,7 @@ body.mt-brand .service-category-card[data-category-id="car-body-cosmetic-service
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/65/c4/8e/65c48e382d11e128d2875af86b82b785.jpg") !important;
+    url("/images/services/car-body-cosmetic-services.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -801,7 +801,7 @@ body.mt-brand .service-category-card[data-category-id="car-customization-upgrade
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("https://i.pinimg.com/736x/6a/d7/c9/6ad7c9f12a79fb5fe969324f7b133adf.jpg") !important;
+    url("/images/services/car-customization-upgrades.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -812,7 +812,7 @@ body.mt-brand .service-category-card[data-category-id="car-customization-upgrade
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("https://i.pinimg.com/736x/6a/d7/c9/6ad7c9f12a79fb5fe969324f7b133adf.jpg") !important;
+    url("/images/services/car-customization-upgrades.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: 0 8px 28px rgba(192, 0, 0, 0.12) !important;
 }
@@ -976,7 +976,7 @@ body.mt-brand #signup-section.active {
   border-radius: 0 !important;
   background:
     linear-gradient(165deg, rgba(0, 102, 204, 0.38) 0%, rgba(0, 0, 0, 0.52) 100%),
-    url("/welcome-bg.jpg") center / cover no-repeat !important;
+    url("/images/welcome-bg/welcome-bg.jpg") center / cover no-repeat !important;
   background-color: #1a1a1a !important;
   box-shadow: none !important;
   overflow-x: hidden !important;
@@ -1636,6 +1636,17 @@ body.mt-brand:not(.welcome-active) .profile-info-card {
   border-radius: 12px;
   background: #1a1a1a;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.driver-active-vehicle-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.driver-active-vehicle-icon {
+  margin-top: 2px;
 }
 
 .driver-active-vehicle-copy {

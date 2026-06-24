@@ -20,6 +20,17 @@ import {
 import ChatRepository from "../repositories/ChatRepository.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "../appConfig.js";
 
+function validateJobMessageText(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) {
+    throw new Error("Message cannot be empty.");
+  }
+  if (trimmed.length > MAX_CHAT_MESSAGE_LENGTH) {
+    throw new Error(`Message must be ${MAX_CHAT_MESSAGE_LENGTH} characters or fewer.`);
+  }
+  return trimmed;
+}
+
 export { getChatRoomId, getAllConversationIdsForParticipants };
 
 export default class FirebaseChatService extends ChatRepository {
@@ -246,9 +257,10 @@ export default class FirebaseChatService extends ChatRepository {
 
   async sendMessageToJob(jobId, senderId, text) {
     try {
+      const trimmed = validateJobMessageText(text);
       await addDoc(collection(this.firestore, "jobs", jobId, "messages"), {
         senderId,
-        text,
+        text: trimmed,
         timestampMillis: Date.now(),
         read: false,
       });
@@ -435,6 +447,26 @@ export default class FirebaseChatService extends ChatRepository {
     return partnerMessage || sorted[sorted.length - 1];
   }
 
+  async getChatPartnerEntry(userId, partnerId) {
+    if (!userId || !partnerId) return null;
+    const snapshot = await getDoc(
+      doc(this.firestore, "users", userId, "chatPartners", partnerId)
+    );
+    return snapshot.exists() ? { id: partnerId, ...snapshot.data() } : null;
+  }
+
+  async getChatRoomParticipantName(roomIds, partnerId) {
+    for (const roomId of [...new Set((roomIds || []).filter(Boolean))]) {
+      const snapshot = await getDoc(doc(this.firestore, "chats", roomId));
+      if (!snapshot.exists()) continue;
+      const name = snapshot.data()?.participantNames?.[partnerId];
+      if (String(name || "").trim() && name !== "User") {
+        return String(name).trim();
+      }
+    }
+    return null;
+  }
+
   async getInboxPreviewMessage({ myId, partnerId, entry = {} }) {
     const trimmedPreview = String(entry.lastMessageText || "").trim();
     if (trimmedPreview) {
@@ -496,7 +528,7 @@ export default class FirebaseChatService extends ChatRepository {
   }
 
   listenForMessagesMerged(
-    { roomIds, conversationIds, participantIds },
+    { roomIds, conversationIds, participantIds, currentUserId },
     onMessages,
     onError
   ) {
@@ -522,7 +554,11 @@ export default class FirebaseChatService extends ChatRepository {
       onMessages(this.sortMessages(this.dedupeMessages([...subcollectionMessages, ...legacyMessages])));
     };
 
-    const reportError = (error) => {
+    const reportError = (error, { optional = false } = {}) => {
+      if (optional && error?.code === "permission-denied") {
+        console.warn("Optional chat listener skipped:", error);
+        return;
+      }
       console.error("Chat listener error:", error);
       if (onError) onError(error);
     };
@@ -541,7 +577,7 @@ export default class FirebaseChatService extends ChatRepository {
           );
           emit();
         },
-        reportError
+        (error) => reportError(error)
       )
     );
 
@@ -563,32 +599,32 @@ export default class FirebaseChatService extends ChatRepository {
             );
             emit();
           },
-          reportError
+          (error) => reportError(error, { optional: true })
         )
       );
     });
 
-    if (participantIdList.length >= 2) {
-      participantIdList.forEach((participantId) => {
-        unsubs.push(
-          onSnapshot(
-            query(
-              this.legacyMessagesCollection(),
-              where("participantIds", "array-contains", participantId)
-            ),
-            (snapshot) => {
-              legacyByParticipants = snapshot.docs
-                .map((entry) => ({ id: entry.id, ...entry.data(), _source: "legacy" }))
-                .filter((message) => {
-                  const ids = [...new Set(message.participantIds || [])].sort();
-                  return ids.join("|") === participantKey;
-                });
-              emit();
-            },
-            reportError
-          )
-        );
-      });
+    // Only query legacy messages containing the signed-in user — querying the
+    // partner's id fails Firestore rules (query must not return unreadable docs).
+    if (participantIdList.length >= 2 && currentUserId) {
+      unsubs.push(
+        onSnapshot(
+          query(
+            this.legacyMessagesCollection(),
+            where("participantIds", "array-contains", currentUserId)
+          ),
+          (snapshot) => {
+            legacyByParticipants = snapshot.docs
+              .map((entry) => ({ id: entry.id, ...entry.data(), _source: "legacy" }))
+              .filter((message) => {
+                const ids = [...new Set(message.participantIds || [])].sort();
+                return ids.join("|") === participantKey;
+              });
+            emit();
+          },
+          (error) => reportError(error, { optional: true })
+        )
+      );
     }
 
     return () => unsubs.forEach((unsubscribe) => unsubscribe());

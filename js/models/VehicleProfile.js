@@ -117,8 +117,10 @@ export function ensureVehiclesArray(profile) {
 
 /** @param {VehicleProfile} vehicle */
 export function vehicleDisplayName(vehicle) {
-  const name = `${vehicle?.make || ""} ${vehicle?.model || ""}`.trim();
-  return name || "Unnamed vehicle";
+  const make = String(vehicle?.make || "").trim();
+  const model = String(vehicle?.model || "").trim();
+  if (make && model) return `${make}: ${model}`;
+  return make || model || "Unnamed vehicle";
 }
 
 /** @param {VehicleProfile[]} vehicles */

@@ -28,12 +28,17 @@ export function renderActiveVehicleCard(profile) {
 
   return `
     <article class="driver-active-vehicle-card">
-      <div class="driver-active-vehicle-copy">
-        <span class="driver-active-vehicle-label">ACTIVE VEHICLE PROFILE</span>
-        <p class="driver-active-vehicle-title">${escapeHtml(vehicleName)}</p>
-        <p class="driver-active-vehicle-stats">
-          Plate: ${escapeHtml(plate)}&nbsp;-&nbsp;Mileage: ${escapeHtml(mileage)} km
-        </p>
+      <div class="driver-active-vehicle-body">
+        <div class="driver-active-vehicle-icon profile-vehicle-active-icon" aria-hidden="true">
+          <span class="material-symbols-outlined">directions_car</span>
+        </div>
+        <div class="driver-active-vehicle-copy">
+          <span class="driver-active-vehicle-label">ACTIVE VEHICLE PROFILE</span>
+          <p class="driver-active-vehicle-title">${escapeHtml(vehicleName)}</p>
+          <p class="driver-active-vehicle-stats">
+            Plate: ${escapeHtml(plate)}&nbsp;-&nbsp;Mileage: ${escapeHtml(mileage)} km
+          </p>
+        </div>
       </div>
       <button
         type="button"

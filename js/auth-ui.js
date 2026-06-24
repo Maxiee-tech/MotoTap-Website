@@ -63,6 +63,7 @@ import {
 } from "./signupWizard.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
+import { PUBLIC_PROFILES_COLLECTION } from "./utils/publicProfile.js";
 import { onAuthStateChanged } from "firebase/auth";
 
 const landingSection = document.getElementById("landing-section");
@@ -193,14 +194,28 @@ function updateNavActiveState(section) {
   });
 }
 
-function showMapNotification(message) {
+let mapNotificationTimer = null;
+
+function clearMapNotification() {
+  clearTimeout(mapNotificationTimer);
+  mapNotificationTimer = null;
   if (!mapNotificationEl) return;
-  if (message) {
-    mapNotificationEl.textContent = message;
-    mapNotificationEl.classList.remove("hidden");
-  } else {
-    mapNotificationEl.textContent = "";
-    mapNotificationEl.classList.add("hidden");
+  mapNotificationEl.textContent = "";
+  mapNotificationEl.classList.add("hidden");
+}
+
+function showMapNotification(message, { autoDismissMs = 0 } = {}) {
+  if (!mapNotificationEl) return;
+  clearMapNotification();
+  if (!message) return;
+
+  mapNotificationEl.textContent = message;
+  mapNotificationEl.classList.remove("hidden");
+
+  if (autoDismissMs > 0) {
+    mapNotificationTimer = setTimeout(() => {
+      clearMapNotification();
+    }, autoDismissMs);
   }
 }
 
@@ -856,7 +871,7 @@ function getMapLoadErrorMessage() {
     `Google Cloud → Credentials → API key used for Maps JavaScript (not the Firebase Auth key). ` +
     `Application restrictions → HTTP referrers → add ${origin}/*, ${origin}/, ` +
     `https://mototap-447fe.web.app/*, https://mototap.co.ke/*, ` +
-    `https://mototap-447fe.firebaseapp.com/*, http://localhost:5173/*. ` +
+    `https://mototap-447fe.firebaseapp.com/*, http://localhost:5173/*, http://localhost:5174/*. ` +
     `API restrictions must include Maps JavaScript API. ` +
     `If this key is Android-only, create a new key for the website. Host: ${host}.`
   );
@@ -1113,15 +1128,76 @@ function dedupeInboxByPartner(entries) {
   );
 }
 
-async function resolveChatPartnerName(partnerId, room) {
-  if (!partnerId) return "User";
-  const cached = room?.participantNames?.[partnerId] || chatPartnerNameCache.get(partnerId);
-  if (cached) return cached;
+function pickPartnerDisplayName(...candidates) {
+  for (const value of candidates) {
+    const name = String(value || "").trim();
+    if (name && name !== "User") return name;
+  }
+  return "";
+}
 
-  const profile = await authService.getUserProfile(partnerId);
-  const name = profile?.name || "User";
-  chatPartnerNameCache.set(partnerId, name);
-  return name;
+async function resolveChatPartnerInfo(partnerId, context = {}) {
+  const fallbackRole = context.fallbackRole || "driver";
+  if (!partnerId) return { name: "User", role: fallbackRole };
+
+  let name = pickPartnerDisplayName(
+    context.partnerName,
+    context.participantNames?.[partnerId],
+    chatPartnerNameCache.get(partnerId)
+  );
+
+  let role = String(context.partnerRole || "").trim();
+
+  const myId = auth.currentUser?.uid;
+  if (!name && myId) {
+    const entry =
+      context.chatPartnerEntry ||
+      (await chatService.getChatPartnerEntry(myId, partnerId));
+    name = pickPartnerDisplayName(entry?.partnerName);
+  }
+
+  if (!name && context.roomIds?.length) {
+    name = pickPartnerDisplayName(
+      await chatService.getChatRoomParticipantName(context.roomIds, partnerId)
+    );
+  }
+
+  const profile = await authService.getPublicProfile(partnerId);
+  if (!name) name = pickPartnerDisplayName(profile?.name);
+  if (!role) role = profile?.role || "";
+
+  if (!role && currentUserProfile?.role) {
+    role = isMechanicRole(currentUserProfile.role) ? "driver" : "mechanic";
+  }
+
+  const finalName = name || "User";
+  if (finalName !== "User") {
+    chatPartnerNameCache.set(partnerId, finalName);
+  }
+
+  return {
+    name: finalName,
+    role: role || fallbackRole,
+  };
+}
+
+function formatChatRoleLabel(role) {
+  return isMechanicRole(role) ? "Mechanic" : "Driver";
+}
+
+function formatChatHeaderTitle(partnerName, partnerRole) {
+  const name = pickPartnerDisplayName(partnerName) || "User";
+  return `Chat · ${formatChatRoleLabel(partnerRole)} · ${name}`;
+}
+
+function formatInboxPartnerLabel(partnerName, partnerRole) {
+  const name = pickPartnerDisplayName(partnerName) || "User";
+  return `${formatChatRoleLabel(partnerRole)} · ${name}`;
+}
+
+async function resolveChatPartnerRole(partnerId, fallbackRole = "driver") {
+  const info = await resolveChatPartnerInfo(partnerId, { fallbackRole });
+  return info.role;
 }
 
 function setMessagesInboxEmptyState(hasConversations) {
@@ -1193,9 +1269,22 @@ async function renderMessagesInbox(entries) {
   const rows = await Promise.all(
     entries.map(async (entry) => {
       const partnerId = entry.partnerId || entry.id;
-      const partnerName = await resolveChatPartnerName(partnerId, entry);
+      const roomIds = entry?.roomId
+        ? [entry.roomId]
+        : getAllConversationIdsForParticipants(myId, partnerId);
+      const partnerInfo = await resolveChatPartnerInfo(partnerId, {
+        partnerName: entry?.partnerName,
+        participantNames: entry?.participantNames,
+        roomIds,
+        chatPartnerEntry: entry,
+      });
       const preview = await resolveInboxPreview(entry, partnerId, myId);
-      return { partnerId, partnerName, preview };
+      return {
+        partnerId,
+        partnerName: partnerInfo.name,
+        partnerLabel: formatInboxPartnerLabel(partnerInfo.name, partnerInfo.role),
+        preview,
+      };
     })
   );
 
@@ -1205,7 +1294,7 @@ async function renderMessagesInbox(entries) {
     button.type = "button";
     button.className = "messages-inbox-item";
     button.innerHTML = `
-      <span class="messages-inbox-item-name">${escapeHtml(row.partnerName)}</span>
+      <span class="messages-inbox-item-name">${escapeHtml(row.partnerLabel)}</span>
       <span class="messages-inbox-item-preview">${row.preview}</span>
     `;
     button.addEventListener("click", () => {
@@ -1369,8 +1458,13 @@ function watchMapForGoogleErrorOverlay() {
   if (!mapElement) return;
 
   mapErrorObserver = new MutationObserver(() => {
-    const errTitle = mapElement.querySelector(".gm-err-title");
-    if (errTitle?.textContent?.toLowerCase().includes("went wrong")) {
+    const errNode = mapElement.querySelector(".gm-err-title, .gm-err-message, .gm-style-cc");
+    const errText = errNode?.textContent?.toLowerCase() || "";
+    if (
+      errText.includes("went wrong") ||
+      errText.includes("can't load google maps") ||
+      errText.includes("do you own this website")
+    ) {
       stopMapErrorObserver();
       resetGoogleMapInstance();
       showMapLoadError();
@@ -1721,7 +1815,7 @@ const MAP_STYLES = [
 
 function showMapLoadError() {
   showMapNotification(getMapLoadErrorMessage());
-  driverPostServices?.classList.add("hidden");
+  mapElement?.classList.remove("active");
   clearMapMatchNotification();
   stopMapErrorObserver();
 }
@@ -1754,6 +1848,9 @@ async function ensureGoogleMap() {
         backgroundColor: "#202124",
       });
       watchMapForGoogleErrorOverlay();
+      google.maps.event.addListenerOnce(googleMap, "idle", () => {
+        fixGoogleMapContainerFill();
+      });
     } catch (err) {
       console.error("Google Maps init failed:", err);
       showMapLoadError();
@@ -1777,12 +1874,17 @@ function clearMarkers() {
 }
 
 function showNoMechanicsOnMap(message = MAP_EMPTY_NOTIFICATION) {
-  showMapNotification(message);
+  showMapNotification(message, { autoDismissMs: 3000 });
   clearMapMatchNotification();
-  mapElement?.classList.remove("active");
-  driverPostServices?.classList.remove("map-active");
-  driverPostServices?.classList.add("hidden");
+  driverPostServices?.classList.remove("hidden");
+  driverPostServices?.classList.add("map-active");
+  mapElement?.classList.add("active");
   hideDriverMechanicPanel();
+  if (googleMap) {
+    googleMap.setCenter({ lat: -1.286389, lng: 36.817223 });
+    googleMap.setZoom(12);
+  }
+  fixGoogleMapContainerFill();
 }
 
 async function fetchMatchingMechanics(serviceName) {
@@ -1800,7 +1902,11 @@ async function fetchMatchingMechanics(serviceName) {
   try {
     const [snapshot, map] = await Promise.all([
       getDocs(
-        query(collection(db, "users"), where("role", "in", ["mechanic", "MECHANIC"]))
+        query(
+          collection(db, PUBLIC_PROFILES_COLLECTION),
+          where("role", "in", ["mechanic", "MECHANIC"]),
+          where("status", "==", "APPROVED")
+        )
       ),
       ensureGoogleMap(),
     ]);
@@ -1812,7 +1918,7 @@ async function fetchMatchingMechanics(serviceName) {
 
     if (!matchingDocs.length) {
       showNoMechanicsOnMap(
-        `No mechanics currently offer "${serviceName}". Check that mechanic accounts have this service selected in the app.`
+        `No mechanics currently offer "${serviceName}".`
       );
       return;
     }
@@ -2063,7 +2169,7 @@ function handleServerChatMessages(messages) {
   markActiveChatAsRead(messages);
 }
 
-async function openChatWithPartner(partnerId, partnerName) {
+async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "driver" } = {}) {
   if (!auth.currentUser || !partnerId) {
     showLoginForm();
     return;
@@ -2074,15 +2180,23 @@ async function openChatWithPartner(partnerId, partnerName) {
   activeChatPartnerId = partnerId;
   activeChatRoomIds = getAllConversationIdsForParticipants(myId, partnerId);
   activeChatConversationId = buildDriverMechanicConversationId(myId, partnerId);
-  activeChatPartnerName = partnerName || "User";
-  chatPartnerNameCache.set(partnerId, activeChatPartnerName);
+
+  const partnerInfo = await resolveChatPartnerInfo(partnerId, {
+    partnerName: pickPartnerDisplayName(partnerName) || undefined,
+    roomIds: activeChatRoomIds,
+    fallbackRole,
+  });
+  activeChatPartnerName = partnerInfo.name;
   optimisticChatMessages = [];
   serverChatMessages = [];
   showMessagesPage();
   showChatView();
 
   if (chatHeaderTitle) {
-    chatHeaderTitle.textContent = `Chat · ${activeChatPartnerName}`;
+    chatHeaderTitle.textContent = formatChatHeaderTitle(
+      partnerInfo.name,
+      partnerInfo.role
+    );
   }
   if (chatTypingLabel) {
     chatTypingLabel.textContent = "";
@@ -2106,12 +2220,12 @@ async function openChatWithPartner(partnerId, partnerName) {
       [auth.currentUser.uid, partnerId],
       {
         [auth.currentUser.uid]: myName,
-        [partnerId]: activeChatPartnerName,
+        [partnerId]: partnerInfo.name,
       }
     );
   } catch (err) {
     if (chatMessagesEl) {
-      chatMessagesEl.innerHTML = `<p style='color:#f88'>${err.message}</p>`;
+      chatMessagesEl.innerHTML = `<p style='color:#f88'>${escapeHtml(err.message)}</p>`;
     }
     return;
   }
@@ -2121,11 +2235,16 @@ async function openChatWithPartner(partnerId, partnerName) {
       roomIds: activeChatRoomIds,
       conversationIds: activeChatRoomIds,
       participantIds: [myId, partnerId],
+      currentUserId: myId,
     },
     handleServerChatMessages,
     (err) => {
+      if (serverChatMessages.length > 0) {
+        console.error("Chat listener error (messages already loaded):", err);
+        return;
+      }
       if (chatMessagesEl) {
-        chatMessagesEl.innerHTML = `<p style='color:#f88'>${err.message}</p>`;
+        chatMessagesEl.innerHTML = `<p style='color:#f88'>${escapeHtml(err.message)}</p>`;
       }
     }
   );
@@ -2145,7 +2264,9 @@ async function openChatWithPartner(partnerId, partnerName) {
 }
 
 function openChatWithMechanic(mechanicId, mechanicName) {
-  return openChatWithPartner(mechanicId, mechanicName || "Mechanic");
+  return openChatWithPartner(mechanicId, mechanicName || "Mechanic", {
+    fallbackRole: "mechanic",
+  });
 }
 
 async function handleBookNow() {

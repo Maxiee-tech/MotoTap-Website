@@ -24,6 +24,10 @@ import {
   ProfileStatus,
 } from "../models/UserProfile.js";
 import { vehiclesForFirestore } from "../models/VehicleProfile.js";
+import {
+  buildPublicProfileData,
+  PUBLIC_PROFILES_COLLECTION,
+} from "../utils/publicProfile.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -45,6 +49,33 @@ export default class FirebaseAuthService extends AuthRepository {
 
   userDocRef(userId) {
     return doc(collection(this.firestore, "users"), userId);
+  }
+
+  publicProfileDocRef(userId) {
+    return doc(collection(this.firestore, PUBLIC_PROFILES_COLLECTION), userId);
+  }
+
+  async getPublicProfile(userId) {
+    try {
+      const docSnap = await withTimeout(getDoc(this.publicProfileDocRef(userId)));
+      if (!docSnap.exists()) return null;
+      return { id: userId, ...docSnap.data() };
+    } catch (error) {
+      console.error("FirebaseAuthService.getPublicProfile error:", error);
+      return null;
+    }
+  }
+
+  /** Spark plan: sync non-PII fields to publicProfiles (no Cloud Functions required). */
+  async syncPublicProfile(userId, profileData) {
+    const publicRef = this.publicProfileDocRef(userId);
+    const existing = await withTimeout(getDoc(publicRef));
+    const payload = buildPublicProfileData(
+      { ...profileData, id: userId, uid: userId },
+      { forCreate: !existing.exists() }
+    );
+    if (!payload.userId || !payload.name) return;
+    await withTimeout(setDoc(publicRef, payload, { merge: true }));
   }
 
   async signIn(email, password) {
@@ -82,6 +113,7 @@ export default class FirebaseAuthService extends AuthRepository {
         skills: [],
       };
       await withTimeout(setDoc(this.userDocRef(userId), userData));
+      await this.syncPublicProfile(userId, userData);
       return { success: true, userId };
     } catch (error) {
       console.error("FirebaseAuthService.signUp error:", error);
@@ -92,6 +124,10 @@ export default class FirebaseAuthService extends AuthRepository {
   async updateSignupProfile(userId, partialData) {
     try {
       await withTimeout(updateDoc(this.userDocRef(userId), partialData));
+      const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
+      if (docSnap.exists()) {
+        await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, docSnap.data()));
+      }
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.updateSignupProfile error:", error);
@@ -186,6 +222,9 @@ export default class FirebaseAuthService extends AuthRepository {
       const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
       if (!docSnap.exists()) return null;
       const profile = mapFirestoreUserDoc(userId, docSnap.data());
+      if (userId === this.auth.currentUser?.uid) {
+        this.syncPublicProfile(userId, profile).catch(() => {});
+      }
       return {
         ...profile,
         phone: profile.phone || docSnap.data().phoneNumber || "",
@@ -207,6 +246,10 @@ export default class FirebaseAuthService extends AuthRepository {
         payload.servicePrices = servicePrices;
       }
       await withTimeout(updateDoc(this.userDocRef(userId), payload));
+      const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
+      if (docSnap.exists()) {
+        await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, docSnap.data()));
+      }
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.updateMechanicSkills error:", error);
@@ -246,6 +289,7 @@ export default class FirebaseAuthService extends AuthRepository {
       );
 
       await withTimeout(deleteDoc(this.userDocRef(currentUser.uid)));
+      await withTimeout(deleteDoc(this.publicProfileDocRef(currentUser.uid))).catch(() => {});
 
       await withTimeout(deleteUser(currentUser));
       return { success: true };
