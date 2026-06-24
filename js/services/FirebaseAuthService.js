@@ -248,6 +248,11 @@ export default class FirebaseAuthService extends AuthRepository {
       return { success: true };
     } catch (error) {
       console.error("FirebaseAuthService.sendPasswordReset error:", error);
+      // Don't reveal whether an account exists: treat "user not found" as success
+      // so the neutral "if an account exists, a link was sent" message is shown.
+      if (error?.code === "auth/user-not-found") {
+        return { success: true };
+      }
       return { success: false, error: this.mapError(error) };
     }
   }
