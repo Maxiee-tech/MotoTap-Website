@@ -3,6 +3,7 @@ import { normalizeVehicleList } from "./VehicleProfile.js";
 export const UserRole = {
   DRIVER: "DRIVER",
   MECHANIC: "MECHANIC",
+  PARTS_DEALER: "PARTS_DEALER",
 };
 
 export const ProfileStatus = {
@@ -11,10 +12,21 @@ export const ProfileStatus = {
   REJECTED: "REJECTED",
 };
 
+/** Drivers are auto-approved; business accounts start pending admin review. */
+export function defaultProfileStatusForRole(role) {
+  const normalized = toFirestoreRole(role);
+  if (normalized === UserRole.MECHANIC || normalized === UserRole.PARTS_DEALER) {
+    return ProfileStatus.PENDING;
+  }
+  return ProfileStatus.APPROVED;
+}
+
 /** Map UI / legacy role values to Android-style uppercase Firestore roles. */
 export function toFirestoreRole(role) {
   const value = String(role || "").trim().toLowerCase();
-  return value === "mechanic" ? UserRole.MECHANIC : UserRole.DRIVER;
+  if (value === "mechanic") return UserRole.MECHANIC;
+  if (value === "parts_dealer" || value === "parts dealer") return UserRole.PARTS_DEALER;
+  return UserRole.DRIVER;
 }
 
 /** True when the user finished the 3-step onboarding wizard. Legacy accounts without onboarding fields pass through. */
@@ -35,7 +47,7 @@ export function createUserProfile(data = {}) {
     profilePhotoUrl: data.profilePhotoUrl || "",
     idNumber: data.idNumber || "",
     idPhotoUrl: data.idPhotoUrl || "",
-    status: data.status || ProfileStatus.PENDING,
+    status: data.status || defaultProfileStatusForRole(data.role),
     vehicleType: data.vehicleType || "",
     vehicleModel: data.vehicleModel || "",
     numberPlate: data.numberPlate || "",
@@ -56,6 +68,11 @@ export function createUserProfile(data = {}) {
     servicePrices:
       data.servicePrices && typeof data.servicePrices === "object" && !Array.isArray(data.servicePrices)
         ? data.servicePrices
+        : {},
+    parts: Array.isArray(data.parts) ? data.parts : [],
+    partPrices:
+      data.partPrices && typeof data.partPrices === "object" && !Array.isArray(data.partPrices)
+        ? data.partPrices
         : {},
     onboardingStep: data.onboardingStep ?? null,
     onboardingComplete: data.onboardingComplete === true,
@@ -95,6 +112,8 @@ export function mapFirestoreUserDoc(userId, data) {
     reviewCount: data.reviewCount,
     skills: data.skills,
     servicePrices: data.servicePrices,
+    parts: data.parts,
+    partPrices: data.partPrices,
     onboardingStep: data.onboardingStep,
     onboardingComplete: data.onboardingComplete,
     isAdmin: data.isAdmin,

@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function validUserRole(role) {
-      return role in ['mechanic', 'driver', 'MECHANIC', 'DRIVER'];
+      return role in ['mechanic', 'driver', 'parts_dealer', 'MECHANIC', 'DRIVER', 'PARTS_DEALER'];
     }
 
     function validExperienceYears(value) {
@@ -69,12 +69,15 @@ service cloud.firestore {
         && data.name is string
         && data.name.size() > 0
         && data.name.size() <= 120
-        && data.role in ['mechanic', 'driver', 'MECHANIC', 'DRIVER']
+        && data.role in ['mechanic', 'driver', 'parts_dealer', 'MECHANIC', 'DRIVER', 'PARTS_DEALER']
         && (!('status' in data) || data.status in ['PENDING', 'APPROVED', 'REJECTED'])
         && (!('profilePhotoUrl' in data) || (data.profilePhotoUrl is string && data.profilePhotoUrl.size() <= 2048))
         && (!('skills' in data) || (data.skills is list && data.skills.size() <= 50))
         && (!('availableServices' in data) || (data.availableServices is list && data.availableServices.size() <= 50))
         && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200))
+        && (!('parts' in data) || (data.parts is list && data.parts.size() <= 80))
+        && (!('availableParts' in data) || (data.availableParts is list && data.availableParts.size() <= 80))
+        && (!('partPrices' in data) || (data.partPrices is map && data.partPrices.size() <= 200))
         && (!('latitude' in data) || data.latitude == null || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
         && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
@@ -125,6 +128,12 @@ service cloud.firestore {
         && (!('servicePrices' in request.resource.data)
           || (request.resource.data.servicePrices is map
             && request.resource.data.servicePrices.size() <= 200))
+        && (!('parts' in request.resource.data) || request.resource.data.parts is list)
+        && (!('availableParts' in request.resource.data)
+          || request.resource.data.availableParts is list)
+        && (!('partPrices' in request.resource.data)
+          || (request.resource.data.partPrices is map
+            && request.resource.data.partPrices.size() <= 200))
         && (!('phoneNumber' in request.resource.data)
           || (request.resource.data.phoneNumber is string
             && request.resource.data.phoneNumber.size() <= 32))

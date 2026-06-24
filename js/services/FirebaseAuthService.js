@@ -3,6 +3,8 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
@@ -22,6 +24,8 @@ import {
   mapFirestoreUserDoc,
   toFirestoreRole,
   ProfileStatus,
+  defaultProfileStatusForRole,
+  UserRole,
 } from "../models/UserProfile.js";
 import { vehiclesForFirestore } from "../models/VehicleProfile.js";
 import {
@@ -105,7 +109,7 @@ export default class FirebaseAuthService extends AuthRepository {
         phone,
         phoneNumber: phone,
         role: firestoreRole,
-        status: ProfileStatus.PENDING,
+        status: defaultProfileStatusForRole(firestoreRole),
         onboardingStep: 1,
         onboardingComplete: false,
         rating: 0,
@@ -113,6 +117,16 @@ export default class FirebaseAuthService extends AuthRepository {
         skills: [],
       };
       await withTimeout(setDoc(this.userDocRef(userId), userData));
+      if (firestoreRole === UserRole.DRIVER) {
+        await withTimeout(
+          sendEmailVerification(result.user, {
+            url: `${window.location.origin}/`,
+            handleCodeInApp: false,
+          })
+        ).catch((error) => {
+          console.error("FirebaseAuthService.sendEmailVerification error:", error);
+        });
+      }
       await this.syncPublicProfile(userId, userData);
       return { success: true, userId };
     } catch (error) {
@@ -143,7 +157,7 @@ export default class FirebaseAuthService extends AuthRepository {
       idNumber: String(idNumber || "").trim(),
       onboardingStep: 2,
     };
-    if (firestoreRole === "MECHANIC") {
+    if (firestoreRole === "MECHANIC" || firestoreRole === "PARTS_DEALER") {
       payload.certificateNumber = payload.idNumber;
     }
     return this.updateSignupProfile(userId, payload);
@@ -157,7 +171,7 @@ export default class FirebaseAuthService extends AuthRepository {
       vehiclePhotoUrl: data.vehiclePhotoUrl,
       onboardingStep: 3,
       onboardingComplete: true,
-      status: ProfileStatus.PENDING,
+      status: ProfileStatus.APPROVED,
     });
   }
 
@@ -174,6 +188,48 @@ export default class FirebaseAuthService extends AuthRepository {
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
     });
+  }
+
+  async completeSignupStep3PartsDealer(userId, data) {
+    return this.completeSignupStep3Mechanic(userId, data);
+  }
+
+  async sendDriverEmailVerification() {
+    const user = this.auth.currentUser;
+    if (!user) {
+      return { success: false, error: "No user signed in." };
+    }
+    if (user.emailVerified) {
+      return { success: true, alreadyVerified: true };
+    }
+
+    try {
+      await withTimeout(
+        sendEmailVerification(user, {
+          url: `${window.location.origin}/`,
+          handleCodeInApp: false,
+        })
+      );
+      return { success: true };
+    } catch (error) {
+      console.error("FirebaseAuthService.sendDriverEmailVerification error:", error);
+      return { success: false, error: this.mapError(error) };
+    }
+  }
+
+  async reloadCurrentUser() {
+    const user = this.auth.currentUser;
+    if (!user) {
+      return { success: false, verified: false };
+    }
+
+    try {
+      await withTimeout(reload(user));
+      return { success: true, verified: user.emailVerified === true };
+    } catch (error) {
+      console.error("FirebaseAuthService.reloadCurrentUser error:", error);
+      return { success: false, verified: false, error: this.mapError(error) };
+    }
   }
 
   async sendPasswordReset(email) {
@@ -223,6 +279,11 @@ export default class FirebaseAuthService extends AuthRepository {
       if (!docSnap.exists()) return null;
       const profile = mapFirestoreUserDoc(userId, docSnap.data());
       if (userId === this.auth.currentUser?.uid) {
+        const role = normalizeUserRole(profile.role);
+        if (role === "driver" && profile.status === ProfileStatus.PENDING) {
+          profile.status = ProfileStatus.APPROVED;
+          updateDoc(this.userDocRef(userId), { status: ProfileStatus.APPROVED }).catch(() => {});
+        }
         this.syncPublicProfile(userId, profile).catch(() => {});
       }
       return {
@@ -254,6 +315,27 @@ export default class FirebaseAuthService extends AuthRepository {
     } catch (error) {
       console.error("FirebaseAuthService.updateMechanicSkills error:", error);
       return { success: false, error: "Failed to update skills" };
+    }
+  }
+
+  async updatePartsDealerInventory(userId, parts, partPrices = null) {
+    try {
+      const payload = {
+        parts,
+        availableParts: parts,
+      };
+      if (partPrices !== null) {
+        payload.partPrices = partPrices;
+      }
+      await withTimeout(updateDoc(this.userDocRef(userId), payload));
+      const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
+      if (docSnap.exists()) {
+        await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, docSnap.data()));
+      }
+      return { success: true };
+    } catch (error) {
+      console.error("FirebaseAuthService.updatePartsDealerInventory error:", error);
+      return { success: false, error: "Failed to update parts inventory" };
     }
   }
 

@@ -40,11 +40,11 @@ export const folderToPreset = {
 
 /** Which roles may upload to each folder during sign-up / profile updates. */
 export const folderRoleAccess = {
-  profile: ["driver", "mechanic"],
-  id_front: ["driver", "mechanic"],
+  profile: ["driver", "mechanic", "parts_dealer"],
+  id_front: ["driver", "mechanic", "parts_dealer"],
   vehicle: ["driver"],
-  certificate: ["mechanic"],
-  garage: ["mechanic"],
+  certificate: ["mechanic", "parts_dealer"],
+  garage: ["mechanic", "parts_dealer"],
 };
 
 export function getFileExtension(fileName) {

@@ -1,5 +1,5 @@
 import { escapeHtml } from "./utils/html.js";
-import { normalizeUserRole } from "./utils/geo.js";
+import { normalizeUserRole, formatUserRoleLabel } from "./utils/geo.js";
 import { getJobIssueType, sortJobsNewestFirst } from "./utils/jobSync.js";
 import { renderDriverVehicleSection, bindVehicleProfileUi } from "./vehicleProfileUi.js";
 import { renderDriverProfileHub, bindDriverProfileHub } from "./driverProfileHubUi.js";
@@ -18,6 +18,12 @@ export function getProfileDisplayPhoto(profile) {
       String(profile?.garagePhotos?.[0] || "").trim()
     );
   }
+  if (role === "parts_dealer") {
+    return (
+      String(profile?.certificatePhotoUrl || "").trim() ||
+      String(profile?.garagePhotos?.[0] || "").trim()
+    );
+  }
   return "";
 }
 
@@ -27,10 +33,7 @@ export function getProfileInitial(name, email) {
 }
 
 function formatRoleLabel(role) {
-  const normalized = normalizeUserRole(role);
-  if (normalized === "mechanic") return "MECHANIC";
-  if (normalized === "driver") return "DRIVER";
-  return String(role || "USER").toUpperCase();
+  return formatUserRoleLabel(role).toUpperCase();
 }
 
 function formatJobDate(createdAtMillis) {
@@ -131,6 +134,30 @@ function renderMechanicExtras(profile) {
   `;
 }
 
+function renderPartsDealerExtras(profile) {
+  return `
+    <section class="profile-block">
+      <h4 class="profile-block-title">Shop Details</h4>
+      ${renderInfoCard("Shop Name", profile?.institutionName || "Not provided", "storefront")}
+      ${renderInfoCard("Years in Business", profile?.experienceYears || "Not provided", "work_history")}
+      ${renderInfoCard("Address", profile?.address || "Not provided", "location_on")}
+      ${renderInfoCard(
+        "Rating",
+        profile?.reviewCount
+          ? `${Number(profile.rating || 0).toFixed(1)} (${profile.reviewCount} reviews)`
+          : "No reviews yet",
+        "star"
+      )}
+    </section>
+  `;
+}
+
+function renderProfileExtras(profile, jobs, role) {
+  if (role === "driver") return renderDriverExtras(profile, jobs);
+  if (role === "parts_dealer") return renderPartsDealerExtras(profile);
+  return renderMechanicExtras(profile);
+}
+
 /**
  * Render the signed-in profile page (Android ProfileScreen parity — core overview).
  */
@@ -181,7 +208,7 @@ export function renderProfilePage(
       </div>
     </div>
 
-    ${isDriver ? renderDriverExtras(profile, jobs) : renderMechanicExtras(profile)}
+    ${renderProfileExtras(profile, jobs, role)}
 
     ${
       isDriver

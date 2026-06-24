@@ -1,7 +1,7 @@
 import { uploadUserImage } from "./services/CloudinaryStorageService.js";
 import { loadGoogleMapsScript, waitForMapLayout } from "./googleMapsLoader.js";
 import { isProfileOnboardingComplete } from "./models/UserProfile.js";
-import { normalizeUserRole } from "./utils/geo.js";
+import { isBusinessRole, normalizeUserRole } from "./utils/geo.js";
 import PasswordValidator from "./PasswordValidator.js";
 import {
   validateFullName,
@@ -13,9 +13,26 @@ import {
   validateIdNumber,
   validateDriverStep3,
   validateMechanicStep3,
+  validatePartsDealerStep3,
 } from "./utils/signupValidation.js";
 
 const DEFAULT_MAP_CENTER = { lat: -1.286389, lng: 36.817223 };
+
+const STEP3_PANEL_BY_ROLE = {
+  driver: "signup-step-3-driver",
+  mechanic: "signup-step-3-mechanic",
+  parts_dealer: "signup-step-3-parts-dealer",
+};
+
+const LOCATION_MAP_BY_ROLE = {
+  mechanic: "signup-location-map",
+  parts_dealer: "signup-parts-location-map",
+};
+
+const ADDRESS_INPUT_BY_ROLE = {
+  mechanic: "signup-garage-address",
+  parts_dealer: "signup-parts-shop-address",
+};
 
 let wizardState = {
   step: 1,
@@ -61,6 +78,10 @@ function updateStepIndicators(activeStep) {
   });
 }
 
+function getAddressInputId(role = wizardState.role) {
+  return ADDRESS_INPUT_BY_ROLE[normalizeUserRole(role)] || ADDRESS_INPUT_BY_ROLE.mechanic;
+}
+
 function showWizardStep(step, role) {
   wizardState.step = step;
   wizardState.role = normalizeUserRole(role || wizardState.role);
@@ -75,11 +96,10 @@ function showWizardStep(step, role) {
     document.getElementById("signup-step-2")?.classList.add("active");
     updateStep2Labels(wizardState.role);
   } else if (step === 3) {
-    const panelId =
-      wizardState.role === "mechanic" ? "signup-step-3-mechanic" : "signup-step-3-driver";
+    const panelId = STEP3_PANEL_BY_ROLE[wizardState.role] || STEP3_PANEL_BY_ROLE.driver;
     document.getElementById(panelId)?.classList.add("active");
-    if (wizardState.role === "mechanic") {
-      initMechanicLocationMap();
+    if (isBusinessRole(wizardState.role)) {
+      initBusinessLocationMap(wizardState.role);
     }
   }
 
@@ -88,16 +108,24 @@ function showWizardStep(step, role) {
 }
 
 function updateStep2Labels(role) {
-  const isMechanic = normalizeUserRole(role) === "mechanic";
+  const normalized = normalizeUserRole(role);
   const idLabel = document.getElementById("signup-id-number-label");
   const idInput = document.getElementById("signup-id-number");
+  const labelByRole = {
+    mechanic: "Mechanic Certification Number",
+    parts_dealer: "Business License Number",
+    driver: "Driving License Number",
+  };
+  const placeholderByRole = {
+    mechanic: "Certification number",
+    parts_dealer: "Business license number",
+    driver: "License number",
+  };
   if (idLabel) {
-    idLabel.textContent = isMechanic
-      ? "Mechanic Certification Number"
-      : "Driving License Number";
+    idLabel.textContent = labelByRole[normalized] || labelByRole.driver;
   }
   if (idInput) {
-    idInput.placeholder = isMechanic ? "Certification number" : "License number";
+    idInput.placeholder = placeholderByRole[normalized] || placeholderByRole.driver;
   }
 }
 
@@ -137,7 +165,7 @@ async function reverseGeocode(lat, lng) {
   });
 }
 
-async function setMechanicPin(lat, lng, { reverseLookup = true } = {}) {
+async function setBusinessPin(lat, lng, { reverseLookup = true, role = wizardState.role } = {}) {
   wizardState.location.latitude = lat;
   wizardState.location.longitude = lng;
   if (locationMarker) {
@@ -150,18 +178,20 @@ async function setMechanicPin(lat, lng, { reverseLookup = true } = {}) {
     });
     locationMarker.addListener("dragend", async () => {
       const pos = locationMarker.getPosition();
-      await setMechanicPin(pos.lat(), pos.lng());
+      await setBusinessPin(pos.lat(), pos.lng());
     });
   }
   if (reverseLookup) {
     wizardState.location.address = await reverseGeocode(lat, lng);
-    const addressInput = document.getElementById("signup-garage-address");
+    const addressInput = document.getElementById(getAddressInputId(role));
     if (addressInput) addressInput.value = wizardState.location.address;
   }
 }
 
-async function initMechanicLocationMap() {
-  const mapEl = document.getElementById("signup-location-map");
+async function initBusinessLocationMap(role = wizardState.role) {
+  const normalized = normalizeUserRole(role);
+  const mapId = LOCATION_MAP_BY_ROLE[normalized];
+  const mapEl = mapId ? document.getElementById(mapId) : null;
   if (!mapEl) return;
 
   try {
@@ -178,7 +208,7 @@ async function initMechanicLocationMap() {
       });
       locationGeocoder = new google.maps.Geocoder();
       locationMap.addListener("click", async (event) => {
-        await setMechanicPin(event.latLng.lat(), event.latLng.lng());
+        await setBusinessPin(event.latLng.lat(), event.latLng.lng());
       });
       google.maps.event.addListenerOnce(locationMap, "idle", () => {
         google.maps.event.trigger(locationMap, "resize");
@@ -191,14 +221,14 @@ async function initMechanicLocationMap() {
       const lat = wizardState.location.latitude;
       const lng = wizardState.location.longitude;
       locationMap.setCenter({ lat, lng });
-      await setMechanicPin(lat, lng, { reverseLookup: false });
+      await setBusinessPin(lat, lng, { reverseLookup: false, role: normalized });
     } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           locationMap.setCenter({ lat, lng });
-          await setMechanicPin(lat, lng);
+          await setBusinessPin(lat, lng);
         },
         () => {
           locationMap.setCenter(DEFAULT_MAP_CENTER);
@@ -227,7 +257,8 @@ export function resumeSignupWizardFromProfile(profile) {
       longitude: profile.longitude,
       address: profile.address || "",
     };
-    const addressInput = document.getElementById("signup-garage-address");
+    const addressInputId = getAddressInputId(wizardState.role);
+    const addressInput = document.getElementById(addressInputId);
     if (addressInput && profile.address) addressInput.value = profile.address;
   }
   showWizardStep(step, wizardState.role);
@@ -255,6 +286,8 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
   const step3DriverBackBtn = document.getElementById("signup-step3-driver-back");
   const step3MechanicBtn = document.getElementById("signup-step3-mechanic-btn");
   const step3MechanicBackBtn = document.getElementById("signup-step3-mechanic-back");
+  const step3PartsDealerBtn = document.getElementById("signup-step3-parts-dealer-btn");
+  const step3PartsDealerBackBtn = document.getElementById("signup-step3-parts-dealer-back");
 
   step1Btn?.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -466,6 +499,72 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       setWizardError(error.message || "Unable to finish sign up.");
     } finally {
       setWizardLoading(false, "signup-step3-mechanic-btn", "Finish Sign Up");
+    }
+  });
+
+  step3PartsDealerBackBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    showWizardStep(2, wizardState.role);
+  });
+
+  step3PartsDealerBtn?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    setWizardError("");
+
+    const user = authService.auth.currentUser;
+    if (!user) {
+      setWizardError("Session expired. Please sign in again.");
+      return;
+    }
+
+    const shopName = document.getElementById("signup-parts-shop-name")?.value?.trim() || "";
+    const experienceYears =
+      document.getElementById("signup-parts-experience-years")?.value || "";
+    const licensePhotoFile = document.getElementById("signup-parts-license-photo")?.files?.[0];
+    const shopPhotoFile = document.getElementById("signup-parts-shop-photo")?.files?.[0];
+
+    const validationError = validatePartsDealerStep3({
+      shopName,
+      experienceYears,
+      licensePhotoFile,
+      shopPhotoFile,
+      latitude: wizardState.location.latitude,
+      longitude: wizardState.location.longitude,
+      address: wizardState.location.address,
+    });
+    if (validationError) {
+      setWizardError(validationError);
+      return;
+    }
+
+    setWizardLoading(true, "signup-step3-parts-dealer-btn", "Finish Sign Up");
+    try {
+      const [certificatePhotoUrl, garagePhotoUrl] = await Promise.all([
+        uploadUserImage(user.uid, "certificate", licensePhotoFile, {
+          role: wizardState.role,
+        }),
+        uploadUserImage(user.uid, "garage", shopPhotoFile, { role: wizardState.role }),
+      ]);
+
+      const result = await authService.completeSignupStep3PartsDealer(user.uid, {
+        institutionName: shopName,
+        experienceYears,
+        certificatePhotoUrl,
+        garagePhotos: [garagePhotoUrl],
+        latitude: wizardState.location.latitude,
+        longitude: wizardState.location.longitude,
+        address: wizardState.location.address,
+      });
+
+      if (!result.success) {
+        setWizardError(result.error);
+        return;
+      }
+      onComplete?.();
+    } catch (error) {
+      setWizardError(error.message || "Unable to finish sign up.");
+    } finally {
+      setWizardLoading(false, "signup-step3-parts-dealer-btn", "Finish Sign Up");
     }
   });
 

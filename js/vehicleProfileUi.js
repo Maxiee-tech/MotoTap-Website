@@ -38,8 +38,8 @@ function renderActiveVehicleCard(activeVehicle) {
           </div>
         </div>
       </div>
-      <button type="button" class="profile-vehicle-view-link" data-vehicle-action="edit-active">
-        VIEW
+      <button type="button" class="profile-vehicle-view-link" data-vehicle-action="edit-active" aria-label="Update vehicle">
+        UPDATE
       </button>
     </div>
   `;

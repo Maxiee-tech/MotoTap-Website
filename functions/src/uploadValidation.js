@@ -44,11 +44,11 @@ const folderToPreset = {
 };
 
 const folderRoleAccess = {
-  profile: ["driver", "mechanic"],
-  id_front: ["driver", "mechanic"],
+  profile: ["driver", "mechanic", "parts_dealer"],
+  id_front: ["driver", "mechanic", "parts_dealer"],
   vehicle: ["driver"],
-  certificate: ["mechanic"],
-  garage: ["mechanic"],
+  certificate: ["mechanic", "parts_dealer"],
+  garage: ["mechanic", "parts_dealer"],
 };
 
 const FOLDER_PATHS = {
@@ -62,6 +62,7 @@ const FOLDER_PATHS = {
 function normalizeUserRole(role) {
   const value = String(role || "").trim().toLowerCase();
   if (value === "mechanic") return "mechanic";
+  if (value === "parts_dealer" || value === "parts dealer") return "parts_dealer";
   return "driver";
 }
 

@@ -2,7 +2,7 @@
  * Moto Tap service catalog — must match mobile app strings exactly for
  * mechanic skills filtering and jobs.issueType / jobs.serviceName.
  */
-export const SERVICE_CATALOG_VERSION = 2;
+export const SERVICE_CATALOG_VERSION = 3;
 
 export const SERVICE_DISPLAY_GROUP_ORDER = [
   "Emergency Services",
@@ -26,6 +26,7 @@ export const SERVICE_CATEGORY_MATERIAL_ICONS = {
   "car-wash-services": "shopping_cart",
   "car-body-cosmetic-services": "edit",
   "car-customization-upgrades": "add",
+  "vehicle-electronics-security": "key",
 };
 
 export function getServiceCategoryIcon(categoryId) {
@@ -326,6 +327,43 @@ export const SERVICE_CATEGORIES = [
       {
         title: "Car Customization & Upgrades",
         items: ["Audio systems", "Tinting", "Performance tuning"],
+      },
+    ],
+  },
+  {
+    id: "vehicle-electronics-security",
+    name: "Vehicle Electronics & Security",
+    displayGroup: "Upgrades & Value-Added",
+    groups: [
+      {
+        title: "Key Programming",
+        items: [
+          "Car key programming",
+          "Transponder key coding",
+          "Smart key / key fob programming",
+          "Spare key duplication",
+          "Remote key repair",
+        ],
+      },
+      {
+        title: "Dashboard & Display",
+        items: [
+          "Instrument cluster repair",
+          "Dashboard display repair",
+          "Digital dash programming",
+          "Touchscreen / infotainment display repair",
+          "EV display diagnostics",
+        ],
+      },
+      {
+        title: "Trackers & Security",
+        items: [
+          "GPS tracker fitting",
+          "Fleet tracker installation",
+          "Vehicle immobilizer installation",
+          "Car alarm fitting",
+          "Anti-theft system setup",
+        ],
       },
     ],
   },

@@ -1,4 +1,5 @@
-import { UserRole, toFirestoreRole } from "../models/UserProfile.js";
+import { UserRole, toFirestoreRole, defaultProfileStatusForRole, ProfileStatus } from "../models/UserProfile.js";
+import { isBusinessRole, isPartsDealerRole } from "./geo.js";
 
 export const PUBLIC_PROFILES_COLLECTION = "publicProfiles";
 
@@ -27,9 +28,11 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
   };
 
   if (forCreate) {
-    data.status = "PENDING";
+    data.status = defaultProfileStatusForRole(role);
     data.rating = 0;
     data.reviewCount = 0;
+  } else if (!isBusinessRole(role)) {
+    data.status = ProfileStatus.APPROVED;
   }
 
   if (isMechanicRole(role)) {
@@ -43,6 +46,22 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
       !Array.isArray(profile.servicePrices)
         ? profile.servicePrices
         : {};
+  }
+
+  if (isPartsDealerRole(profile.role)) {
+    data.parts = Array.isArray(profile.parts) ? profile.parts.slice(0, 80) : [];
+    data.availableParts = Array.isArray(profile.availableParts)
+      ? profile.availableParts.slice(0, 80)
+      : data.parts;
+    data.partPrices =
+      profile.partPrices &&
+      typeof profile.partPrices === "object" &&
+      !Array.isArray(profile.partPrices)
+        ? profile.partPrices
+        : {};
+  }
+
+  if (isBusinessRole(profile.role)) {
     data.latitude =
       typeof profile.latitude === "number" && Number.isFinite(profile.latitude)
         ? profile.latitude

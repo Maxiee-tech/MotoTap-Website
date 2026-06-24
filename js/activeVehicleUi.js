@@ -23,6 +23,29 @@ function getActiveVehicleData(profile) {
   };
 }
 
+export function renderActiveVehicleCardSkeleton() {
+  return `
+    <article class="driver-active-vehicle-card driver-active-vehicle-card--skeleton" aria-hidden="true">
+      <div class="driver-active-vehicle-body">
+        <div class="driver-active-vehicle-icon profile-vehicle-active-icon" aria-hidden="true">
+          <span class="material-symbols-outlined">directions_car</span>
+        </div>
+        <div class="driver-active-vehicle-copy">
+          <span class="driver-active-vehicle-skeleton-line driver-active-vehicle-skeleton-line--label"></span>
+          <span class="driver-active-vehicle-skeleton-line driver-active-vehicle-skeleton-line--title"></span>
+          <span class="driver-active-vehicle-skeleton-line driver-active-vehicle-skeleton-line--stats"></span>
+        </div>
+      </div>
+      <span class="driver-active-vehicle-skeleton-edit" aria-hidden="true"></span>
+    </article>
+  `;
+}
+
+export function paintDriverActiveVehicleSkeleton(container) {
+  if (!container) return;
+  container.innerHTML = renderActiveVehicleCardSkeleton();
+}
+
 export function renderActiveVehicleCard(profile) {
   const { vehicleName, plate, mileage } = getActiveVehicleData(profile);
 

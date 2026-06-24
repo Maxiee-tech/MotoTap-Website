@@ -1002,7 +1002,8 @@
       order: 1;
     }
 
-    #mechanic-dashboard.dashboard-panel.active {
+    #mechanic-dashboard.dashboard-panel.active,
+    #parts-dealer-dashboard.dashboard-panel.active {
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -1086,8 +1087,15 @@
       margin-right: auto;
     }
 
+    #email-verification-section.active {
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
     #login-section.active,
-    #signup-section.active {
+    #signup-section.active,
+    #email-verification-section.active {
       position: fixed;
       inset: 0;
       z-index: 40;
@@ -1143,7 +1151,8 @@
     }
 
     #login-section .auth-card,
-    #signup-section .auth-card {
+    #signup-section .auth-card,
+    #email-verification-section .auth-card {
       width: 100%;
       max-width: 440px;
       margin: auto;
@@ -1165,14 +1174,28 @@
     }
 
     #login-section .auth-card-header h3,
-    #signup-section .auth-card-header h3 {
+    #signup-section .auth-card-header h3,
+    #email-verification-section .auth-card-header h3 {
       color: #fff;
       text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
     }
 
     #login-section .auth-card-header p,
-    #signup-section .auth-card-header p {
-      color: rgba(255, 255, 255, 0.88);
+    #signup-section .auth-card-header p,
+    #email-verification-section .auth-card-header p {
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    }
+
+    #email-verification-section .auth-card-header p strong,
+    #email-verification-section #email-verification-address {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    #email-verification-section .status-message {
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
     }
 
     #login-section input[type="email"],
@@ -1235,19 +1258,24 @@
     }
 
     #login-section .divider,
-    #signup-section .divider {
-      color: rgba(255, 255, 255, 0.78);
+    #signup-section .divider,
+    #email-verification-section .divider {
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
 
     #login-section .divider::before,
     #login-section .divider::after,
     #signup-section .divider::before,
-    #signup-section .divider::after {
-      background: rgba(255, 255, 255, 0.35);
+    #signup-section .divider::after,
+    #email-verification-section .divider::before,
+    #email-verification-section .divider::after {
+      background: rgba(255, 255, 255, 0.45);
     }
 
     #login-section .btn-secondary,
-    #signup-section .btn-secondary {
+    #signup-section .btn-secondary,
+    #email-verification-section .btn-secondary {
       background: rgba(255, 255, 255, 0.12);
       color: #fff;
       border-color: rgba(255, 255, 255, 0.55);
@@ -1256,7 +1284,8 @@
     }
 
     #login-section .btn-secondary:hover,
-    #signup-section .btn-secondary:hover {
+    #signup-section .btn-secondary:hover,
+    #email-verification-section .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.22);
       border-color: rgba(255, 255, 255, 0.75);
     }
@@ -1354,7 +1383,8 @@
       color: rgba(255, 255, 255, 0.75);
     }
 
-    #signup-location-map {
+    #signup-location-map,
+    #signup-parts-location-map {
       width: 100%;
       height: 220px;
       border-radius: 12px;
@@ -1929,6 +1959,36 @@
       text-align: left;
     }
 
+    .driver-marketplace-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 0 0 18px;
+    }
+
+    .driver-marketplace-toggle-btn {
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #0066cc;
+      background: #0066cc;
+      color: #fff;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      opacity: 0.4;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .driver-marketplace-toggle-btn.is-active {
+      opacity: 1;
+    }
+
+    .driver-marketplace-toggle-btn:not(.is-active):hover {
+      opacity: 0.55;
+    }
+
     .service-category-list,
     .mechanic-service-list {
       display: grid;
@@ -1959,6 +2019,21 @@
       margin: 0 0 12px;
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #parts-category-list .parts-catalog-column {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    #parts-category-list .parts-catalog-column .service-display-group {
+      grid-column: auto;
+      margin-top: 0;
+    }
+
+    #parts-category-list .parts-catalog-column .service-category-card {
+      flex: 1 1 auto;
     }
 
     .material-symbols-outlined {
@@ -2006,7 +2081,8 @@
       padding: 18px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+      box-shadow: 0 4px 18px rgba(0, 102, 204, 0.28);
+      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -2028,6 +2104,7 @@
       transform: translateY(-4px);
       background: rgba(255, 68, 68, 0.08);
       border-color: rgba(255, 68, 68, 0.22);
+      box-shadow: 0 12px 36px rgba(0, 102, 204, 0.38);
     }
 
     .service-category-card[data-category-id="road-assistance"] {
@@ -2294,6 +2371,160 @@
           rgba(255, 255, 255, 0.65)
         ),
         url("/images/services/car-customization-upgrades.jpg");
+    }
+
+    .service-category-card[data-category-id="vehicle-electronics-security"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/services/auto-electrical-services.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="vehicle-electronics-security"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/services/auto-electrical-services.jpg");
+    }
+
+    .service-category-card[data-category-id="engine-drivetrain"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/engine_%26_drivetrain.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="engine-drivetrain"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/engine_%26_drivetrain.jpg");
+    }
+
+    .service-category-card[data-category-id="brakes"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/brakes_%26_suspension.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="brakes"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/brakes_%26_suspension.jpg");
+    }
+
+    .service-category-card[data-category-id="electrical"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/electrical_%26_electronics.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="electrical"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/electrical_%26_electronics.jpg");
+    }
+
+    .service-category-card[data-category-id="filters-fluids"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/filters_%26_fluids.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="filters-fluids"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/filters_%26_fluids.jpg");
+    }
+
+    .service-category-card[data-category-id="body-exterior"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/body_%26_exterior.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="body-exterior"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/body_%26_exterior.jpg");
+    }
+
+    .service-category-card[data-category-id="tyres-wheels"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/tyres_%26_wheels.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .service-category-card[data-category-id="tyres-wheels"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/tyres_%26_wheels.jpg");
+    }
+
+    #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"],
+    #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"] {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.62),
+          rgba(255, 255, 255, 0.72)
+        ),
+        url("/images/parts/electrical_%26_electronics.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover,
+    #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover {
+      background-image: linear-gradient(
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0.65)
+        ),
+        url("/images/parts/electrical_%26_electronics.jpg");
     }
 
     .service-card-body {
@@ -3435,7 +3666,7 @@
       justify-content: center !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260615v" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260624v2" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
@@ -3645,11 +3876,27 @@
 
       <div id="driver-dashboard" class="dashboard-panel">
         <div id="driver-active-vehicle-root"></div>
-        <div class="panel-header">
-          <h3>Our Services</h3>
-          <p>Tap any service to open the map and find nearby mechanics who offer it.</p>
+
+        <div class="driver-marketplace-toggle" id="driver-marketplace-toggle" role="tablist" aria-label="Browse mechanics or parts dealers">
+          <button type="button" id="driver-mode-mechanics" class="driver-marketplace-toggle-btn is-active" role="tab" aria-selected="true">MECHANICS</button>
+          <button type="button" id="driver-mode-parts-dealers" class="driver-marketplace-toggle-btn" role="tab" aria-selected="false">PARTS DEALERS</button>
         </div>
-        <div class="service-category-list" id="service-category-list"></div>
+
+        <div id="driver-mechanics-view">
+          <div class="panel-header">
+            <h3>Our Services</h3>
+            <p>Tap any service to open the map and find nearby mechanics who offer it.</p>
+          </div>
+          <div class="service-category-list" id="service-category-list"></div>
+        </div>
+
+        <div id="driver-parts-view" class="hidden">
+          <div class="panel-header">
+            <h3>Spare Parts</h3>
+            <p>Tap any part to open the map and find nearby parts dealers who stock it.</p>
+          </div>
+          <div class="service-category-list" id="parts-category-list"></div>
+        </div>
       </div>
     </div>
 
@@ -3863,6 +4110,33 @@
       </div>
     </div>
 
+    <!-- Driver email verification -->
+    <div id="email-verification-section" class="form-section">
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <span class="auth-card-icon material-symbols-outlined" aria-hidden="true">mark_email_unread</span>
+          <h3>Verify your email</h3>
+          <p>
+            Drivers must verify their email before booking services or using the dashboard.
+            We sent a link to <strong id="email-verification-address">your email</strong>.
+          </p>
+        </div>
+        <div class="error-message" id="email-verification-error"></div>
+        <div class="status-message" id="email-verification-status"></div>
+        <button class="btn-primary" type="button" id="email-verification-check-btn">
+          I've verified my email
+        </button>
+        <div class="divider">OR</div>
+        <button class="btn-secondary" type="button" id="email-verification-resend-btn">
+          Resend verification email
+        </button>
+        <div class="divider">OR</div>
+        <button class="btn-secondary" type="button" id="email-verification-logout-btn">
+          Sign out
+        </button>
+      </div>
+    </div>
+
     <!-- Signup Wizard (3 steps — mirrors Android app) -->
     <div id="signup-section" class="form-section">
       <button type="button" class="auth-screen-back-btn" id="signup-back-btn" aria-label="Back to homepage">
@@ -3871,7 +4145,7 @@
       <div class="auth-card signup-wizard-card">
         <div class="auth-card-header">
           <h3>Create your account</h3>
-          <p>Join as a driver or mechanic. Complete all three steps to submit your profile for review.</p>
+          <p>Join as a driver, mechanic, or parts dealer. Complete all three steps to submit your profile for review.</p>
         </div>
 
         <div class="signup-wizard-progress" aria-hidden="true">
@@ -3929,6 +4203,9 @@
               </div>
               <div class="role-option">
                 <label><input type="radio" name="role" value="mechanic" /> Mechanic</label>
+              </div>
+              <div class="role-option">
+                <label><input type="radio" name="role" value="parts_dealer" /> Parts Dealer</label>
               </div>
             </div>
           </div>
@@ -4028,6 +4305,42 @@
             <button class="btn-primary" id="signup-step3-mechanic-btn" type="button">Finish Sign Up</button>
           </div>
         </div>
+
+        <!-- Step 3: Parts Dealer -->
+        <div id="signup-step-3-parts-dealer" class="signup-wizard-step">
+          <h4>Step 3 — Shop &amp; Business Details</h4>
+          <div class="form-group">
+            <input type="text" id="signup-parts-shop-name" placeholder="Shop / Business Name" />
+          </div>
+          <div class="form-group">
+            <label for="signup-parts-experience-years">Years in Business</label>
+            <select id="signup-parts-experience-years">
+              <option value="">Select experience</option>
+              <option value="0-1">0–1 years</option>
+              <option value="1-3">1–3 years</option>
+              <option value="3-5">3–5 years</option>
+              <option value="5-10">5–10 years</option>
+              <option value="10+">10+ years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="signup-parts-license-photo">Business License Photo</label>
+            <input type="file" id="signup-parts-license-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+          </div>
+          <div class="form-group">
+            <label for="signup-parts-shop-photo">Shop Front Photo</label>
+            <input type="file" id="signup-parts-shop-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+          </div>
+          <div class="form-group">
+            <label>Shop Location — tap the map to pin</label>
+            <div id="signup-parts-location-map" role="application" aria-label="Shop location map"></div>
+            <input type="text" id="signup-parts-shop-address" placeholder="Address" readonly />
+          </div>
+          <div class="signup-wizard-actions">
+            <button class="btn-secondary" id="signup-step3-parts-dealer-back" type="button">Back</button>
+            <button class="btn-primary" id="signup-step3-parts-dealer-btn" type="button">Finish Sign Up</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4053,6 +4366,17 @@
         </div>
         <div class="available-jobs-list" id="available-jobs-list"></div>
         <div class="dashboard-status" id="jobs-status"></div>
+      </div>
+
+      <div id="parts-dealer-dashboard" class="dashboard-panel">
+        <div class="panel-header">
+          <h3>Parts Inventory</h3>
+          <p>Select the spare parts you stock and set your price for each in Ksh. Drivers will see your prices when browsing the map.</p>
+        </div>
+        <div class="mechanic-service-list" id="parts-dealer-parts-list"></div>
+        <button class="btn-primary" id="save-parts-btn">Save Parts Inventory</button>
+        <div class="dashboard-status" id="parts-dealer-status"></div>
+        <div class="dashboard-error" id="parts-dealer-error"></div>
       </div>
 
       <button class="btn-primary" id="logout-btn">Sign Out</button>

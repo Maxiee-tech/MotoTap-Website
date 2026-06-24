@@ -54,11 +54,15 @@ export function createServiceCategoryCardShell(category) {
 
 function getCatalogLists() {
   return document.querySelectorAll(
-    ".service-category-list, .mechanic-service-list"
+    ".service-category-list, .mechanic-service-list, #parts-dealer-parts-list, #parts-category-list"
   );
 }
 
 function getDirectCards(list) {
+  const columnCards = list.querySelectorAll(
+    ":scope > .parts-catalog-column > .service-category-card"
+  );
+  if (columnCards.length) return [...columnCards];
   return [...list.querySelectorAll(":scope > .service-category-card")];
 }
 

@@ -79,11 +79,44 @@ export function isMechanicRole(role) {
   return String(role || "").trim().toLowerCase() === "mechanic";
 }
 
-/** Driver and legacy customer roles are equivalent; default non-mechanic users to driver. */
+export function isPartsDealerRole(role) {
+  const value = String(role || "").trim().toLowerCase();
+  return value === "parts_dealer" || value === "parts dealer";
+}
+
+export function isBusinessRole(role) {
+  return isMechanicRole(role) || isPartsDealerRole(role);
+}
+
+/** Driver and legacy customer roles are equivalent; default unknown roles to driver. */
 export function normalizeUserRole(role) {
   const value = String(role || "").trim().toLowerCase();
   if (value === "mechanic") return "mechanic";
+  if (value === "parts_dealer" || value === "parts dealer") return "parts_dealer";
   return "driver";
+}
+
+export function formatUserRoleLabel(role) {
+  const normalized = normalizeUserRole(role);
+  if (normalized === "mechanic") return "Mechanic";
+  if (normalized === "parts_dealer") return "Parts Dealer";
+  return "Driver";
+}
+
+/** Match parts dealer inventory to catalog part names (exact or case-insensitive). */
+export function partsDealerOffersPart(dealer, partName) {
+  const target = String(partName || "").trim();
+  if (!target) return false;
+  const parts = Array.isArray(dealer?.parts)
+    ? dealer.parts
+    : Array.isArray(dealer?.availableParts)
+      ? dealer.availableParts
+      : [];
+  const targetLower = target.toLowerCase();
+  return parts.some((part) => {
+    const value = String(part || "").trim();
+    return value === target || value.toLowerCase() === targetLower;
+  });
 }
 
 /** Match mechanic skills to catalog service names (exact or case-insensitive). */

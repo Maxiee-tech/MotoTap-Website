@@ -49,8 +49,8 @@ export function validatePhone(phone) {
 
 export function validateRole(role) {
   const value = String(role || "").trim().toLowerCase();
-  if (value !== "driver" && value !== "mechanic") {
-    return "Please select Driver or Mechanic.";
+  if (value !== "driver" && value !== "mechanic" && value !== "parts_dealer") {
+    return "Please select Driver, Mechanic, or Parts Dealer.";
   }
   return "";
 }
@@ -72,10 +72,13 @@ export function validateImageFile(file, label = "Photo") {
 export function validateIdNumber(idNumber, role) {
   const trimmed = String(idNumber || "").trim();
   if (!trimmed) {
+    const normalized = String(role || "").toLowerCase();
     const label =
-      String(role || "").toLowerCase() === "mechanic"
+      normalized === "mechanic"
         ? "Mechanic certification number"
-        : "Driving license number";
+        : normalized === "parts_dealer"
+          ? "Business license number"
+          : "Driving license number";
     return `${label} is required.`;
   }
   if (trimmed.length > 64) return "ID number is too long.";
@@ -108,5 +111,27 @@ export function validateMechanicStep3({
     return "Please pin your garage location on the map.";
   }
   if (!String(address || "").trim()) return "Garage address is required.";
+  return "";
+}
+
+export function validatePartsDealerStep3({
+  shopName,
+  experienceYears,
+  licensePhotoFile,
+  shopPhotoFile,
+  latitude,
+  longitude,
+  address,
+}) {
+  if (!String(shopName || "").trim()) return "Shop name is required.";
+  if (!String(experienceYears || "").trim()) return "Years in business is required.";
+  const licenseErr = validateSignupFile("certificate", licensePhotoFile, "Business license photo");
+  if (licenseErr) return licenseErr;
+  const shopErr = validateSignupFile("garage", shopPhotoFile, "Shop front photo");
+  if (shopErr) return shopErr;
+  if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
+    return "Please pin your shop location on the map.";
+  }
+  if (!String(address || "").trim()) return "Shop address is required.";
   return "";
 }
