@@ -175,6 +175,12 @@ function setMechanicMapPageLayout(active) {
 }
 
 function hideAllSections() {
+  if (mechanicDashboard?.classList.contains("active")) {
+    syncMechanicServicesDraft();
+    clearTimeout(mechanicAutoSaveTimer);
+    void persistMechanicServices({ silent: true });
+  }
+
   document.body.classList.remove("auth-screen-active");
   landingSection.classList.remove("active");
   loginSection.classList.remove("active");
@@ -957,7 +963,7 @@ function showBusinessDashboard(role) {
     renderPartsDealerSelection();
   } else {
     mechanicDashboard.classList.add("active");
-    startJobSync();
+    void refreshMechanicDashboard();
   }
 }
 
@@ -1469,6 +1475,119 @@ function stopChatInboxListener() {
   }
 }
 
+const MESSAGE_NAV_IDS = ["nav-messages", "nav-messages-2", "nav-messages-old"];
+let globalUnreadUnsubscribe = null;
+let latestChatPartners = [];
+
+function unreadStorageKey(userId) {
+  return `mototap_unread_read_${userId}`;
+}
+
+function getLastReadMap(userId) {
+  try {
+    const raw = localStorage.getItem(unreadStorageKey(userId));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLastReadMillis(userId, partnerId, millis) {
+  if (!userId || !partnerId) return;
+  try {
+    const map = getLastReadMap(userId);
+    map[partnerId] = Math.max(map[partnerId] || 0, millis || Date.now());
+    localStorage.setItem(unreadStorageKey(userId), JSON.stringify(map));
+  } catch {
+    /* localStorage unavailable; badge will fall back to live state */
+  }
+}
+
+/** True when a conversation has a newer partner message than the user has read. */
+function isEntryUnread(entry, myId, lastRead = null) {
+  if (!myId || !entry) return false;
+  const partnerId = entry.partnerId || entry.id;
+  if (!partnerId) return false;
+  const senderId = entry.lastMessageSenderId || "";
+  const millis = entry.lastMessageMillis || 0;
+  if (!millis || !senderId || senderId === myId) return false;
+  const readMap = lastRead || getLastReadMap(myId);
+  return millis > (readMap[partnerId] || 0);
+}
+
+/** Count conversations with a newer partner message than the user has read. */
+function computeUnreadCount(entries, myId) {
+  if (!myId) return 0;
+  const lastRead = getLastReadMap(myId);
+  let count = 0;
+  for (const entry of dedupeInboxByPartner(entries)) {
+    const partnerId = entry.partnerId || entry.id;
+    if (!partnerId || partnerId === activeChatPartnerId) continue;
+    if (isEntryUnread(entry, myId, lastRead)) count += 1;
+  }
+  return count;
+}
+
+function updateMessagesBadge(count) {
+  MESSAGE_NAV_IDS.forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let badge = btn.querySelector(".nav-unread-badge");
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "nav-unread-badge";
+        badge.setAttribute("aria-label", "unread messages");
+        btn.appendChild(badge);
+      }
+      badge.textContent = count > 99 ? "99+" : String(count);
+      badge.classList.remove("hidden");
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
+function refreshMessagesBadge() {
+  if (!auth.currentUser) {
+    updateMessagesBadge(0);
+    return;
+  }
+  updateMessagesBadge(computeUnreadCount(latestChatPartners, auth.currentUser.uid));
+}
+
+/** Mark a conversation read locally so it stops counting toward the badge. */
+function markConversationRead(partnerId) {
+  if (!auth.currentUser || !partnerId) return;
+  setLastReadMillis(auth.currentUser.uid, partnerId, Date.now());
+  refreshMessagesBadge();
+}
+
+function startGlobalUnreadListener() {
+  if (!auth.currentUser) return;
+  stopGlobalUnreadListener();
+  globalUnreadUnsubscribe = chatService.listenToUserChatPartners(
+    auth.currentUser.uid,
+    (entries) => {
+      latestChatPartners = entries || [];
+      refreshMessagesBadge();
+    },
+    (err) => console.error("Unread badge listener error:", err)
+  );
+}
+
+function stopGlobalUnreadListener() {
+  if (globalUnreadUnsubscribe) {
+    globalUnreadUnsubscribe();
+    globalUnreadUnsubscribe = null;
+  }
+  latestChatPartners = [];
+  updateMessagesBadge(0);
+}
+
 function getChatPartnerId(room, myId) {
   return (room.participants || []).find((id) => id !== myId) || null;
 }
@@ -1648,6 +1767,7 @@ async function renderMessagesInbox(entries) {
         partnerName: partnerInfo.name,
         partnerLabel: formatInboxPartnerLabel(partnerInfo.name, partnerInfo.role),
         preview,
+        unread: isEntryUnread(entry, myId),
       };
     })
   );
@@ -1656,7 +1776,7 @@ async function renderMessagesInbox(entries) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "messages-inbox-item";
+    button.className = `messages-inbox-item${row.unread ? " is-unread" : ""}`;
     button.innerHTML = `
       <span class="messages-inbox-item-name">${escapeHtml(row.partnerLabel)}</span>
       <span class="messages-inbox-item-preview">${row.preview}</span>
@@ -2662,6 +2782,32 @@ function updatePartnerTypingIndicator(partnerData) {
   refreshTypingIndicator();
 }
 
+function formatChatTimestamp(timestampMillis) {
+  if (!timestampMillis) return "";
+  const date = new Date(timestampMillis);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const time = date.toLocaleTimeString(undefined, { timeStyle: "short" });
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  ).getTime();
+  const msInDay = 86400000;
+
+  if (timestampMillis >= startOfToday) return `Today, ${time}`;
+  if (timestampMillis >= startOfToday - msInDay) return `Yesterday, ${time}`;
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const datePart = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `${datePart}, ${time}`;
+}
+
 function createReadReceipt(isRead) {
   const receipt = document.createElement("span");
   receipt.className = `chat-read-receipt${isRead ? " is-read" : ""}`;
@@ -2698,7 +2844,18 @@ function renderChatMessages(messages) {
       inner.appendChild(createReadReceipt(msg.read === true && !msg.pending));
       bubble.appendChild(inner);
     } else {
-      bubble.textContent = displayText;
+      const text = document.createElement("span");
+      text.className = "chat-bubble-text";
+      text.textContent = displayText;
+      bubble.appendChild(text);
+    }
+
+    const timeLabel = formatChatTimestamp(msg.timestampMillis);
+    if (timeLabel || msg.pending) {
+      const meta = document.createElement("div");
+      meta.className = "chat-bubble-time";
+      meta.textContent = msg.pending && !timeLabel ? "Sending…" : timeLabel;
+      bubble.appendChild(meta);
     }
 
     chatMessagesEl.appendChild(bubble);
@@ -2708,6 +2865,9 @@ function renderChatMessages(messages) {
 
 async function markActiveChatAsRead(messages) {
   if (!activeChatConversationId || !auth.currentUser || !messages?.length) return;
+  if (activeChatPartnerId) {
+    setLastReadMillis(auth.currentUser.uid, activeChatPartnerId, Date.now());
+  }
   try {
     await chatService.markMessagesAsRead(
       activeChatConversationId,
@@ -2743,6 +2903,7 @@ async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "dri
   activeChatPartnerId = partnerId;
   activeChatRoomIds = getAllConversationIdsForParticipants(myId, partnerId);
   activeChatConversationId = buildDriverMechanicConversationId(myId, partnerId);
+  markConversationRead(partnerId);
 
   const partnerInfo = await resolveChatPartnerInfo(partnerId, {
     partnerName: pickPartnerDisplayName(partnerName) || undefined,
@@ -3184,7 +3345,180 @@ function isOfferedSkill(skills, serviceName) {
   );
 }
 
-function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}) {
+let mechanicAutoSaveTimer = null;
+let mechanicAutoSaveInFlight = false;
+
+function mechanicServicesDraftKey(userId) {
+  return `mototap_mechanic_services_draft_${userId}`;
+}
+
+function readMechanicServicesDraft(userId) {
+  if (!userId) return null;
+  try {
+    const raw = sessionStorage.getItem(mechanicServicesDraftKey(userId));
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return {
+      skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+      prices:
+        parsed.prices && typeof parsed.prices === "object" && !Array.isArray(parsed.prices)
+          ? parsed.prices
+          : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeMechanicServicesDraft(userId, draft) {
+  if (!userId || !draft) return;
+  try {
+    sessionStorage.setItem(mechanicServicesDraftKey(userId), JSON.stringify(draft));
+  } catch {
+    // sessionStorage may be unavailable in private mode
+  }
+}
+
+function clearMechanicServicesDraft(userId) {
+  if (!userId) return;
+  try {
+    sessionStorage.removeItem(mechanicServicesDraftKey(userId));
+  } catch {
+    // ignore
+  }
+}
+
+function collectMechanicServicesFromForm() {
+  const selectedSkills = [];
+  const pricesByName = {};
+  let hasIncomplete = false;
+
+  mechanicServiceList?.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (!checkbox?.checked) return;
+
+    const serviceName = String(checkbox.value || "").trim();
+    if (!serviceName) return;
+
+    const priceInput = row.querySelector(".mechanic-service-price-input");
+    const price = parsePriceInput(priceInput?.value);
+    if (price === null) {
+      hasIncomplete = true;
+      return;
+    }
+
+    selectedSkills.push(serviceName);
+    pricesByName[serviceName] = price;
+  });
+
+  return { selectedSkills, pricesByName, hasIncomplete };
+}
+
+function syncMechanicServicesDraft() {
+  const userId = auth.currentUser?.uid;
+  if (!userId || !mechanicServiceList) return;
+
+  const skills = [];
+  const prices = {};
+
+  mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (!checkbox?.checked) return;
+
+    const serviceName = String(checkbox.value || "").trim();
+    if (!serviceName) return;
+
+    skills.push(serviceName);
+    const priceInput = row.querySelector(".mechanic-service-price-input");
+    const price = parsePriceInput(priceInput?.value);
+    if (price != null) {
+      prices[serviceName] = price;
+    }
+  });
+
+  writeMechanicServicesDraft(userId, { skills, prices });
+}
+
+function queueMechanicServicesAutoSave() {
+  clearTimeout(mechanicAutoSaveTimer);
+  mechanicAutoSaveTimer = setTimeout(() => {
+    void persistMechanicServices({ silent: true });
+  }, 900);
+}
+
+async function persistMechanicServices({ silent = false } = {}) {
+  if (!auth.currentUser) {
+    if (!silent) {
+      mechanicError.textContent = "You must be signed in to update your services.";
+    }
+    return { success: false };
+  }
+
+  const { selectedSkills, pricesByName, hasIncomplete } = collectMechanicServicesFromForm();
+  if (hasIncomplete) {
+    const message = "Enter a price for every selected service before saving.";
+    if (!silent) {
+      throw new Error(message);
+    }
+    return { success: false, skipped: true };
+  }
+
+  if (mechanicAutoSaveInFlight) {
+    return { success: false, skipped: true };
+  }
+
+  const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
+
+  if (!silent) {
+    saveServicesBtn.disabled = true;
+    saveServicesBtn.textContent = "Saving...";
+  }
+
+  mechanicAutoSaveInFlight = true;
+  try {
+    const result = await authService.updateMechanicSkills(
+      auth.currentUser.uid,
+      selectedSkills,
+      servicePrices
+    );
+    if (!result.success) {
+      throw new Error(result.error || "Failed to save services.");
+    }
+
+    clearMechanicServicesDraft(auth.currentUser.uid);
+    currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
+
+    if (!silent) {
+      mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s) with prices.`;
+      mechanicError.textContent = "";
+      renderMechanicServiceSelection();
+      startJobSync();
+    }
+
+    return { success: true };
+  } catch (error) {
+    if (!silent) {
+      mechanicError.textContent =
+        error.message?.startsWith("Enter a price") || error.message?.includes("every selected")
+          ? error.message
+          : `Unable to save services: ${error.message}`;
+    }
+    return { success: false, error };
+  } finally {
+    mechanicAutoSaveInFlight = false;
+    if (!silent) {
+      saveServicesBtn.disabled = false;
+      saveServicesBtn.textContent = "Save Offered Services";
+    }
+  }
+}
+
+async function refreshMechanicDashboard() {
+  if (!auth.currentUser) return;
+  await loadUserProfile(auth.currentUser);
+}
+
+function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}, servicesDraft = null) {
   const { card, body } = createServiceCategoryCardShell(category);
 
   category.groups.forEach((group) => {
@@ -3205,28 +3539,36 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = serviceName;
-      checkbox.checked = isOfferedSkill(existingSkills, serviceName);
+      const draftOffered =
+        servicesDraft && isOfferedSkill(servicesDraft.skills, serviceName);
+      checkbox.checked =
+        isOfferedSkill(existingSkills, serviceName) || Boolean(draftOffered);
 
       const nameSpan = document.createElement("span");
       nameSpan.className = "mechanic-service-offer-name";
       nameSpan.textContent = serviceName;
 
       const priceInput = document.createElement("input");
-      priceInput.type = "number";
-      priceInput.min = "0";
-      priceInput.step = "1";
+      priceInput.type = "text";
       priceInput.inputMode = "numeric";
       priceInput.className = "mechanic-service-price-input";
       priceInput.placeholder = "Ksh";
       priceInput.setAttribute("aria-label", `Price for ${serviceName} in Kenyan Shillings`);
-      const savedPrice = getMechanicServicePrice(
-        { servicePrices: existingPrices },
-        serviceName
-      );
+      const draftPrice = servicesDraft
+        ? getMechanicServicePrice({ servicePrices: servicesDraft.prices }, serviceName)
+        : null;
+      const savedPrice =
+        getMechanicServicePrice({ servicePrices: existingPrices }, serviceName) ??
+        draftPrice;
       if (savedPrice != null) {
         priceInput.value = String(savedPrice);
       }
       priceInput.disabled = !checkbox.checked;
+
+      const handleMechanicServiceFormChange = () => {
+        syncMechanicServicesDraft();
+        queueMechanicServicesAutoSave();
+      };
 
       checkbox.addEventListener("change", () => {
         priceInput.disabled = !checkbox.checked;
@@ -3235,6 +3577,13 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
         } else {
           priceInput.focus();
         }
+        handleMechanicServiceFormChange();
+      });
+
+      priceInput.addEventListener("input", handleMechanicServiceFormChange);
+      priceInput.addEventListener("blur", () => {
+        syncMechanicServicesDraft();
+        void persistMechanicServices({ silent: true });
       });
 
       label.appendChild(checkbox);
@@ -3254,9 +3603,10 @@ function renderMechanicServiceSelection() {
   mechanicServiceList.innerHTML = "";
   const existingSkills = currentUserProfile?.skills || [];
   const existingPrices = normalizeServicePrices(currentUserProfile?.servicePrices);
+  const servicesDraft = readMechanicServicesDraft(auth.currentUser?.uid);
 
   appendCatalogByDisplayGroup(mechanicServiceList, (category) =>
-    buildMechanicCategoryCard(category, existingSkills, existingPrices)
+    buildMechanicCategoryCard(category, existingSkills, existingPrices, servicesDraft)
   );
 
   scheduleServiceCategoryCardBalance();
@@ -3316,6 +3666,7 @@ async function loadUserProfile(user) {
   renderMechanicServiceSelection();
   renderPartsDealerSelection();
   startJobSync();
+  startGlobalUnreadListener();
   syncCatalogToFirestoreInBackground();
   paintDriverHomeActiveVehicle();
 
@@ -3386,58 +3737,15 @@ async function handleMechanicSaveServices() {
   mechanicStatus.textContent = "";
   mechanicError.textContent = "";
 
-  if (!auth.currentUser) {
-    mechanicError.textContent = "You must be signed in to update your services.";
-    return;
-  }
-
-  const selectedSkills = [];
-  const pricesByName = {};
-
   try {
-    mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
-      const checkbox = row.querySelector("input[type='checkbox']");
-      if (!checkbox?.checked) return;
-
-      const serviceName = String(checkbox.value || "").trim();
-      if (!serviceName) return;
-
-      const priceInput = row.querySelector(".mechanic-service-price-input");
-      const price = parsePriceInput(priceInput?.value);
-      if (price === null) {
-        throw new Error(`Enter a price for "${serviceName}" before saving.`);
+    const result = await persistMechanicServices({ silent: false });
+    if (!result.success && !result.skipped) {
+      if (!mechanicError.textContent) {
+        mechanicError.textContent = "Unable to save services. Please try again.";
       }
-
-      selectedSkills.push(serviceName);
-      pricesByName[serviceName] = price;
-    });
-
-    const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
-
-    saveServicesBtn.disabled = true;
-    saveServicesBtn.textContent = "Saving...";
-
-    const result = await authService.updateMechanicSkills(
-      auth.currentUser.uid,
-      selectedSkills,
-      servicePrices
-    );
-    if (!result.success) {
-      throw new Error(result.error || "Failed to save services.");
     }
-    mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s) with prices.`;
-    mechanicError.textContent = "";
-    currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
-    renderMechanicServiceSelection();
-    startJobSync();
   } catch (error) {
-    mechanicError.textContent =
-      error.message?.startsWith("Enter a price")
-        ? error.message
-        : `Unable to save services: ${error.message}`;
-  } finally {
-    saveServicesBtn.disabled = false;
-    saveServicesBtn.textContent = "Save Offered Services";
+    mechanicError.textContent = error.message || "Unable to save services.";
   }
 }
 
@@ -3699,6 +4007,7 @@ mechanicMapBackBtn?.addEventListener("click", () => {
 
 chatBackBtn?.addEventListener("click", () => {
   stopChatListener();
+  markConversationRead(activeChatPartnerId);
   activeChatConversationId = null;
   activeChatPartnerId = null;
   activeChatRoomIds = [];
@@ -3796,6 +4105,14 @@ function initPasswordToggles() {
 initPasswordToggles();
 
 saveServicesBtn.addEventListener("click", handleMechanicSaveServices);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "hidden") return;
+  if (!mechanicDashboard?.classList.contains("active")) return;
+  syncMechanicServicesDraft();
+  clearTimeout(mechanicAutoSaveTimer);
+  void persistMechanicServices({ silent: true });
+});
 savePartsBtn?.addEventListener("click", handlePartsDealerSaveParts);
 
 driverModeMechanicsBtn?.addEventListener("click", () => {
@@ -3822,6 +4139,7 @@ onAuthStateChanged(auth, async (user) => {
     currentUserProfile = null;
     clearPendingServiceSelection();
     stopJobSync();
+    stopGlobalUnreadListener();
     showHomePage();
     wasLoggedIn = false;
   }

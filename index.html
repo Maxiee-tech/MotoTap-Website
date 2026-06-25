@@ -384,6 +384,28 @@
       transform: translateY(-1px);
     }
 
+    .nav-unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      margin-left: 6px;
+      border-radius: 999px;
+      background: #c00000;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      vertical-align: middle;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .nav-unread-badge.hidden {
+      display: none;
+    }
+
     /* Expandable menu sidebar */
     .menu-panel {
       position: fixed;
@@ -1068,6 +1090,27 @@
     .messages-inbox-item:hover {
       border-color: rgba(255, 75, 75, 0.45);
       background: rgba(255, 255, 255, 0.06);
+    }
+
+    .messages-inbox-item.is-unread {
+      border: 2px solid #ff4b4b;
+      box-shadow: 0 0 0 1px rgba(255, 75, 75, 0.35);
+    }
+
+    .messages-inbox-item.is-unread .messages-inbox-item-name::after {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-left: 8px;
+      border-radius: 50%;
+      background: #ff4b4b;
+      vertical-align: middle;
+    }
+
+    .messages-inbox-item.is-unread .messages-inbox-item-preview {
+      color: #fff;
+      font-weight: 600;
     }
 
     .messages-inbox-item-name {
@@ -2794,8 +2837,9 @@
       line-height: 1.35;
     }
 
-    .mechanic-service-price-input {
-      width: 96px;
+    .mechanic-service-offer-row .mechanic-service-price-input {
+      width: 90px;
+      flex: 0 0 90px;
       flex-shrink: 0;
       padding: 7px 10px;
       border-radius: 8px;
@@ -3400,6 +3444,17 @@
     .chat-bubble-text {
       flex: 1;
       min-width: 0;
+    }
+
+    .chat-bubble-time {
+      margin-top: 4px;
+      font-size: 0.6875rem;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .chat-bubble.mine .chat-bubble-time {
+      text-align: right;
     }
 
     .chat-read-receipt {

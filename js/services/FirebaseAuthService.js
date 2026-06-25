@@ -311,7 +311,39 @@ export default class FirebaseAuthService extends AuthRepository {
         availableServices: skills,
       };
       if (servicePrices !== null) {
-        payload.servicePrices = normalizeServicePrices(servicePrices);
+        const existingSnap = await withTimeout(getDoc(this.userDocRef(userId)));
+        const existingPrices = existingSnap.exists()
+          ? normalizeServicePrices(existingSnap.data()?.servicePrices)
+          : {};
+        const incomingPrices = normalizeServicePrices(servicePrices);
+        const mergedPrices = {};
+
+        skills.forEach((skill) => {
+          const name = String(skill || "").trim();
+          if (!name) return;
+
+          if (Object.prototype.hasOwnProperty.call(incomingPrices, name)) {
+            mergedPrices[name] = incomingPrices[name];
+            return;
+          }
+
+          const nameLower = name.toLowerCase();
+          for (const [existingName, price] of Object.entries(existingPrices)) {
+            if (existingName.toLowerCase() === nameLower) {
+              mergedPrices[name] = price;
+              return;
+            }
+          }
+
+          for (const [incomingName, price] of Object.entries(incomingPrices)) {
+            if (incomingName.toLowerCase() === nameLower) {
+              mergedPrices[name] = price;
+              return;
+            }
+          }
+        });
+
+        payload.servicePrices = mergedPrices;
       }
       await withTimeout(updateDoc(this.userDocRef(userId), payload));
       const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));

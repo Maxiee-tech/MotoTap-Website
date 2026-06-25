@@ -1530,6 +1530,16 @@ body.mt-brand .messages-inbox-item-preview {
   color: var(--mt-gray-500) !important;
 }
 
+body.mt-brand .messages-inbox-item.is-unread {
+  border: 2px solid var(--mt-red) !important;
+  box-shadow: 0 0 0 1px rgba(192, 0, 0, 0.2) !important;
+}
+
+body.mt-brand .messages-inbox-item.is-unread .messages-inbox-item-preview {
+  color: var(--mt-black) !important;
+  font-weight: 600;
+}
+
 /* ── Chat ── */
 body.mt-brand .chat-messages {
   background: var(--mt-gray-50) !important;
@@ -1546,6 +1556,14 @@ body.mt-brand .chat-bubble.theirs {
   background: var(--mt-white) !important;
   border: 1px solid var(--mt-gray-200) !important;
   color: var(--mt-black) !important;
+}
+
+body.mt-brand .chat-bubble.mine .chat-bubble-time {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+body.mt-brand .chat-bubble.theirs .chat-bubble-time {
+  color: var(--mt-gray-600, #666) !important;
 }
 
 body.mt-brand .chat-compose {
