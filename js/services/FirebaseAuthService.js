@@ -32,6 +32,8 @@ import {
   buildPublicProfileData,
   PUBLIC_PROFILES_COLLECTION,
 } from "../utils/publicProfile.js";
+import { normalizeServicePrices } from "../utils/mechanicServicePrices.js";
+import { normalizePartPrices } from "../utils/partsDealerPrices.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -309,7 +311,7 @@ export default class FirebaseAuthService extends AuthRepository {
         availableServices: skills,
       };
       if (servicePrices !== null) {
-        payload.servicePrices = servicePrices;
+        payload.servicePrices = normalizeServicePrices(servicePrices);
       }
       await withTimeout(updateDoc(this.userDocRef(userId), payload));
       const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));
@@ -330,7 +332,7 @@ export default class FirebaseAuthService extends AuthRepository {
         availableParts: parts,
       };
       if (partPrices !== null) {
-        payload.partPrices = partPrices;
+        payload.partPrices = normalizePartPrices(partPrices);
       }
       await withTimeout(updateDoc(this.userDocRef(userId), payload));
       const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));

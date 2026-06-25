@@ -17,6 +17,7 @@ import {
   formatKsh,
   getMechanicServicePrice,
   normalizeServicePrices,
+  parsePriceInput,
 } from "./utils/mechanicServicePrices.js";
 import {
   buildPartPricesPayload,
@@ -3176,6 +3177,13 @@ function renderServiceCategories() {
   scheduleServiceCategoryCardBalance();
 }
 
+function isOfferedSkill(skills, serviceName) {
+  const target = String(serviceName || "").trim().toLowerCase();
+  return (skills || []).some(
+    (skill) => String(skill || "").trim().toLowerCase() === target
+  );
+}
+
 function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}) {
   const { card, body } = createServiceCategoryCardShell(category);
 
@@ -3197,7 +3205,7 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = serviceName;
-      checkbox.checked = existingSkills.has(serviceName);
+      checkbox.checked = isOfferedSkill(existingSkills, serviceName);
 
       const nameSpan = document.createElement("span");
       nameSpan.className = "mechanic-service-offer-name";
@@ -3211,8 +3219,11 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
       priceInput.className = "mechanic-service-price-input";
       priceInput.placeholder = "Ksh";
       priceInput.setAttribute("aria-label", `Price for ${serviceName} in Kenyan Shillings`);
-      const savedPrice = existingPrices[serviceName];
-      if (savedPrice != null && savedPrice !== "") {
+      const savedPrice = getMechanicServicePrice(
+        { servicePrices: existingPrices },
+        serviceName
+      );
+      if (savedPrice != null) {
         priceInput.value = String(savedPrice);
       }
       priceInput.disabled = !checkbox.checked;
@@ -3241,7 +3252,7 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
 
 function renderMechanicServiceSelection() {
   mechanicServiceList.innerHTML = "";
-  const existingSkills = new Set(currentUserProfile?.skills || []);
+  const existingSkills = currentUserProfile?.skills || [];
   const existingPrices = normalizeServicePrices(currentUserProfile?.servicePrices);
 
   appendCatalogByDisplayGroup(mechanicServiceList, (category) =>
@@ -3383,27 +3394,29 @@ async function handleMechanicSaveServices() {
   const selectedSkills = [];
   const pricesByName = {};
 
-  mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
-    const checkbox = row.querySelector("input[type='checkbox']");
-    if (!checkbox?.checked) return;
-
-    const serviceName = String(checkbox.value || "").trim();
-    if (!serviceName) return;
-
-    selectedSkills.push(serviceName);
-    const priceInput = row.querySelector(".mechanic-service-price-input");
-    const price = Number(priceInput?.value);
-    if (Number.isFinite(price) && price >= 0) {
-      pricesByName[serviceName] = price;
-    }
-  });
-
-  const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
-
-  saveServicesBtn.disabled = true;
-  saveServicesBtn.textContent = "Saving...";
-
   try {
+    mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
+      const checkbox = row.querySelector("input[type='checkbox']");
+      if (!checkbox?.checked) return;
+
+      const serviceName = String(checkbox.value || "").trim();
+      if (!serviceName) return;
+
+      const priceInput = row.querySelector(".mechanic-service-price-input");
+      const price = parsePriceInput(priceInput?.value);
+      if (price === null) {
+        throw new Error(`Enter a price for "${serviceName}" before saving.`);
+      }
+
+      selectedSkills.push(serviceName);
+      pricesByName[serviceName] = price;
+    });
+
+    const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
+
+    saveServicesBtn.disabled = true;
+    saveServicesBtn.textContent = "Saving...";
+
     const result = await authService.updateMechanicSkills(
       auth.currentUser.uid,
       selectedSkills,
@@ -3414,11 +3427,14 @@ async function handleMechanicSaveServices() {
     }
     mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s) with prices.`;
     mechanicError.textContent = "";
-    currentUserProfile.skills = selectedSkills;
-    currentUserProfile.servicePrices = servicePrices;
+    currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
+    renderMechanicServiceSelection();
     startJobSync();
   } catch (error) {
-    mechanicError.textContent = `Unable to save services: ${error.message}`;
+    mechanicError.textContent =
+      error.message?.startsWith("Enter a price")
+        ? error.message
+        : `Unable to save services: ${error.message}`;
   } finally {
     saveServicesBtn.disabled = false;
     saveServicesBtn.textContent = "Save Offered Services";

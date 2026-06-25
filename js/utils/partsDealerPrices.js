@@ -1,12 +1,31 @@
+import { parsePriceInput } from "./mechanicServicePrices.js";
+
 /** Normalize Firestore `partPrices` map (part name → KSh amount). */
 export function normalizePartPrices(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  if (!raw || typeof raw !== "object") return {};
+
+  if (Array.isArray(raw)) {
+    const out = {};
+    for (const entry of raw) {
+      if (!entry || typeof entry !== "object") continue;
+      const name = String(entry.partName || entry.name || entry.part || "").trim();
+      const price = parsePriceInput(entry.price ?? entry.amount ?? entry.value);
+      if (name && price != null) {
+        out[name] = price;
+      }
+    }
+    return out;
+  }
+
   const out = {};
   for (const [key, value] of Object.entries(raw)) {
     const name = String(key || "").trim();
-    const price = Number(value);
-    if (name && Number.isFinite(price) && price >= 0) {
-      out[name] = Math.round(price);
+    const price =
+      typeof value === "number" && Number.isFinite(value)
+        ? Math.round(value)
+        : parsePriceInput(value);
+    if (name && price != null) {
+      out[name] = price;
     }
   }
   return out;
@@ -33,9 +52,13 @@ export function buildPartPricesPayload(selectedParts, pricesByName = {}) {
   selectedParts.forEach((part) => {
     const name = String(part || "").trim();
     if (!name) return;
-    const price = Number(pricesByName[name]);
-    if (Number.isFinite(price) && price >= 0) {
-      out[name] = Math.round(price);
+    const raw = pricesByName[name];
+    const price =
+      typeof raw === "number" && Number.isFinite(raw)
+        ? Math.round(raw)
+        : parsePriceInput(raw);
+    if (price != null) {
+      out[name] = price;
     }
   });
   return out;
