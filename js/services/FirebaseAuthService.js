@@ -360,6 +360,62 @@ export default class FirebaseAuthService extends AuthRepository {
     }
   }
 
+  /**
+   * Redeem a loyalty reward by appending it to redeemedRewards[].
+   * Balance is derived (earned − redeemed), so we re-read the doc, re-validate
+   * affordability against current job-based earnings, then persist atomically-ish.
+   */
+  async redeemLoyaltyReward(userId, reward, { availablePoints } = {}) {
+    const points = Number(reward?.pointsRequired) || 0;
+    const title = String(reward?.title || "").trim();
+
+    if (!userId) {
+      return { success: false, error: "You must be signed in to redeem rewards." };
+    }
+    if (!title || points <= 0) {
+      return { success: false, error: "This reward is unavailable." };
+    }
+    if (Number.isFinite(availablePoints) && availablePoints < points) {
+      return { success: false, error: "Not enough points to redeem this reward yet." };
+    }
+
+    try {
+      const docRef = this.userDocRef(userId);
+      const snapshot = await withTimeout(getDoc(docRef));
+      if (!snapshot.exists()) {
+        return { success: false, error: "Profile not found." };
+      }
+
+      const data = snapshot.data();
+      const existing = Array.isArray(data.redeemedRewards)
+        ? data.redeemedRewards
+        : [];
+
+      const entry = {
+        title,
+        points,
+        redeemedAtMillis: Date.now(),
+      };
+      const updatedRewards = [...existing, entry];
+      const updatedLoyaltyPoints = Math.max(
+        0,
+        (Number(data.loyaltyPoints) || 0) - points
+      );
+
+      await withTimeout(
+        updateDoc(docRef, {
+          redeemedRewards: updatedRewards,
+          loyaltyPoints: updatedLoyaltyPoints,
+        })
+      );
+
+      return { success: true, redeemedRewards: updatedRewards, entry };
+    } catch (error) {
+      console.error("FirebaseAuthService.redeemLoyaltyReward error:", error);
+      return { success: false, error: "Unable to redeem reward. Please try again." };
+    }
+  }
+
   async deleteAccount(currentPassword) {
     const currentUser = this.auth.currentUser;
     if (!currentUser || !currentUser.email) {

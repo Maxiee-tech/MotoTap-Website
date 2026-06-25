@@ -1618,13 +1618,6 @@
       }
     }
 
-    @media (min-width: 1200px) {
-      .service-category-list#guest-service-category-list {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-    }
-
     #dashboard.active {
       display: flex;
       flex-direction: column;
@@ -2021,18 +2014,21 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    #parts-category-list .parts-catalog-column {
+    #parts-category-list .parts-catalog-column,
+    #guest-parts-category-list .parts-catalog-column {
       display: flex;
       flex-direction: column;
       min-width: 0;
     }
 
-    #parts-category-list .parts-catalog-column .service-display-group {
+    #parts-category-list .parts-catalog-column .service-display-group,
+    #guest-parts-category-list .parts-catalog-column .service-display-group {
       grid-column: auto;
       margin-top: 0;
     }
 
-    #parts-category-list .parts-catalog-column .service-category-card {
+    #parts-category-list .parts-catalog-column .service-category-card,
+    #guest-parts-category-list .parts-catalog-column .service-category-card {
       flex: 1 1 auto;
     }
 
@@ -2397,7 +2393,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/engine_%26_drivetrain.jpg");
+        url("/images/parts/engine_&_drivetrain.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2408,7 +2404,7 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/engine_%26_drivetrain.jpg");
+        url("/images/parts/engine_&_drivetrain.jpg");
     }
 
     .service-category-card[data-category-id="brakes"] {
@@ -2416,7 +2412,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/brakes_%26_suspension.jpg");
+        url("/images/parts/brakes_&_suspension.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2427,7 +2423,7 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/brakes_%26_suspension.jpg");
+        url("/images/parts/brakes_&_suspension.jpg");
     }
 
     .service-category-card[data-category-id="electrical"] {
@@ -2435,7 +2431,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/electrical_%26_electronics.jpg");
+        url("/images/parts/electrical_&_electronics.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2446,7 +2442,7 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/electrical_%26_electronics.jpg");
+        url("/images/parts/electrical_&_electronics.jpg");
     }
 
     .service-category-card[data-category-id="filters-fluids"] {
@@ -2454,7 +2450,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/filters_%26_fluids.jpg");
+        url("/images/parts/filters_&_fluids.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2465,7 +2461,7 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/filters_%26_fluids.jpg");
+        url("/images/parts/filters_&_fluids.jpg");
     }
 
     .service-category-card[data-category-id="body-exterior"] {
@@ -2473,7 +2469,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/body_%26_exterior.jpg");
+        url("/images/parts/body_&_exterior.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2484,7 +2480,7 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/body_%26_exterior.jpg");
+        url("/images/parts/body_&_exterior.jpg");
     }
 
     .service-category-card[data-category-id="tyres-wheels"] {
@@ -2492,7 +2488,7 @@
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/tyres_%26_wheels.jpg");
+        url("/images/parts/tyres_&_wheels.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -2503,28 +2499,30 @@
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/tyres_%26_wheels.jpg");
+        url("/images/parts/tyres_&_wheels.jpg");
     }
 
     #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"],
+    #guest-parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"],
     #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"] {
       background-image: linear-gradient(
           rgba(255, 255, 255, 0.62),
           rgba(255, 255, 255, 0.72)
         ),
-        url("/images/parts/electrical_%26_electronics.jpg");
+        url("/images/parts/electrical_&_electronics.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
     }
 
     #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover,
+    #guest-parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover,
     #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover {
       background-image: linear-gradient(
           rgba(255, 255, 255, 0.55),
           rgba(255, 255, 255, 0.65)
         ),
-        url("/images/parts/electrical_%26_electronics.jpg");
+        url("/images/parts/electrical_&_electronics.jpg");
     }
 
     .service-card-body {
@@ -2968,6 +2966,37 @@
       white-space: nowrap;
     }
 
+    .mechanic-map-float-panel .mechanic-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-header-text {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-photo {
+      flex: 0 0 auto;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e6e6e6 center / cover no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.125rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      overflow: hidden;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
     .mechanic-map-float-panel .mechanic-panel-name-btn {
       width: auto;
       background: none;
@@ -2976,7 +3005,7 @@
       font-size: 1.125rem;
       font-weight: 700;
       padding: 0;
-      margin: 0 0 8px;
+      margin: 0 0 4px;
       text-align: left;
       cursor: pointer;
       text-decoration: none;
@@ -2991,6 +3020,12 @@
       color: #1a1a1a;
       margin: 0 0 6px;
       font-weight: 700;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-distance.is-retry {
+      color: #0066cc;
+      cursor: pointer;
+      text-decoration: underline;
     }
 
     .mechanic-map-float-panel .mechanic-panel-meta,
@@ -3666,7 +3701,7 @@
       justify-content: center !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260624v2" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260625v3" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
@@ -3867,11 +3902,26 @@
       </div>
 
       <div id="landing-guest-view">
-        <div class="panel-header">
-        <h3>Our Services</h3>
-        <p>Browse all Moto Tap services (same as the mobile app). Scroll down for Emergency, Maintenance, and Upgrades categories.</p>
+        <div class="driver-marketplace-toggle" id="guest-marketplace-toggle" role="tablist" aria-label="Browse mechanics or parts dealers">
+          <button type="button" id="guest-mode-mechanics" class="driver-marketplace-toggle-btn is-active" role="tab" aria-selected="true">MECHANICS</button>
+          <button type="button" id="guest-mode-parts-dealers" class="driver-marketplace-toggle-btn" role="tab" aria-selected="false">PARTS DEALERS</button>
         </div>
-        <div class="service-category-list" id="guest-service-category-list"></div>
+
+        <div id="guest-mechanics-view">
+          <div class="panel-header">
+            <h3>Our Services</h3>
+            <p>Browse all Moto Tap services (same as the mobile app). Tap any service to find nearby mechanics who offer it.</p>
+          </div>
+          <div class="service-category-list" id="guest-service-category-list"></div>
+        </div>
+
+        <div id="guest-parts-view" class="hidden">
+          <div class="panel-header">
+            <h3>Spare Parts</h3>
+            <p>Browse spare parts available on Moto Tap. Tap any part to find nearby parts dealers who stock it.</p>
+          </div>
+          <div class="service-category-list" id="guest-parts-category-list"></div>
+        </div>
       </div>
 
       <div id="driver-dashboard" class="dashboard-panel">
@@ -4397,8 +4447,13 @@
         <div class="mechanic-float-panel-layout">
           <div class="mechanic-float-panel-info">
             <span id="closest-badge" class="closest-badge hidden">CLOSEST TO YOU</span>
-            <button type="button" id="mechanic-panel-name" class="mechanic-panel-name-btn"></button>
-            <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
+            <div class="mechanic-panel-header">
+              <span id="mechanic-panel-photo" class="mechanic-panel-photo" aria-hidden="true"></span>
+              <div class="mechanic-panel-header-text">
+                <button type="button" id="mechanic-panel-name" class="mechanic-panel-name-btn"></button>
+                <p id="mechanic-panel-distance" class="mechanic-panel-distance"></p>
+              </div>
+            </div>
             <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
             <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
             <p id="mechanic-panel-price" class="mechanic-panel-price hidden"></p>

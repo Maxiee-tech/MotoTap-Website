@@ -1,6 +1,7 @@
 import { escapeHtml } from "./utils/html.js";
 import { getActiveVehicle, vehicleDisplayName } from "./models/VehicleProfile.js";
 import { getJobIssueType, sortJobsNewestFirst } from "./utils/jobSync.js";
+import { computeLoyalty, getRedeemedRewards } from "./utils/loyalty.js";
 
 const PROFILE_HUB_TABS = [
   { id: "overview", label: "Overview" },
@@ -9,10 +10,10 @@ const PROFILE_HUB_TABS = [
   { id: "loyalty", label: "Loyalty Rewards" },
 ];
 
-const LOYALTY_REWARDS = [
-  { title: "Free Standard Car Wash", pointsRequired: 50 },
-  { title: "10% Discount on Major Service", pointsRequired: 150 },
-  { title: "Free Vehicle Diagnostic Scan", pointsRequired: 300 },
+export const LOYALTY_REWARDS = [
+  { id: "free-car-wash", title: "Free Standard Car Wash", pointsRequired: 50 },
+  { id: "service-discount", title: "10% Discount on Major Service", pointsRequired: 150 },
+  { id: "free-diagnostic", title: "Free Vehicle Diagnostic Scan", pointsRequired: 300 },
 ];
 
 function getCompletedJobs(jobs = []) {
@@ -130,7 +131,7 @@ function renderOverviewPanel(profile, jobs) {
   const latestJob = completedJobs[0];
   const vehicleName = getVehicleName(profile);
   const nextServiceDate = getNextServiceDate(jobs);
-  const loyaltyPoints = Number(profile?.loyaltyPoints) || 0;
+  const loyaltyPoints = computeLoyalty(profile, jobs).available;
 
   return `
     <div class="profile-hub-panel" data-profile-panel="overview">
@@ -168,8 +169,8 @@ function renderOverviewPanel(profile, jobs) {
         <p class="profile-loyalty-balance">Points Balance: ${escapeHtml(String(loyaltyPoints))}</p>
         <p class="profile-muted">Earn 10 points for every completed service!</p>
         ${
-          loyaltyPoints >= 50
-            ? `<p class="profile-hub-reward-available">✓ Reward Available: Free Car Wash</p>`
+          loyaltyPoints >= LOYALTY_REWARDS[0].pointsRequired
+            ? `<p class="profile-hub-reward-available">✓ Reward Available: ${escapeHtml(LOYALTY_REWARDS.find((r) => loyaltyPoints >= r.pointsRequired)?.title || "Reward")}</p>`
             : ""
         }
       </article>
@@ -229,18 +230,65 @@ function renderRemindersPanel(profile, jobs) {
   `;
 }
 
-function renderLoyaltyPanel(profile) {
-  const points = Number(profile?.loyaltyPoints) || 0;
+function renderLoyaltyNotice(notice) {
+  if (!notice || !notice.message) return "";
+  const variant = notice.type === "error" ? " profile-hub-loyalty-notice--error" : "";
+  return `
+    <p class="profile-hub-loyalty-notice${variant}" role="status">
+      ${escapeHtml(notice.message)}
+    </p>
+  `;
+}
+
+function renderRedeemedHistory(profile) {
+  const redeemed = sortJobsNewestFirst(
+    getRedeemedRewards(profile).map((entry) => ({
+      ...entry,
+      createdAtMillis: Number(entry?.redeemedAtMillis) || 0,
+    }))
+  );
+
+  if (!redeemed.length) return "";
+
+  const items = redeemed
+    .map(
+      (entry) => `
+        <div class="profile-hub-redeemed-item">
+          <div class="profile-hub-redeemed-copy">
+            <strong>${escapeHtml(String(entry.title || "Reward"))}</strong>
+            <span>${escapeHtml(formatJobDate(entry.createdAtMillis) || "Redeemed")}</span>
+          </div>
+          <span class="profile-hub-redeemed-points">-${escapeHtml(String(Number(entry.points) || 0))} pts</span>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    ${renderHubSectionHeader("Redeemed Rewards")}
+    <article class="profile-hub-surface-card profile-hub-surface-card--list">
+      ${items}
+    </article>
+  `;
+}
+
+function renderLoyaltyPanel(profile, jobs, notice) {
+  const { available, earned, redeemed } = computeLoyalty(profile, jobs);
 
   const rewardsMarkup = LOYALTY_REWARDS.map((reward) => {
-    const isAvailable = points >= reward.pointsRequired;
+    const isAvailable = available >= reward.pointsRequired;
     return `
       <article class="profile-hub-reward-item${isAvailable ? " profile-hub-reward-item--available" : ""}">
         <div class="profile-hub-reward-copy">
           <strong>${escapeHtml(reward.title)}</strong>
           <span>${escapeHtml(String(reward.pointsRequired))} pts</span>
         </div>
-        <button type="button" class="profile-hub-reward-redeem" ${isAvailable ? "" : "disabled"}>
+        <button
+          type="button"
+          class="profile-hub-reward-redeem"
+          data-profile-redeem="${escapeHtml(reward.id)}"
+          ${isAvailable ? "" : "disabled"}
+        >
           Redeem
         </button>
       </article>
@@ -251,32 +299,45 @@ function renderLoyaltyPanel(profile) {
     <div class="profile-hub-panel hidden" data-profile-panel="loyalty">
       <article class="profile-hub-loyalty-balance-card">
         <span class="profile-hub-loyalty-label">Current Balance</span>
-        <strong class="profile-hub-loyalty-points">${escapeHtml(String(points))}</strong>
+        <strong class="profile-hub-loyalty-points">${escapeHtml(String(available))}</strong>
         <span class="profile-hub-loyalty-label">MotoTap Points</span>
       </article>
+      <p class="profile-hub-loyalty-summary profile-muted">
+        ${escapeHtml(String(earned))} earned · ${escapeHtml(String(redeemed))} redeemed
+      </p>
+      ${renderLoyaltyNotice(notice)}
       ${renderHubSectionHeader("Available Rewards")}
       <div class="profile-hub-rewards-list">${rewardsMarkup}</div>
+      ${renderRedeemedHistory(profile)}
     </div>
   `;
 }
 
-export function renderDriverProfileHub(profile, jobs = []) {
-  const tabsMarkup = PROFILE_HUB_TABS.map(
-    (tab, index) => `
+export function renderDriverProfileHub(
+  profile,
+  jobs = [],
+  { activeTab = "overview", loyaltyNotice = null } = {}
+) {
+  const activeTabId =
+    PROFILE_HUB_TABS.some((tab) => tab.id === activeTab) ? activeTab : "overview";
+
+  const tabsMarkup = PROFILE_HUB_TABS.map((tab) => {
+    const isActive = tab.id === activeTabId;
+    return `
       <button
         type="button"
-        class="profile-hub-tab${index === 0 ? " is-active" : ""}"
+        class="profile-hub-tab${isActive ? " is-active" : ""}"
         role="tab"
-        aria-selected="${index === 0 ? "true" : "false"}"
+        aria-selected="${isActive ? "true" : "false"}"
         data-profile-tab="${tab.id}"
       >
         ${escapeHtml(tab.label)}
       </button>
-    `
-  ).join("");
+    `;
+  }).join("");
 
   return `
-    <section class="profile-hub" id="profile-driver-hub">
+    <section class="profile-hub" id="profile-driver-hub" data-active-tab="${escapeHtml(activeTabId)}">
       <div class="profile-hub-tabs" role="tablist" aria-label="Driver profile sections">
         ${tabsMarkup}
       </div>
@@ -284,7 +345,7 @@ export function renderDriverProfileHub(profile, jobs = []) {
         ${renderOverviewPanel(profile, jobs)}
         ${renderHistoryPanel(jobs)}
         ${renderRemindersPanel(profile, jobs)}
-        ${renderLoyaltyPanel(profile)}
+        ${renderLoyaltyPanel(profile, jobs, loyaltyNotice)}
       </div>
     </section>
   `;
@@ -304,10 +365,13 @@ function setActiveProfileHubTab(container, tabId) {
 
 export function bindDriverProfileHub(
   container,
-  { onViewAllRequests, onBookMaintenance } = {}
+  { onViewAllRequests, onBookMaintenance, onRedeemReward } = {}
 ) {
   const hub = container.querySelector("#profile-driver-hub");
   if (!hub) return;
+
+  const initialTab = hub.getAttribute("data-active-tab") || "overview";
+  setActiveProfileHubTab(hub, initialTab);
 
   hub.querySelectorAll("[data-profile-tab]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -330,6 +394,32 @@ export function bindDriverProfileHub(
       if (action === "view-all-requests") {
         onViewAllRequests?.();
       }
+    });
+  });
+
+  hub.querySelectorAll("[data-profile-redeem]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      const rewardId = button.getAttribute("data-profile-redeem");
+      const reward = LOYALTY_REWARDS.find((item) => item.id === rewardId);
+      if (!reward || typeof onRedeemReward !== "function") return;
+
+      const confirmed = window.confirm(
+        `Redeem "${reward.title}" for ${reward.pointsRequired} points?`
+      );
+      if (!confirmed) return;
+
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "Redeeming…";
+
+      const result = await onRedeemReward(reward);
+
+      if (!result || result.success !== true) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
+      // On success the parent re-renders the hub (and stays on the Loyalty tab).
     });
   });
 }

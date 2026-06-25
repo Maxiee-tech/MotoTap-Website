@@ -23,6 +23,10 @@ export default class AuthRepository {
     throw new Error("AuthRepository.getUserProfile() not implemented.");
   }
 
+  async redeemLoyaltyReward(userId, reward, options) {
+    throw new Error("AuthRepository.redeemLoyaltyReward() not implemented.");
+  }
+
   async deleteAccount(currentPassword) {
     throw new Error("AuthRepository.deleteAccount() not implemented.");
   }

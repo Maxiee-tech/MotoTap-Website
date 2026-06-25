@@ -861,7 +861,7 @@ body.mt-brand .service-category-card[data-category-id="engine-drivetrain"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/engine_%26_drivetrain.jpg") !important;
+    url("/images/parts/engine_&_drivetrain.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -872,7 +872,7 @@ body.mt-brand .service-category-card[data-category-id="engine-drivetrain"]:hover
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/engine_%26_drivetrain.jpg") !important;
+    url("/images/parts/engine_&_drivetrain.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -882,7 +882,7 @@ body.mt-brand .service-category-card[data-category-id="brakes"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/brakes_%26_suspension.jpg") !important;
+    url("/images/parts/brakes_&_suspension.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -893,7 +893,7 @@ body.mt-brand .service-category-card[data-category-id="brakes"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/brakes_%26_suspension.jpg") !important;
+    url("/images/parts/brakes_&_suspension.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -903,7 +903,7 @@ body.mt-brand .service-category-card[data-category-id="electrical"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/electrical_%26_electronics.jpg") !important;
+    url("/images/parts/electrical_&_electronics.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -914,7 +914,7 @@ body.mt-brand .service-category-card[data-category-id="electrical"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/electrical_%26_electronics.jpg") !important;
+    url("/images/parts/electrical_&_electronics.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -924,7 +924,7 @@ body.mt-brand .service-category-card[data-category-id="filters-fluids"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/filters_%26_fluids.jpg") !important;
+    url("/images/parts/filters_&_fluids.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -935,7 +935,7 @@ body.mt-brand .service-category-card[data-category-id="filters-fluids"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/filters_%26_fluids.jpg") !important;
+    url("/images/parts/filters_&_fluids.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -945,7 +945,7 @@ body.mt-brand .service-category-card[data-category-id="body-exterior"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/body_%26_exterior.jpg") !important;
+    url("/images/parts/body_&_exterior.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -956,7 +956,7 @@ body.mt-brand .service-category-card[data-category-id="body-exterior"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/body_%26_exterior.jpg") !important;
+    url("/images/parts/body_&_exterior.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -966,7 +966,7 @@ body.mt-brand .service-category-card[data-category-id="tyres-wheels"] {
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/tyres_%26_wheels.jpg") !important;
+    url("/images/parts/tyres_&_wheels.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -977,30 +977,32 @@ body.mt-brand .service-category-card[data-category-id="tyres-wheels"]:hover {
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/tyres_%26_wheels.jpg") !important;
+    url("/images/parts/tyres_&_wheels.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
 
 body.mt-brand #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"],
+body.mt-brand #guest-parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"],
 body.mt-brand #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"] {
   background-image: linear-gradient(
       rgba(255, 255, 255, 0.62),
       rgba(255, 255, 255, 0.72)
     ),
-    url("/images/parts/electrical_%26_electronics.jpg") !important;
+    url("/images/parts/electrical_&_electronics.jpg") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
 }
 
 body.mt-brand #parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover,
+body.mt-brand #guest-parts-category-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover,
 body.mt-brand #parts-dealer-parts-list .service-category-card[data-category-id="vehicle-electronics-security"]:hover {
   background-image: linear-gradient(
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0.65)
     ),
-    url("/images/parts/electrical_%26_electronics.jpg") !important;
+    url("/images/parts/electrical_&_electronics.jpg") !important;
   border-color: var(--mt-red) !important;
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
@@ -2558,6 +2560,7 @@ body.mt-brand .profile-reward-progress-remaining {
 
 .profile-hub-tab {
   flex: 0 0 auto;
+  width: auto;
   padding: 10px 12px 12px;
   border: none;
   background: transparent;
@@ -2816,6 +2819,64 @@ body.mt-brand .profile-reward-progress-remaining {
 .profile-hub-reward-redeem:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.profile-hub-loyalty-summary {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.profile-hub-loyalty-notice {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(46, 125, 50, 0.15);
+  border: 1px solid rgba(46, 125, 50, 0.35);
+  color: #a5d6a7;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profile-hub-loyalty-notice--error {
+  background: rgba(229, 57, 53, 0.12);
+  border-color: rgba(229, 57, 53, 0.35);
+  color: #ffab91;
+}
+
+.profile-hub-redeemed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.profile-hub-redeemed-item + .profile-hub-redeemed-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-hub-redeemed-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-hub-redeemed-copy strong {
+  font-size: 0.9rem;
+}
+
+.profile-hub-redeemed-copy span {
+  font-size: 0.75rem;
+  color: var(--mt-gray-500);
+}
+
+.profile-hub-redeemed-points {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--mt-red);
 }
 
 .profile-history-list {

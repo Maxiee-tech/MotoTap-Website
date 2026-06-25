@@ -1,6 +1,7 @@
 import { escapeHtml } from "./utils/html.js";
 import { normalizeUserRole, formatUserRoleLabel } from "./utils/geo.js";
 import { getJobIssueType, sortJobsNewestFirst } from "./utils/jobSync.js";
+import { computeLoyalty } from "./utils/loyalty.js";
 import { renderDriverVehicleSection, bindVehicleProfileUi } from "./vehicleProfileUi.js";
 import { renderDriverProfileHub, bindDriverProfileHub } from "./driverProfileHubUi.js";
 
@@ -81,38 +82,10 @@ function renderServiceHistoryItems(jobs) {
     .join("");
 }
 
-function getRewardProgressData(profile) {
-  const loyaltyPoints = Number(profile?.loyaltyPoints) || 0;
-  const membershipStatus = loyaltyPoints >= 100 ? "Gold Member" : "Silver Member";
-  const pointsToNextReward = 50 - (loyaltyPoints % 50);
-
-  return {
-    loyaltyPoints,
-    membershipStatus,
-    pointsToNextReward,
-  };
-}
-
-function renderRewardProgressCard(profile) {
-  const { membershipStatus, pointsToNextReward } = getRewardProgressData(profile);
-
-  return `
-    <article class="profile-reward-progress-card">
-      <span class="material-symbols-outlined profile-reward-progress-icon" aria-hidden="true">star</span>
-      <div class="profile-reward-progress-copy">
-        <strong class="profile-reward-progress-title">Reward Progress</strong>
-        <span class="profile-reward-progress-status">${escapeHtml(membershipStatus)}</span>
-      </div>
-      <span class="profile-reward-progress-remaining">${escapeHtml(String(pointsToNextReward))} pts to next reward</span>
-    </article>
-  `;
-}
-
-function renderDriverExtras(profile, jobs = []) {
+function renderDriverExtras(profile, jobs = [], hubOptions = {}) {
   return `
     ${renderDriverVehicleSection(profile)}
-    ${renderRewardProgressCard(profile)}
-    ${renderDriverProfileHub(profile, jobs)}
+    ${renderDriverProfileHub(profile, jobs, hubOptions)}
   `;
 }
 
@@ -152,8 +125,8 @@ function renderPartsDealerExtras(profile) {
   `;
 }
 
-function renderProfileExtras(profile, jobs, role) {
-  if (role === "driver") return renderDriverExtras(profile, jobs);
+function renderProfileExtras(profile, jobs, role, hubOptions) {
+  if (role === "driver") return renderDriverExtras(profile, jobs, hubOptions);
   if (role === "parts_dealer") return renderPartsDealerExtras(profile);
   return renderMechanicExtras(profile);
 }
@@ -172,11 +145,15 @@ export function renderProfilePage(
     onLogout,
     onDeleteAccount,
     onSaveVehicles,
+    onRedeemReward,
+    activeHubTab = "overview",
+    loyaltyNotice = null,
   } = {}
 ) {
   if (!container) return;
 
   const role = normalizeUserRole(profile?.role);
+  const driverLoyaltyPoints = computeLoyalty(profile, jobs).available;
   const name =
     String(profile?.name || "").trim() ||
     String(email || "").split("@")[0] ||
@@ -198,7 +175,7 @@ export function renderProfilePage(
         <p class="profile-hero-role">${escapeHtml(formatRoleLabel(profile?.role))}</p>
         ${
           isDriver
-            ? `<p class="profile-hero-points">Total Points: ${escapeHtml(String(profile?.loyaltyPoints || 0))}</p>`
+            ? `<p class="profile-hero-points">Total Points: ${escapeHtml(String(driverLoyaltyPoints))}</p>`
             : ""
         }
         <div class="profile-info-grid profile-hero-info">
@@ -208,7 +185,10 @@ export function renderProfilePage(
       </div>
     </div>
 
-    ${renderProfileExtras(profile, jobs, role)}
+    ${renderProfileExtras(profile, jobs, role, {
+      activeTab: activeHubTab,
+      loyaltyNotice,
+    })}
 
     ${
       isDriver
@@ -289,7 +269,11 @@ export function renderProfilePage(
   });
 
   if (isDriver) {
-    bindDriverProfileHub(container, { onViewAllRequests, onBookMaintenance });
+    bindDriverProfileHub(container, {
+      onViewAllRequests,
+      onBookMaintenance,
+      onRedeemReward,
+    });
     if (typeof onSaveVehicles === "function") {
       bindVehicleProfileUi(container, { profile, onSaveVehicles });
     }

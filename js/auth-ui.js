@@ -73,6 +73,7 @@ import {
   resumeSignupWizardFromProfile,
   isProfileOnboardingComplete,
 } from "./signupWizard.js";
+import { computeLoyalty } from "./utils/loyalty.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
 import { PUBLIC_PROFILES_COLLECTION } from "./utils/publicProfile.js";
@@ -342,6 +343,28 @@ function setLandingGuestViewVisible(visible) {
   if (landingGuestView) {
     landingGuestView.classList.toggle("hidden", !visible);
   }
+  if (visible) {
+    setGuestMarketplaceMode(guestMarketplaceMode);
+  }
+}
+
+function setGuestMarketplaceMode(mode = "mechanics") {
+  guestMarketplaceMode = mode === "parts_dealers" ? "parts_dealers" : "mechanics";
+  const isMechanics = guestMarketplaceMode === "mechanics";
+
+  guestMechanicsView?.classList.toggle("hidden", !isMechanics);
+  guestPartsView?.classList.toggle("hidden", isMechanics);
+  guestModeMechanicsBtn?.classList.toggle("is-active", isMechanics);
+  guestModePartsDealersBtn?.classList.toggle("is-active", !isMechanics);
+  guestModeMechanicsBtn?.setAttribute("aria-selected", isMechanics ? "true" : "false");
+  guestModePartsDealersBtn?.setAttribute("aria-selected", !isMechanics ? "true" : "false");
+
+  if (isMechanics) {
+    renderServiceCategories();
+  } else {
+    renderPartsCategories();
+  }
+  scheduleServiceCategoryCardBalance();
 }
 
 function setDriverMarketplaceMode(mode = "mechanics") {
@@ -627,10 +650,52 @@ function paintProfilePage(jobs = []) {
     profile: currentUserProfile,
     email: auth.currentUser?.email || "",
     jobs,
+    activeHubTab: profileHubActiveTab,
+    loyaltyNotice: profileLoyaltyNotice,
     onViewAllRequests: showRequestsPage,
     onBookMaintenance: () => {
       const category = serviceCategories.find((c) => c.id === "preventive-routine-maintenance");
       if (category) showMechanicMapPage(category, "General Request");
+    },
+    onRedeemReward: async (reward) => {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        profileLoyaltyNotice = {
+          type: "error",
+          message: "You must be signed in to redeem rewards.",
+        };
+        profileHubActiveTab = "loyalty";
+        paintProfilePage(lastProfileJobs);
+        return { success: false };
+      }
+
+      const available = computeLoyalty(currentUserProfile, lastProfileJobs).available;
+      const result = await authService.redeemLoyaltyReward(userId, reward, {
+        availablePoints: available,
+      });
+
+      if (!result.success) {
+        profileLoyaltyNotice = {
+          type: "error",
+          message: result.error || "Unable to redeem reward. Please try again.",
+        };
+        profileHubActiveTab = "loyalty";
+        paintProfilePage(lastProfileJobs);
+        return result;
+      }
+
+      currentUserProfile = {
+        ...currentUserProfile,
+        redeemedRewards: result.redeemedRewards,
+        loyaltyPoints: Math.max(0, available - (Number(reward.pointsRequired) || 0)),
+      };
+      profileHubActiveTab = "loyalty";
+      profileLoyaltyNotice = {
+        type: "success",
+        message: `"${reward.title}" redeemed! Show this in your next visit.`,
+      };
+      paintProfilePage(lastProfileJobs);
+      return result;
     },
     onSaveVehicles: async (vehicles) => {
       const userId = auth.currentUser?.uid;
@@ -930,6 +995,12 @@ const signupErrorDiv = document.getElementById("signup-error");
 const serviceCategoryList = document.getElementById("service-category-list");
 const partsCategoryList = document.getElementById("parts-category-list");
 const guestServiceCategoryList = document.getElementById("guest-service-category-list");
+const guestPartsCategoryList = document.getElementById("guest-parts-category-list");
+const guestMarketplaceToggle = document.getElementById("guest-marketplace-toggle");
+const guestModeMechanicsBtn = document.getElementById("guest-mode-mechanics");
+const guestModePartsDealersBtn = document.getElementById("guest-mode-parts-dealers");
+const guestMechanicsView = document.getElementById("guest-mechanics-view");
+const guestPartsView = document.getElementById("guest-parts-view");
 const driverMarketplaceToggle = document.getElementById("driver-marketplace-toggle");
 const driverModeMechanicsBtn = document.getElementById("driver-mode-mechanics");
 const driverModePartsDealersBtn = document.getElementById("driver-mode-parts-dealers");
@@ -944,23 +1015,35 @@ const MAP_EMPTY_NOTIFICATION = "No mechanics found for this service on map";
 function getMapLoadErrorMessage() {
   const origin = window.location.origin;
   const host = window.location.host;
+  const hostname = window.location.hostname;
   const keyHint = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     ? "(from .env VITE_GOOGLE_MAPS_API_KEY)"
     : "(missing VITE_GOOGLE_MAPS_API_KEY at build time)";
+  const devTips =
+    import.meta.env.DEV
+      ? " After editing .env, restart `npm run dev`. In Google Cloud, allow both http://127.0.0.1:5173/* and http://localhost:5173/* — they are different referrers."
+      : "";
+  const altOriginTip =
+    hostname === "127.0.0.1"
+      ? " You can also try http://localhost:5173 in the browser."
+      : hostname === "localhost"
+        ? " You can also try http://127.0.0.1:5173 in the browser."
+        : "";
   return (
     `Google Maps could not load. Configure the Maps browser key ${keyHint}: ` +
     `Google Cloud → Credentials → API key used for Maps JavaScript (not the Firebase Auth key). ` +
     `Application restrictions → HTTP referrers → add ${origin}/*, ${origin}/, ` +
     `https://mototap-447fe.web.app/*, https://mototap.co.ke/*, ` +
-    `https://mototap-447fe.firebaseapp.com/*, http://localhost:5173/*, http://localhost:5174/*. ` +
+    `https://mototap-447fe.firebaseapp.com/*, http://localhost:5173/*, http://127.0.0.1:5173/*, http://localhost:5174/*. ` +
     `API restrictions must include Maps JavaScript API. ` +
-    `If this key is Android-only, create a new key for the website. Host: ${host}.`
+    `If this key is Android-only, create a new key for the website.${devTips}${altOriginTip} Host: ${host}.`
   );
 }
 const matchStatus = document.getElementById("match-status");
 const driverMechanicPanel = document.getElementById("driver-mechanic-panel");
 const closestBadge = document.getElementById("closest-badge");
 const mechanicPanelName = document.getElementById("mechanic-panel-name");
+const mechanicPanelPhoto = document.getElementById("mechanic-panel-photo");
 const mechanicPanelDistance = document.getElementById("mechanic-panel-distance");
 const mechanicPanelMeta = document.getElementById("mechanic-panel-meta");
 const mechanicPanelService = document.getElementById("mechanic-panel-service");
@@ -1006,6 +1089,7 @@ let mapMarkers = [];
 let driverMarker = null;
 let driverPosition = null;
 let activeDriverPositionRequest = null;
+let driverLocationStatus = "idle";
 let matchedMechanics = [];
 let autoSelectedMechanicId = null;
 let selectedMechanicEntry = null;
@@ -1040,6 +1124,7 @@ const authViewModel = new AuthViewModel(authService);
 let serviceCategories = SERVICE_CATEGORIES;
 let partsCategories = PARTS_CATEGORIES;
 let driverMarketplaceMode = "mechanics";
+let guestMarketplaceMode = "mechanics";
 let driverMapDiscoveryMode = "mechanics";
 let selectedCategory = null;
 let selectedSubservice = null;
@@ -1047,6 +1132,8 @@ let pendingServiceSelection = null;
 let currentUserProfile = null;
 let wasLoggedIn = false;
 let lastProfileJobs = [];
+let profileHubActiveTab = "overview";
+let profileLoyaltyNotice = null;
 
 function setPendingServiceSelection(category, serviceName, discoveryMode = "mechanics") {
   pendingServiceSelection = {
@@ -1617,8 +1704,9 @@ function watchMapForGoogleErrorOverlay() {
   if (!mapElement) return;
 
   mapErrorObserver = new MutationObserver(() => {
-    const errNode = mapElement.querySelector(".gm-err-title, .gm-err-message, .gm-style-cc");
-    const errText = errNode?.textContent?.toLowerCase() || "";
+    const errTitle = mapElement.querySelector(".gm-err-title")?.textContent?.toLowerCase() || "";
+    const errMessage = mapElement.querySelector(".gm-err-message")?.textContent?.toLowerCase() || "";
+    const errText = `${errTitle} ${errMessage}`;
     if (
       errText.includes("went wrong") ||
       errText.includes("can't load google maps") ||
@@ -1648,13 +1736,25 @@ function clearMechanicMapState({ keepMapVisible = false } = {}) {
 }
 
 function beginDriverPositionLookup() {
-  activeDriverPositionRequest = getDriverPosition().catch(() => null);
+  driverLocationStatus = "locating";
+  activeDriverPositionRequest = getDriverPosition()
+    .then((pos) => {
+      driverLocationStatus = "ready";
+      return pos;
+    })
+    .catch((error) => {
+      driverLocationStatus =
+        error?.code === 1 ? "denied" : "unavailable";
+      return null;
+    });
   return activeDriverPositionRequest;
 }
 
 async function getDriverPosition() {
   if (!navigator.geolocation) {
-    throw new Error("Geolocation is not supported in this browser.");
+    const err = new Error("Geolocation is not supported in this browser.");
+    err.code = 2;
+    throw err;
   }
 
   const readCoords = (pos) => ({
@@ -1716,10 +1816,25 @@ function sortMechanicsByDistance(entries) {
   );
 }
 
+function refreshSelectedMechanicPanel() {
+  if (!selectedMechanicEntry) return;
+  const updated =
+    matchedMechanics.find((entry) => entry.id === selectedMechanicEntry.id) ||
+    selectedMechanicEntry;
+  selectedMechanicEntry = updated;
+  renderMechanicPanel(updated, {
+    showClosestBadge: updated.id === autoSelectedMechanicId,
+  });
+}
+
 async function applyDriverPositionToMap(serviceName) {
   try {
+    if (selectedMechanicEntry) refreshSelectedMechanicPanel();
     const driverPos = await (activeDriverPositionRequest || beginDriverPositionLookup());
-    if (!driverPos || !googleMap || !matchedMechanics.length) return;
+    if (!driverPos || !googleMap || !matchedMechanics.length) {
+      refreshSelectedMechanicPanel();
+      return;
+    }
 
     driverPosition = driverPos;
     matchedMechanics.forEach((entry) => {
@@ -1802,6 +1917,72 @@ function updateAdminContactButtons(mechanic) {
   }
 }
 
+function getInitials(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].charAt(0);
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0);
+}
+
+function setMechanicPanelPhoto(photoUrl, displayName) {
+  if (!mechanicPanelPhoto) return;
+  const url = String(photoUrl || "").trim();
+  if (url) {
+    mechanicPanelPhoto.style.backgroundImage = `url("${encodeURI(url)}")`;
+    mechanicPanelPhoto.textContent = "";
+  } else {
+    mechanicPanelPhoto.style.backgroundImage = "none";
+    mechanicPanelPhoto.textContent = getInitials(displayName);
+  }
+}
+
+function retryDriverLocation() {
+  activeDriverPositionRequest = null;
+  driverLocationStatus = "locating";
+  driverPosition = null;
+  refreshSelectedMechanicPanel();
+  applyDriverPositionToMap(selectedSubservice || "");
+}
+
+function applyDistanceLabel(el, dist, entry) {
+  el.classList.remove("is-retry");
+  el.onclick = null;
+
+  if (Number.isFinite(dist)) {
+    el.textContent = formatDistanceMeters(dist);
+    return;
+  }
+
+  if (entry && !entry.position) {
+    el.textContent = "Location not shared yet";
+    return;
+  }
+
+  if (driverLocationStatus === "locating") {
+    el.textContent = "Calculating distance...";
+    return;
+  }
+
+  if (driverLocationStatus === "denied") {
+    el.textContent = "Enable location to see distance — tap to retry";
+    el.classList.add("is-retry");
+    el.onclick = retryDriverLocation;
+    return;
+  }
+
+  if (driverLocationStatus === "unavailable") {
+    el.textContent = "Your location unavailable — tap to retry";
+    el.classList.add("is-retry");
+    el.onclick = retryDriverLocation;
+    return;
+  }
+
+  el.textContent = "Calculating distance...";
+}
+
 function renderMechanicPanel(entry, { showClosestBadge = false } = {}) {
   if (!entry || !driverMechanicPanel) return;
   const { mechanic, distanceMeters: dist } = entry;
@@ -1809,13 +1990,13 @@ function renderMechanicPanel(entry, { showClosestBadge = false } = {}) {
   const fallbackName = isPartsMode ? "Parts Dealer" : "Mechanic";
   driverMechanicPanel.classList.remove("hidden");
   closestBadge?.classList.toggle("hidden", !showClosestBadge);
+  const displayName = mechanic.name || fallbackName;
   if (mechanicPanelName) {
-    mechanicPanelName.textContent = mechanic.name || fallbackName;
+    mechanicPanelName.textContent = displayName;
   }
+  setMechanicPanelPhoto(mechanic.profilePhotoUrl, displayName);
   if (mechanicPanelDistance) {
-    mechanicPanelDistance.textContent = Number.isFinite(dist)
-      ? formatDistanceMeters(dist)
-      : "Distance unavailable";
+    applyDistanceLabel(mechanicPanelDistance, dist, entry);
   }
   if (mechanicPanelMeta) {
     mechanicPanelMeta.textContent =
@@ -2679,11 +2860,18 @@ function appendPartsCatalogInColumns(container, buildCard) {
 }
 
 function renderPartsCategories() {
-  if (!partsCategoryList) return;
-  partsCategoryList.innerHTML = "";
-  appendPartsCatalogInColumns(partsCategoryList, (category) =>
-    buildPartsCategoryCard(category, { guest: false })
-  );
+  if (partsCategoryList) {
+    partsCategoryList.innerHTML = "";
+    appendPartsCatalogInColumns(partsCategoryList, (category) =>
+      buildPartsCategoryCard(category, { guest: false })
+    );
+  }
+  if (guestPartsCategoryList) {
+    guestPartsCategoryList.innerHTML = "";
+    appendPartsCatalogInColumns(guestPartsCategoryList, (category) =>
+      buildPartsCategoryCard(category, { guest: true })
+    );
+  }
   scheduleServiceCategoryCardBalance();
 }
 
@@ -3470,6 +3658,14 @@ driverModeMechanicsBtn?.addEventListener("click", () => {
 
 driverModePartsDealersBtn?.addEventListener("click", () => {
   setDriverMarketplaceMode("parts_dealers");
+});
+
+guestModeMechanicsBtn?.addEventListener("click", () => {
+  setGuestMarketplaceMode("mechanics");
+});
+
+guestModePartsDealersBtn?.addEventListener("click", () => {
+  setGuestMarketplaceMode("parts_dealers");
 });
 
 onAuthStateChanged(auth, async (user) => {

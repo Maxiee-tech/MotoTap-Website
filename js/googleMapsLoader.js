@@ -4,6 +4,7 @@ let loadPromise = null;
 
 function onMapsAuthFailure() {
   window.__mototapMapsAuthFailed = true;
+  loadPromise = null;
   window.dispatchEvent(new CustomEvent("mototap-maps-auth-failure"));
 }
 
@@ -14,6 +15,11 @@ export function registerMapsAuthFailureHandler() {
 
 export function isMapsAuthFailed() {
   return window.__mototapMapsAuthFailed === true;
+}
+
+export function resetGoogleMapsLoadState() {
+  window.__mototapMapsAuthFailed = false;
+  loadPromise = null;
 }
 
 async function bootstrapGoogleMapsLibraries() {
@@ -37,17 +43,55 @@ async function bootstrapGoogleMapsLibraries() {
   }
 }
 
+/** gm_authFailure can fire just after the script callback; wait briefly before treating load as success. */
+function settleMapsAuthAfterCallback() {
+  return new Promise((resolve, reject) => {
+    if (isMapsAuthFailed()) {
+      reject(new Error("MAPS_AUTH_FAILURE"));
+      return;
+    }
+
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      fn(value);
+    };
+
+    const onAuthFail = () => finish(reject, new Error("MAPS_AUTH_FAILURE"));
+    const timer = setTimeout(() => {
+      if (isMapsAuthFailed()) {
+        finish(reject, new Error("MAPS_AUTH_FAILURE"));
+        return;
+      }
+      finish(resolve);
+    }, 200);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener("mototap-maps-auth-failure", onAuthFail);
+    };
+
+    window.addEventListener("mototap-maps-auth-failure", onAuthFail, { once: true });
+  });
+}
+
+function rejectAndClearLoadPromise(reject, error) {
+  loadPromise = null;
+  reject(error);
+}
+
 function injectMapsScript(key) {
   return new Promise((resolve, reject) => {
     const callbackName = "__mototapMapsReady";
 
     window[callbackName] = () => {
       delete window[callbackName];
-      if (isMapsAuthFailed()) {
-        reject(new Error("MAPS_AUTH_FAILURE"));
-        return;
-      }
-      bootstrapGoogleMapsLibraries().then(resolve).catch(reject);
+      bootstrapGoogleMapsLibraries()
+        .then(() => settleMapsAuthAfterCallback())
+        .then(resolve)
+        .catch((error) => rejectAndClearLoadPromise(reject, error));
     };
 
     const script = document.createElement("script");
@@ -57,13 +101,17 @@ function injectMapsScript(key) {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       key
     )}&v=weekly&callback=${callbackName}`;
-    script.onerror = () => reject(new Error("MAPS_SCRIPT_ERROR"));
+    script.onerror = () =>
+      rejectAndClearLoadPromise(reject, new Error("MAPS_SCRIPT_ERROR"));
     document.head.appendChild(script);
   });
 }
 
 export function loadGoogleMapsScript() {
   if (typeof google !== "undefined" && google.maps?.Map) {
+    if (isMapsAuthFailed()) {
+      return Promise.reject(new Error("MAPS_AUTH_FAILURE"));
+    }
     return Promise.resolve();
   }
   if (loadPromise) return loadPromise;
@@ -77,11 +125,19 @@ export function loadGoogleMapsScript() {
 
   const existing = document.querySelector("script[data-mototap-maps]");
   if (existing && typeof google !== "undefined" && google.maps) {
-    loadPromise = bootstrapGoogleMapsLibraries();
+    loadPromise = bootstrapGoogleMapsLibraries()
+      .then(() => settleMapsAuthAfterCallback())
+      .catch((error) => {
+        loadPromise = null;
+        throw error;
+      });
     return loadPromise;
   }
 
-  loadPromise = injectMapsScript(key);
+  loadPromise = injectMapsScript(key).catch((error) => {
+    loadPromise = null;
+    throw error;
+  });
   return loadPromise;
 }
 

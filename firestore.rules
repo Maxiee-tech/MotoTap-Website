@@ -49,7 +49,9 @@ service cloud.firestore {
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('vehicles' in data) || (data.vehicles is list && data.vehicles.size() <= 20))
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
-        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0));
+        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
+        && (!('loyaltyPoints' in data) || (data.loyaltyPoints is int && data.loyaltyPoints >= 0))
+        && (!('redeemedRewards' in data) || (data.redeemedRewards is list && data.redeemedRewards.size() <= 50));
     }
 
     function validJobStatus(status) {
