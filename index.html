@@ -888,19 +888,119 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+
+    .request-history-list .job-card {
       padding: 16px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .available-jobs-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .available-jobs-empty {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .available-jobs-list .job-card {
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .request-history-list .job-card:last-child,
     .available-jobs-list .job-card:last-child {
       border-bottom: none;
-      padding-bottom: 0;
+      padding-bottom: 16px;
     }
 
     .request-history-list .job-card:first-child,
     .available-jobs-list .job-card:first-child {
-      padding-top: 0;
+      padding-top: 16px;
+    }
+
+    .job-card-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .job-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .job-card-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .job-card-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .job-card-avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #c00000, #8b0000);
+    }
+
+    .job-card-driver-name {
+      font-weight: 600;
+      color: #fff !important;
+    }
+
+    .job-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .job-card-actions .btn-secondary,
+    .job-card-actions .job-card-reject-btn {
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
+
+    .job-card-reject-btn {
+      border: 1px solid rgba(255, 80, 80, 0.6);
+      background: transparent;
+      color: #ff8a8a;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .job-card-reject-btn:hover {
+      background: rgba(255, 80, 80, 0.12);
+      color: #ffb3b3;
     }
 
     .job-card h4 {
@@ -1441,6 +1541,10 @@
       .mechanic-service-list {
         grid-template-columns: 1fr;
         max-height: none;
+      }
+
+      .available-jobs-list {
+        grid-template-columns: 1fr;
       }
 
       .service-category-card,
@@ -4003,7 +4107,7 @@
       <div id="requests-mechanic-intro" class="panel-header hidden">
         <h3>Service Requests</h3>
         <p>Your accepted and completed jobs will appear in your request history.</p>
-        <p class="requests-history-note">All history requests will appear here.</p>
+        <p class="requests-history-note">Accepted jobs appear below. Use <strong>Message Driver</strong> on an active job, or open the <strong>Messages</strong> tab anytime.</p>
       </div>
       <div id="request-history-list" class="request-history-list" aria-live="polite"></div>
     </div>

@@ -47,7 +47,8 @@ export default class FirebaseJobService extends JobRepository {
     descriptionOrLocationLabel,
     locationLabelOrPrice,
     suggestedPrice,
-    mechanicId = null
+    mechanicId = null,
+    options = {}
   ) {
     let serviceCategory = null;
     let serviceName = null;
@@ -84,6 +85,10 @@ export default class FirebaseJobService extends JobRepository {
         ...(serviceCategory ? { serviceCategory } : {}),
         ...(issueType ? { serviceName: issueType } : {}),
         ...(mechanicId ? { loyaltyPointsStarted: true } : {}),
+        ...(options.driverName ? { driverName: options.driverName } : {}),
+        ...(options.driverPhotoUrl
+          ? { driverPhotoUrl: options.driverPhotoUrl }
+          : {}),
       });
       return docRef.id;
     } catch (error) {
@@ -162,6 +167,64 @@ export default class FirebaseJobService extends JobRepository {
         onError?.(error);
       }
     );
+  }
+
+  /**
+   * Available jobs for a mechanic, split into two rule-safe queries so the
+   * listener never returns a doc the mechanic can't read (which would fail the
+   * whole listener with permission-denied). Combines the unassigned open pool
+   * with jobs booked directly to this mechanic.
+   */
+  subscribeMechanicAvailableJobs(mechanicId, onChange, onError) {
+    const jobsRef = collection(this.firestore, "jobs");
+    const openPoolQuery = query(
+      jobsRef,
+      where("status", "==", JobStatus.REQUESTED),
+      where("mechanicId", "==", null)
+    );
+    const directedQuery = query(jobsRef, where("mechanicId", "==", mechanicId));
+
+    let openPoolJobs = [];
+    let directedJobs = [];
+    let openReady = false;
+    let directedReady = false;
+
+    const emit = () => {
+      if (!openReady && !directedReady) return;
+      const byId = new Map();
+      [...openPoolJobs, ...directedJobs].forEach((job) => byId.set(job.id, job));
+      onChange(Array.from(byId.values()));
+    };
+
+    const handleError = (label) => (error) => {
+      console.error(`${label} listener error:`, error);
+      onError?.(error);
+    };
+
+    const unsubscribeOpenPool = onSnapshot(
+      openPoolQuery,
+      (snapshot) => {
+        openPoolJobs = this.mapSnapshotToJobs(snapshot);
+        openReady = true;
+        emit();
+      },
+      handleError("Open pool jobs")
+    );
+
+    const unsubscribeDirected = onSnapshot(
+      directedQuery,
+      (snapshot) => {
+        directedJobs = this.mapSnapshotToJobs(snapshot);
+        directedReady = true;
+        emit();
+      },
+      handleError("Directed jobs")
+    );
+
+    return () => {
+      unsubscribeOpenPool();
+      unsubscribeDirected();
+    };
   }
 
   /** Real-time driver history — matches Android observeDriverJobs() */

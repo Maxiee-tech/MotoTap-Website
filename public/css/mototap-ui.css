@@ -1456,20 +1456,50 @@ body.mt-brand .request-history-list {
   color: var(--mt-gray-700) !important;
 }
 
-body.mt-brand .request-history-list .job-card {
+body.mt-brand .request-history-list .job-card,
+body.mt-brand .available-jobs-list .job-card {
   border-bottom-color: var(--mt-gray-200) !important;
 }
 
-body.mt-brand .request-history-list .job-card p {
+body.mt-brand .available-jobs-list .job-card {
+  border: 1px solid var(--mt-gray-200) !important;
+  border-radius: 16px !important;
+  background: var(--mt-white) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+body.mt-brand .request-history-list .job-card p,
+body.mt-brand .available-jobs-list .job-card p {
   color: var(--mt-gray-700) !important;
 }
 
-body.mt-brand .request-history-list .job-card-status {
+body.mt-brand .available-jobs-list .job-card-driver-name {
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .request-history-list .job-card-status,
+body.mt-brand .available-jobs-list .job-card-status {
   color: var(--mt-red) !important;
 }
 
-body.mt-brand .request-history-list .job-card h4 {
+body.mt-brand .request-history-list .job-card h4,
+body.mt-brand .available-jobs-list .job-card h4 {
   color: var(--mt-black) !important;
+}
+
+body.mt-brand .job-card-avatar {
+  border-color: var(--mt-gray-200) !important;
+  background: var(--mt-gray-100) !important;
+}
+
+body.mt-brand .job-card-reject-btn {
+  border-color: var(--mt-red) !important;
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .job-card-reject-btn:hover {
+  background: rgba(192, 0, 0, 0.08) !important;
+  color: var(--mt-red-dark, #8b0000) !important;
 }
 
 body.mt-brand .message-placeholder p {

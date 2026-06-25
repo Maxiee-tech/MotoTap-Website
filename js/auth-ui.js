@@ -420,46 +420,104 @@ function formatJobCreatedAt(createdAtMillis) {
   });
 }
 
-function buildJobCard(job, { includeStatus = false, actionButton = null, role = null } = {}) {
+function buildDriverAvatar(job) {
+  const avatar = document.createElement("div");
+  avatar.className = "job-card-avatar";
+  const name = (job.driverName || "Driver").trim();
+
+  if (job.driverPhotoUrl) {
+    const img = document.createElement("img");
+    img.src = job.driverPhotoUrl;
+    img.alt = name;
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", () => {
+      avatar.classList.add("job-card-avatar-fallback");
+      avatar.textContent = name.charAt(0).toUpperCase() || "D";
+    });
+    avatar.appendChild(img);
+  } else {
+    avatar.classList.add("job-card-avatar-fallback");
+    avatar.textContent = name.charAt(0).toUpperCase() || "D";
+  }
+  return avatar;
+}
+
+function buildJobCard(
+  job,
+  {
+    includeStatus = false,
+    actionButton = null,
+    secondaryActionButton = null,
+    role = null,
+    showDriver = false,
+  } = {}
+) {
   const normalized = normalizeJob(job);
   const card = document.createElement("article");
   card.className = "job-card";
+
+  const body = document.createElement("div");
+  body.className = "job-card-body";
 
   const title = document.createElement("h4");
   const issueType = getJobIssueType(normalized);
   title.textContent = normalized.serviceCategory
     ? `${issueType} - ${normalized.serviceCategory}`
     : issueType;
-  card.appendChild(title);
+  body.appendChild(title);
+
+  if (showDriver && normalized.driverName) {
+    const driver = document.createElement("p");
+    driver.className = "job-card-driver-name";
+    driver.textContent = `Driver: ${normalized.driverName}`;
+    body.appendChild(driver);
+  }
 
   if (includeStatus) {
     const status = document.createElement("p");
     status.className = "job-card-status";
     status.textContent = `Status: ${formatJobStatus(normalized.status)}`;
-    card.appendChild(status);
+    body.appendChild(status);
   }
 
   const createdAt = document.createElement("p");
   const when = formatJobCreatedAt(normalized.createdAtMillis);
   if (when) {
     createdAt.textContent = `Submitted: ${when}`;
-    card.appendChild(createdAt);
+    body.appendChild(createdAt);
   }
 
   const location = document.createElement("p");
   location.textContent = `Location: ${normalized.locationLabel || "Not provided"}`;
-  card.appendChild(location);
+  body.appendChild(location);
 
   const description = document.createElement("p");
   description.textContent = `Details: ${normalized.description || "No additional details"}`;
-  card.appendChild(description);
+  body.appendChild(description);
 
   const price = document.createElement("p");
   price.textContent = `Offered Price: KSh ${normalized.price ?? 0}`;
-  card.appendChild(price);
+  body.appendChild(price);
 
-  if (actionButton) {
-    card.appendChild(actionButton);
+  if (showDriver) {
+    const main = document.createElement("div");
+    main.className = "job-card-main";
+    main.appendChild(buildDriverAvatar(normalized));
+    main.appendChild(body);
+    card.appendChild(main);
+  } else {
+    while (body.firstChild) {
+      card.appendChild(body.firstChild);
+    }
+  }
+
+  const buttons = [actionButton, secondaryActionButton].filter(Boolean);
+  if (buttons.length) {
+    const actions = document.createElement("div");
+    actions.className = "job-card-actions";
+    buttons.forEach((button) => actions.appendChild(button));
+    card.appendChild(actions);
   }
 
   if (role === "driver") {
@@ -467,6 +525,24 @@ function buildJobCard(job, { includeStatus = false, actionButton = null, role = 
   }
 
   return card;
+}
+
+const MECHANIC_CHAT_JOB_STATUSES = ["ASSIGNED", "IN_PROGRESS"];
+
+function buildMessageDriverButton(job) {
+  const normalized = normalizeJob(job);
+  if (!normalized.driverId) return null;
+
+  const chatBtn = document.createElement("button");
+  chatBtn.className = "btn-secondary";
+  chatBtn.textContent = "Message Driver";
+  chatBtn.addEventListener("click", () => {
+    openChatWithDriver(
+      normalized.driverId,
+      normalized.driverName || "Driver"
+    );
+  });
+  return chatBtn;
 }
 
 function paintRequestHistory(jobs, role) {
@@ -484,16 +560,34 @@ function paintRequestHistory(jobs, role) {
 
   requestHistoryList.innerHTML = "";
   sorted.forEach((job) => {
-    requestHistoryList.appendChild(buildJobCard(job, { includeStatus: true, role }));
+    const normalized = normalizeJob(job);
+    const actionButton =
+      role === "mechanic" &&
+      MECHANIC_CHAT_JOB_STATUSES.includes(normalized.status)
+        ? buildMessageDriverButton(normalized)
+        : null;
+
+    requestHistoryList.appendChild(
+      buildJobCard(job, {
+        includeStatus: true,
+        role,
+        showDriver: role === "mechanic",
+        actionButton,
+      })
+    );
   });
 }
+
+const dismissedJobIds = new Set();
 
 function paintAvailableJobs(jobs) {
   if (!availableJobsList || !currentUserProfile || currentUserProfile.role !== "mechanic") {
     return;
   }
 
-  const availableJobs = filterMechanicAvailableJobs(jobs, currentUserProfile);
+  const availableJobs = filterMechanicAvailableJobs(jobs, currentUserProfile).filter(
+    (job) => !dismissedJobIds.has(job.id)
+  );
   jobsStatus.textContent = "";
 
   if (!availableJobs.length) {
@@ -509,14 +603,38 @@ function paintAvailableJobs(jobs) {
     acceptBtn.addEventListener("click", async () => {
       try {
         await jobService.acceptJob(job.id, currentUserProfile.id);
-        jobsStatus.textContent = "Job accepted successfully!";
+        jobsStatus.textContent = "Job accepted! Opening chat with the driver…";
+        if (job.driverId) {
+          openChatWithDriver(job.driverId, job.driverName || "Driver");
+        } else {
+          jobsStatus.textContent =
+            "Job accepted! Open the Requests tab to message the driver once the job appears in your history.";
+        }
       } catch (error) {
         console.error("Error accepting job:", error);
         jobsStatus.textContent = "Error accepting job. Please try again.";
       }
     });
 
-    availableJobsList.appendChild(buildJobCard(job, { actionButton: acceptBtn }));
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "job-card-reject-btn";
+    rejectBtn.textContent = "Reject Job";
+    rejectBtn.addEventListener("click", () => {
+      dismissedJobIds.add(job.id);
+      rejectBtn.closest(".job-card")?.remove();
+      if (!availableJobsList.querySelector(".job-card")) {
+        showNoCurrentJobsAvailable();
+      }
+      jobsStatus.textContent = "Job rejected.";
+    });
+
+    availableJobsList.appendChild(
+      buildJobCard(job, {
+        actionButton: acceptBtn,
+        secondaryActionButton: rejectBtn,
+        showDriver: true,
+      })
+    );
   });
 }
 
@@ -549,7 +667,8 @@ function startJobSync() {
       jobsStatus.textContent = "Loading available jobs...";
     }
 
-    openJobsUnsubscribe = jobService.subscribeOpenJobs(
+    openJobsUnsubscribe = jobService.subscribeMechanicAvailableJobs(
+      uid,
       (jobs) => paintAvailableJobs(jobs),
       () => showNoCurrentJobsAvailable()
     );
@@ -2712,6 +2831,12 @@ function openChatWithMechanic(mechanicId, mechanicName) {
   });
 }
 
+function openChatWithDriver(driverId, driverName) {
+  return openChatWithPartner(driverId, driverName || "Driver", {
+    fallbackRole: "driver",
+  });
+}
+
 async function handleBookNow() {
   bookError.textContent = "";
   bookStatus.textContent = "";
@@ -2747,7 +2872,11 @@ async function handleBookNow() {
       description,
       locationLabel,
       suggestedPrice,
-      selectedMechanicEntry.id
+      selectedMechanicEntry.id,
+      {
+        driverName: currentUserProfile?.name || "",
+        driverPhotoUrl: currentUserProfile?.profilePhotoUrl || "",
+      }
     );
     bookStatus.textContent = `Booked with ${selectedMechanicEntry.mechanic.name || "mechanic"}. Job #${jobId.slice(0, 8)}… — loyalty tracking started.`;
     bookError.textContent = "";
@@ -3126,6 +3255,7 @@ function showNoCurrentJobsAvailable() {
   jobsStatus.textContent = "";
   availableJobsList.innerHTML = "";
   const noJobsMsg = document.createElement("p");
+  noJobsMsg.className = "available-jobs-empty";
   noJobsMsg.textContent = "No current jobs available.";
   availableJobsList.appendChild(noJobsMsg);
 }
