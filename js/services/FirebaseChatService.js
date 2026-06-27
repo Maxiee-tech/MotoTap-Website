@@ -4,6 +4,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -707,6 +708,20 @@ export default class FirebaseChatService extends ChatRepository {
     );
 
     return () => unsubs.forEach((unsubscribe) => unsubscribe());
+  }
+
+  /**
+   * Remove a conversation from this user's inbox by deleting their own
+   * chatPartners entry. The shared chat messages are left intact; this only
+   * clears the conversation from the current user's message list.
+   */
+  async deleteChatPartner(userId, partnerId) {
+    if (!userId || !partnerId) {
+      throw new Error("Missing conversation reference.");
+    }
+    await deleteDoc(
+      doc(this.firestore, "users", userId, "chatPartners", partnerId)
+    );
   }
 
   listenToUserChatPartners(userId, onPartners, onError) {

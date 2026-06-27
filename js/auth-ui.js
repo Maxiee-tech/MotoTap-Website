@@ -1826,6 +1826,8 @@ async function renderMessagesInbox(entries) {
 
   for (const row of rows) {
     const item = document.createElement("li");
+    item.className = "messages-inbox-row";
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = `messages-inbox-item${row.unread ? " is-unread" : ""}`;
@@ -1836,8 +1838,51 @@ async function renderMessagesInbox(entries) {
     button.addEventListener("click", () => {
       openChatWithPartner(row.partnerId, row.partnerName);
     });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "messages-inbox-delete-btn";
+    deleteBtn.setAttribute(
+      "aria-label",
+      `Delete conversation with ${row.partnerName || "this contact"}`
+    );
+    deleteBtn.title = "Delete conversation";
+    deleteBtn.innerHTML =
+      '<span class="material-symbols-outlined" aria-hidden="true">delete</span>';
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      handleDeleteConversation(row.partnerId, row.partnerName, item);
+    });
+
     item.appendChild(button);
+    item.appendChild(deleteBtn);
     messagesInboxList.appendChild(item);
+  }
+}
+
+async function handleDeleteConversation(partnerId, partnerName, rowElement) {
+  if (!auth.currentUser || !partnerId) return;
+
+  const label = partnerName || "this contact";
+  const confirmed = window.confirm(
+    `Delete your conversation with ${label}? This removes it from your messages.`
+  );
+  if (!confirmed) return;
+
+  const deleteBtn = rowElement?.querySelector(".messages-inbox-delete-btn");
+  if (deleteBtn) deleteBtn.disabled = true;
+
+  try {
+    await chatService.deleteChatPartner(auth.currentUser.uid, partnerId);
+    markConversationRead(partnerId);
+    rowElement?.remove();
+    if (!messagesInboxList.querySelector(".messages-inbox-row")) {
+      setMessagesInboxEmptyState(false);
+    }
+  } catch (error) {
+    console.error("Failed to delete conversation:", error);
+    if (deleteBtn) deleteBtn.disabled = false;
+    window.alert("Could not delete the conversation. Please try again.");
   }
 }
 

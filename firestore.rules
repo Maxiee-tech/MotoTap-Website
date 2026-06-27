@@ -168,7 +168,7 @@ service cloud.firestore {
         allow create, update: if signedIn()
           && (request.auth.uid == userId || request.auth.uid == partnerId)
           && (validChatPartnerWrite() || isChatPartnerTypingUpdate());
-        allow delete: if false;
+        allow delete: if signedIn() && request.auth.uid == userId;
       }
     }
 

@@ -1084,16 +1084,57 @@
       gap: 10px;
     }
 
+    .messages-inbox-row {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+
     .messages-inbox-item {
       width: 100%;
       text-align: left;
-      padding: 14px 16px;
+      padding: 14px 56px 14px 16px;
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(255, 255, 255, 0.04);
       color: #fff;
       cursor: pointer;
       font: inherit;
+    }
+
+    .messages-inbox-delete-btn {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .messages-inbox-delete-btn:hover,
+    .messages-inbox-delete-btn:focus-visible {
+      background: rgba(255, 75, 75, 0.15);
+      color: #ff6b6b;
+      outline: none;
+    }
+
+    .messages-inbox-delete-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .messages-inbox-delete-btn .material-symbols-outlined {
+      font-size: 20px;
     }
 
     .messages-inbox-item:hover {

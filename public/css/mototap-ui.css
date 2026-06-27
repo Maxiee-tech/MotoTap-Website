@@ -1550,6 +1550,16 @@ body.mt-brand .messages-inbox-item-preview {
   color: var(--mt-gray-500) !important;
 }
 
+body.mt-brand .messages-inbox-delete-btn {
+  color: var(--mt-gray-500) !important;
+}
+
+body.mt-brand .messages-inbox-delete-btn:hover,
+body.mt-brand .messages-inbox-delete-btn:focus-visible {
+  background: rgba(192, 0, 0, 0.1) !important;
+  color: var(--mt-red) !important;
+}
+
 body.mt-brand .messages-inbox-item.is-unread {
   border: 2px solid var(--mt-red) !important;
   box-shadow: 0 0 0 1px rgba(192, 0, 0, 0.2) !important;
