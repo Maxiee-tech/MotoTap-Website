@@ -507,6 +507,22 @@ body.mt-brand .panel-header p {
   color: var(--mt-gray-700) !important;
 }
 
+body.mt-brand .mt-terms {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .mt-terms h4 {
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .mt-terms-updated {
+  color: var(--mt-gray-500) !important;
+}
+
+body.mt-brand .mt-terms a {
+  color: var(--mt-red) !important;
+}
+
 body.mt-brand #requests-section .requests-history-note {
   color: var(--mt-red) !important;
 }

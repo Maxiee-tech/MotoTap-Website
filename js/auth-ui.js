@@ -94,6 +94,7 @@ const partsDealerDashboard = document.getElementById("parts-dealer-dashboard");
 const messagesSection = document.getElementById("messages-section");
 const requestsSection = document.getElementById("requests-section");
 const aboutSection = document.getElementById("about-section");
+const termsSection = document.getElementById("terms-section");
 const profileSection = document.getElementById("profile-section");
 const profilePageRoot = document.getElementById("profile-page-root");
 const mechanicMapSection = document.getElementById("mechanic-map-section");
@@ -140,6 +141,7 @@ function showWelcomeScreen() {
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
   aboutSection?.classList.remove("active");
+  termsSection?.classList.remove("active");
   profileSection?.classList.remove("active");
   stopProfileJobSync();
   updateNavActiveState(null);
@@ -191,6 +193,7 @@ function hideAllSections() {
   messagesSection.classList.remove("active");
   requestsSection.classList.remove("active");
   aboutSection?.classList.remove("active");
+  termsSection?.classList.remove("active");
   profileSection?.classList.remove("active");
   mechanicMapSection?.classList.remove("active");
   driverDashboard.classList.remove("active");
@@ -821,6 +824,26 @@ function showAboutFromMenu() {
   });
 }
 
+function showTermsFromMenu() {
+  closeMenu();
+  hideWelcomeScreen();
+  hideAllSections();
+  termsSection?.classList.add("active");
+  setHomeMenuVisible(true);
+  updateNavActiveState(null);
+
+  if (auth.currentUser) {
+    const role = normalizeUserRole(currentUserProfile?.role);
+    updateMenuProfile(role, auth.currentUser.email || "");
+  } else {
+    updateMenuProfile("Guest", "Not signed in");
+  }
+
+  window.requestAnimationFrame(() => {
+    termsSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
 function paintProfilePage(jobs = []) {
   if (!profilePageRoot) return;
   lastProfileJobs = jobs;
@@ -1142,6 +1165,7 @@ const menuUserEmail = document.getElementById("menu-user-email");
 const menuUserAvatar = document.getElementById("menu-user-avatar");
 const menuContactsBtn = document.getElementById("menu-contacts-btn");
 const menuAboutBtn = document.getElementById("menu-about-btn");
+const menuTermsBtn = document.getElementById("menu-terms-btn");
 const menuProfileLinkBtn = document.getElementById("menu-profile-link-btn");
 const menuSettingsBtn = document.getElementById("menu-settings-btn");
 const menuLogoutBtn = document.getElementById("menu-logout-btn");
@@ -4042,6 +4066,7 @@ document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
 menuContactsBtn?.addEventListener("click", showContactsFromMenu);
 
 menuAboutBtn?.addEventListener("click", showAboutFromMenu);
+menuTermsBtn?.addEventListener("click", showTermsFromMenu);
 
 menuProfileLinkBtn?.addEventListener("click", showProfilePage);
 
@@ -4264,7 +4289,7 @@ function mountPageFooters() {
   const template = document.getElementById("page-footer-template");
   if (!template) return;
 
-  [landingSection, dashboardSection, requestsSection, messagesSection, aboutSection].forEach((section) => {
+  [landingSection, dashboardSection, requestsSection, messagesSection, aboutSection, termsSection].forEach((section) => {
     if (!section || section.querySelector(".page-footer")) return;
 
     const fragment = template.content.cloneNode(true);

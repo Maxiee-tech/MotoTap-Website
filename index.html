@@ -880,6 +880,7 @@
     #messages-section.active,
     #requests-section.active,
     #about-section.active,
+    #terms-section.active,
     #profile-section.active,
     #forgot-password-section.active {
       margin-top: 20px;
@@ -3712,6 +3713,43 @@
       gap: 8px 16px;
     }
 
+    .page-footer-copyright {
+      margin: 20px 0 0;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .mt-terms {
+      max-width: 820px;
+      margin: 0 auto;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .mt-terms-updated {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 0 0 20px;
+    }
+
+    .mt-terms h4 {
+      margin: 24px 0 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .mt-terms p {
+      margin: 0 0 12px;
+    }
+
+    .mt-terms a {
+      color: #ff8a8a;
+    }
+
     /* Navbar brand — inline so it applies even if external CSS fails to load */
     .fixed-navbar {
       background: #000000 !important;
@@ -3988,6 +4026,7 @@
           </a>
         </div>
       </div>
+      <p class="page-footer-copyright">Copyright © 2026 MotoTap Autosystems. All rights reserved.</p>
     </footer>
   </template>
 
@@ -4066,6 +4105,7 @@
       <button type="button" id="menu-profile-link-btn">My Profile</button>
       <button type="button" id="menu-welcome-btn">Welcome</button>
       <button type="button" id="menu-about-btn">About</button>
+      <button type="button" id="menu-terms-btn">Terms &amp; Conditions</button>
       <button type="button" id="menu-contacts-btn">Contacts</button>
       <button type="button" id="menu-settings-btn">Settings</button>
       <button type="button" id="menu-logout-btn">Log Out</button>
@@ -4296,6 +4336,144 @@
           </div>
           <p>List your services, receive matched requests, chat with drivers, and grow your customer base.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Terms & Conditions -->
+    <div id="terms-section" class="form-section">
+      <div class="panel-header">
+        <h3>Terms &amp; Conditions</h3>
+        <p>Please read these terms carefully before using Moto Tap.</p>
+      </div>
+
+      <div class="mt-terms">
+        <p class="mt-terms-updated">Last updated: 27 June 2026</p>
+
+        <p>
+          Welcome to Moto Tap, operated by MotoTap Autosystems ("Moto Tap", "we",
+          "us", or "our"). These Terms &amp; Conditions ("Terms") govern your access
+          to and use of the Moto Tap website and related services (collectively, the
+          "Platform"). By creating an account or otherwise using the Platform, you
+          agree to be bound by these Terms. If you do not agree, please do not use the
+          Platform.
+        </p>
+
+        <h4>1. About Moto Tap</h4>
+        <p>
+          Moto Tap is a marketplace that connects drivers with mechanics, garages, and
+          parts dealers across Kenya. We provide the technology that helps you discover
+          service providers, request assistance, communicate, and arrange automotive
+          services. Moto Tap is not itself a mechanic, garage, or parts dealer and does
+          not perform automotive work. Any service is provided directly by the
+          independent provider you choose.
+        </p>
+
+        <h4>2. Eligibility &amp; Accounts</h4>
+        <p>
+          You must be at least 18 years old and able to form a legally binding contract
+          to use the Platform. You agree to provide accurate, current, and complete
+          information during registration and to keep it up to date. You are
+          responsible for safeguarding your login credentials and for all activity that
+          occurs under your account. Mechanic and parts dealer accounts may be subject
+          to review and approval before they become active.
+        </p>
+
+        <h4>3. Bookings, Services &amp; Pricing</h4>
+        <p>
+          Prices displayed for services or parts are set by the respective mechanics and
+          parts dealers, not by Moto Tap. Any agreement for services or parts is made
+          directly between you and the provider. Moto Tap is not a party to that
+          agreement and is not responsible for the quality, safety, legality, timing, or
+          outcome of any service or part provided. You are responsible for confirming
+          details, pricing, and suitability before proceeding.
+        </p>
+
+        <h4>4. Payments</h4>
+        <p>
+          Unless expressly stated otherwise, payments for services or parts are arranged
+          and settled directly between you and the provider. You are responsible for
+          paying agreed amounts. Where any loyalty points, rewards, or promotional
+          features are offered, they carry no cash value and may be changed or withdrawn
+          at any time.
+        </p>
+
+        <h4>5. Communication &amp; Conduct</h4>
+        <p>
+          The Platform includes messaging features so drivers and providers can
+          coordinate. You agree to use these features lawfully and respectfully, and not
+          to send abusive, fraudulent, harassing, or unlawful content. We may remove
+          content or suspend accounts that violate these Terms or that we reasonably
+          believe harm other users or the Platform.
+        </p>
+
+        <h4>6. Reviews &amp; Ratings</h4>
+        <p>
+          After a completed job, drivers may rate and review providers. Reviews must be
+          honest, based on genuine experiences, and free of offensive or misleading
+          content. We may moderate or remove reviews that breach these Terms.
+        </p>
+
+        <h4>7. User Content</h4>
+        <p>
+          You retain ownership of the information and content you submit, but you grant
+          Moto Tap a non-exclusive, royalty-free licence to use it as needed to operate
+          and improve the Platform. You confirm that you have the right to share any
+          content you submit and that it does not infringe the rights of others.
+        </p>
+
+        <h4>8. Privacy</h4>
+        <p>
+          We collect and process personal information to operate the Platform, including
+          account details, location data used for matching, and communications. We take
+          reasonable measures to protect your information and do not sell it. By using
+          the Platform you consent to such processing for the purposes of providing the
+          service.
+        </p>
+
+        <h4>9. Disclaimers</h4>
+        <p>
+          The Platform is provided on an "as is" and "as available" basis. To the
+          fullest extent permitted by law, Moto Tap makes no warranties, express or
+          implied, regarding the Platform or any provider, and does not guarantee the
+          availability, accuracy, or reliability of listings, matches, or services.
+        </p>
+
+        <h4>10. Limitation of Liability</h4>
+        <p>
+          To the maximum extent permitted by law, Moto Tap and MotoTap Autosystems shall
+          not be liable for any indirect, incidental, special, or consequential damages,
+          or for any loss arising from your dealings with any provider or from your use
+          of the Platform. Nothing in these Terms excludes liability that cannot be
+          excluded under applicable law.
+        </p>
+
+        <h4>11. Suspension &amp; Termination</h4>
+        <p>
+          We may suspend or terminate your access to the Platform at any time if you
+          breach these Terms or if we reasonably believe your use poses a risk to others
+          or to Moto Tap. You may stop using the Platform and request account deletion at
+          any time.
+        </p>
+
+        <h4>12. Changes to These Terms</h4>
+        <p>
+          We may update these Terms from time to time. Material changes will be reflected
+          by updating the "Last updated" date above. Your continued use of the Platform
+          after changes take effect constitutes acceptance of the revised Terms.
+        </p>
+
+        <h4>13. Governing Law</h4>
+        <p>
+          These Terms are governed by the laws of the Republic of Kenya. Any disputes
+          shall be subject to the jurisdiction of the Kenyan courts.
+        </p>
+
+        <h4>14. Contact Us</h4>
+        <p>
+          If you have questions about these Terms, contact MotoTap Autosystems at
+          <a href="mailto:themechlabcompany@gmail.com">themechlabcompany@gmail.com</a>
+          or call 0758677968 / 0101452886.
+        </p>
       </div>
     </div>
 
