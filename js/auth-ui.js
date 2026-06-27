@@ -552,6 +552,54 @@ function buildMessageDriverButton(job) {
   return chatBtn;
 }
 
+/**
+ * Mechanic-side job lifecycle control: advance an ASSIGNED job to IN_PROGRESS,
+ * then to COMPLETED. Completing the job unlocks the driver's rating/review.
+ */
+function buildMechanicJobProgressButton(job) {
+  const normalized = normalizeJob(job);
+  let nextStatus = null;
+  let label = "";
+
+  if (normalized.status === "ASSIGNED") {
+    nextStatus = "IN_PROGRESS";
+    label = "Start Job";
+  } else if (normalized.status === "IN_PROGRESS") {
+    nextStatus = "COMPLETED";
+    label = "Mark as Complete";
+  } else {
+    return null;
+  }
+
+  const btn = document.createElement("button");
+  btn.className = "btn-primary";
+  btn.textContent = label;
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = "Updating…";
+    try {
+      await jobService.updateJobStatus(normalized.id, nextStatus);
+      // The mechanic job listener (onSnapshot) re-renders the history list.
+    } catch (error) {
+      console.error("Failed to update job status:", error);
+      btn.disabled = false;
+      btn.textContent = label;
+      const actions = btn.closest(".job-card-actions");
+      if (actions) {
+        let errorEl = actions.parentElement?.querySelector(".job-card-action-error");
+        if (!errorEl) {
+          errorEl = document.createElement("p");
+          errorEl.className = "job-card-action-error";
+          errorEl.setAttribute("role", "alert");
+          actions.insertAdjacentElement("afterend", errorEl);
+        }
+        errorEl.textContent = "Could not update the job. Please try again.";
+      }
+    }
+  });
+  return btn;
+}
+
 function paintRequestHistory(jobs, role) {
   if (!requestHistoryList) return;
 
@@ -568,18 +616,22 @@ function paintRequestHistory(jobs, role) {
   requestHistoryList.innerHTML = "";
   sorted.forEach((job) => {
     const normalized = normalizeJob(job);
+    const isMechanic = role === "mechanic";
     const actionButton =
-      role === "mechanic" &&
-      MECHANIC_CHAT_JOB_STATUSES.includes(normalized.status)
+      isMechanic && MECHANIC_CHAT_JOB_STATUSES.includes(normalized.status)
         ? buildMessageDriverButton(normalized)
         : null;
+    const secondaryActionButton = isMechanic
+      ? buildMechanicJobProgressButton(normalized)
+      : null;
 
     requestHistoryList.appendChild(
       buildJobCard(job, {
         includeStatus: true,
         role,
-        showDriver: role === "mechanic",
+        showDriver: isMechanic,
         actionButton,
+        secondaryActionButton,
       })
     );
   });

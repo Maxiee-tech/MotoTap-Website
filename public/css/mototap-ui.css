@@ -1492,6 +1492,11 @@ body.mt-brand .job-card-avatar {
   background: var(--mt-gray-100) !important;
 }
 
+body.mt-brand .request-history-list .job-card p.job-card-action-error,
+body.mt-brand .job-card-action-error {
+  color: var(--mt-red) !important;
+}
+
 body.mt-brand .job-card-reject-btn {
   border-color: var(--mt-red) !important;
   color: var(--mt-red) !important;

@@ -33,8 +33,14 @@ export function toFirestoreRole(role) {
 export function isProfileOnboardingComplete(profile) {
   if (!profile) return false;
   if (profile.onboardingComplete === true) return true;
-  if (profile.onboardingComplete === false) return false;
-  return profile.onboardingStep === undefined;
+
+  // In-progress signups always carry a numeric onboardingStep (>= 1); send them
+  // back to the wizard to finish. Legacy accounts predating onboarding have no
+  // step metadata (null/undefined after mapping) and are treated as complete.
+  const step = Number(profile.onboardingStep);
+  if (Number.isFinite(step) && step >= 1) return false;
+
+  return true;
 }
 
 export function createUserProfile(data = {}) {
