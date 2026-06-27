@@ -1497,6 +1497,21 @@ body.mt-brand .job-card-action-error {
   color: var(--mt-red) !important;
 }
 
+body.mt-brand .review-star,
+body.mt-brand .review-star-btn {
+  color: var(--mt-gray-300, #ccc) !important;
+}
+
+body.mt-brand .review-star.is-filled,
+body.mt-brand .review-star-btn.is-filled {
+  color: #ffc107 !important;
+}
+
+body.mt-brand .review-star-btn:hover,
+body.mt-brand .review-star-btn:focus-visible {
+  color: #ffb300 !important;
+}
+
 body.mt-brand .job-card-reject-btn {
   border-color: var(--mt-red) !important;
   color: var(--mt-red) !important;
