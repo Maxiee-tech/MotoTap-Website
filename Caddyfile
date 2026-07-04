@@ -14,7 +14,7 @@
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 
 	# Favicons / brand icons — stable URLs, cacheable for crawlers
-	@icons path /favicon.ico /favicon-*.png /apple-touch-icon.png /android-chrome-*.png /site.webmanifest /robots.txt /sitemap.xml /images/logo/*
+	@icons path /favicon.ico /favicon-*.png /apple-touch-icon.png /android-chrome-*.png /site.webmanifest /robots.txt /sitemap.xml /images/logo/* /google*.html
 	header @icons Cache-Control "public, max-age=86400"
 
 	# HTML shell (bare / and /index.html) must not be cached
