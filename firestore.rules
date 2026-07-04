@@ -54,6 +54,55 @@ service cloud.firestore {
         && (!('redeemedRewards' in data) || (data.redeemedRewards is list && data.redeemedRewards.size() <= 50));
     }
 
+    // Owners may redeem points (decrease only) and append rewards — never inflate balances/ratings.
+    function ownerProtectedFieldsUnchangedOrRedeemOnly() {
+      return request.resource.data.get('rating', 0) == resource.data.get('rating', 0)
+        && request.resource.data.get('reviewCount', 0) == resource.data.get('reviewCount', 0)
+        && request.resource.data.get('loyaltyPoints', 0) <= resource.data.get('loyaltyPoints', 0)
+        && request.resource.data.get('loyaltyPoints', 0) >= 0
+        && request.resource.data.get('redeemedRewards', []).size()
+          >= resource.data.get('redeemedRewards', []).size()
+        && request.resource.data.get('redeemedRewards', []).size() <= 50;
+    }
+
+    function jobTitleOk(data) {
+      return (('serviceName' in data)
+          && data.serviceName is string
+          && data.serviceName.size() > 0
+          && data.serviceName.size() <= 120)
+        || (('issueType' in data)
+          && data.issueType is string
+          && data.issueType.size() > 0
+          && data.issueType.size() <= 120);
+    }
+
+    function jobImmutableCore() {
+      return request.resource.data.driverId == resource.data.driverId
+        && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+        && (!('serviceName' in resource.data)
+          || request.resource.data.serviceName == resource.data.serviceName)
+        && (!('issueType' in resource.data)
+          || request.resource.data.issueType == resource.data.issueType)
+        && (!('driverReviewRating' in resource.data)
+          || request.resource.data.driverReviewRating == resource.data.driverReviewRating)
+        && (!('driverReviewComment' in resource.data)
+          || request.resource.data.driverReviewComment == resource.data.driverReviewComment)
+        && (!('driverReviewedAtMillis' in resource.data)
+          || request.resource.data.driverReviewedAtMillis == resource.data.driverReviewedAtMillis);
+    }
+
+    // Allowed client-driven status transitions (no skipping the workflow).
+    function jobStatusTransitionOk(fromStatus, toStatus, asDriver, asMechanic) {
+      return fromStatus == toStatus
+        || (asDriver && fromStatus in ['REQUESTED', 'MATCHING'] && toStatus in ['MATCHING', 'CLOSED'])
+        || (asMechanic && fromStatus in ['REQUESTED', 'MATCHING'] && toStatus == 'ASSIGNED')
+        || (asDriver && fromStatus == 'ASSIGNED' && toStatus == 'CLOSED')
+        || (asMechanic && fromStatus == 'ASSIGNED' && toStatus in ['IN_PROGRESS', 'CLOSED'])
+        || ((asDriver || asMechanic) && fromStatus == 'IN_PROGRESS' && toStatus in ['COMPLETED', 'CLOSED'])
+        || (asDriver && fromStatus == 'COMPLETED' && toStatus in ['PAID', 'CLOSED'])
+        || ((asDriver || asMechanic) && fromStatus == 'PAID' && toStatus == 'CLOSED');
+    }
+
     function validJobStatus(status) {
       return status in [
         'REQUESTED',
@@ -124,6 +173,7 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
+        && ownerProtectedFieldsUnchangedOrRedeemOnly()
         && (!('skills' in request.resource.data) || request.resource.data.skills is list)
         && (!('availableServices' in request.resource.data)
           || request.resource.data.availableServices is list)
@@ -215,7 +265,7 @@ service cloud.firestore {
       }
 
       function isOpenJob() {
-        return resource.data.status == 'REQUESTED'
+        return resource.data.status in ['REQUESTED', 'MATCHING']
           && (resource.data.mechanicId == null || !('mechanicId' in resource.data));
       }
 
@@ -228,10 +278,13 @@ service cloud.firestore {
         && request.resource.data.driverId == request.auth.uid
         && request.resource.data.status == 'REQUESTED'
         && validJobStatus(request.resource.data.status)
-        && request.resource.data.serviceName is string
-        && request.resource.data.serviceName.size() > 0
-        && request.resource.data.serviceName.size() <= 120
+        && jobTitleOk(request.resource.data)
         && request.resource.data.createdAtMillis is int
+        && (!('mechanicId' in request.resource.data)
+          || request.resource.data.mechanicId == null
+          || (request.resource.data.mechanicId is string
+            && request.resource.data.mechanicId.size() > 0
+            && request.resource.data.mechanicId.size() <= 128))
         && (!('description' in request.resource.data)
           || (request.resource.data.description is string
             && request.resource.data.description.size() <= 1000))
@@ -262,24 +315,38 @@ service cloud.firestore {
           && request.resource.data.driverReviewedAtMillis is int;
       }
 
-      allow update: if signedIn() && (
-        isDriverReviewUpdate()
-        || (isJobDriver()
-          && request.resource.data.driverId == resource.data.driverId
+      function isParticipantStatusUpdate() {
+        return jobImmutableCore()
           && request.resource.data.mechanicId == resource.data.mechanicId
-          && validJobStatus(request.resource.data.status))
-        || (isJobMechanic()
-          && request.resource.data.driverId == resource.data.driverId
-          && request.resource.data.mechanicId == resource.data.mechanicId
-          && validJobStatus(request.resource.data.status))
-        || (isOpenJob()
-          && request.resource.data.driverId == resource.data.driverId
+          && validJobStatus(request.resource.data.status)
+          && jobStatusTransitionOk(
+            resource.data.status,
+            request.resource.data.status,
+            isJobDriver(),
+            isJobMechanic()
+          )
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status']);
+      }
+
+      function isMechanicAcceptUpdate() {
+        return isOpenJob()
+          && jobImmutableCore()
           && request.resource.data.mechanicId == request.auth.uid
           && request.resource.data.status == 'ASSIGNED'
-          && resource.data.status == 'REQUESTED')
+          && resource.data.status in ['REQUESTED', 'MATCHING']
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'mechanicId']);
+      }
+
+      allow update: if signedIn() && (
+        isDriverReviewUpdate()
+        || isParticipantStatusUpdate()
+        || isMechanicAcceptUpdate()
       );
 
-      allow delete: if isJobDriver();
+      allow delete: if isJobDriver()
+        && resource.data.status in ['REQUESTED', 'MATCHING', 'CLOSED'];
 
       match /messages/{messageId} {
         allow read: if signedIn()
@@ -307,7 +374,7 @@ service cloud.firestore {
       }
 
       function isOpenRequest() {
-        return resource.data.status == 'REQUESTED'
+        return resource.data.status in ['REQUESTED', 'MATCHING']
           && (resource.data.mechanicId == null || !('mechanicId' in resource.data));
       }
 
@@ -324,6 +391,9 @@ service cloud.firestore {
         && (!('serviceName' in request.resource.data)
           || (request.resource.data.serviceName is string
             && request.resource.data.serviceName.size() <= 120))
+        && (!('issueType' in request.resource.data)
+          || (request.resource.data.issueType is string
+            && request.resource.data.issueType.size() <= 120))
         && (!('description' in request.resource.data)
           || (request.resource.data.description is string
             && request.resource.data.description.size() <= 1000))
@@ -333,18 +403,40 @@ service cloud.firestore {
 
       allow update: if signedIn() && (
         (isRequestDriver()
-          && request.resource.data.driverId == resource.data.driverId)
+          && request.resource.data.driverId == resource.data.driverId
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+          && validJobStatus(request.resource.data.status)
+          && jobStatusTransitionOk(
+            resource.data.status,
+            request.resource.data.status,
+            true,
+            false
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
         || (isRequestMechanic()
           && request.resource.data.driverId == resource.data.driverId
-          && request.resource.data.mechanicId == resource.data.mechanicId)
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+          && validJobStatus(request.resource.data.status)
+          && jobStatusTransitionOk(
+            resource.data.status,
+            request.resource.data.status,
+            false,
+            true
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
         || (isOpenRequest()
           && request.resource.data.driverId == resource.data.driverId
           && request.resource.data.mechanicId == request.auth.uid
           && request.resource.data.status == 'ASSIGNED'
-          && resource.data.status == 'REQUESTED')
+          && resource.data.status in ['REQUESTED', 'MATCHING']
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'mechanicId']))
       );
 
-      allow delete: if isRequestDriver();
+      allow delete: if isRequestDriver()
+        && resource.data.status in ['REQUESTED', 'MATCHING'];
     }
 
     match /chats/{roomId} {
@@ -478,6 +570,37 @@ service cloud.firestore {
         && (!('email' in request.resource.data)
           || (request.resource.data.email is string
             && request.resource.data.email.size() <= 254));
+    }
+
+    // Append-only reviews (ratings on user docs stay owner/admin-controlled).
+    match /reviews/{reviewId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.mechanicId is string
+        && request.resource.data.mechanicId.size() > 0
+        && request.resource.data.mechanicId.size() <= 128
+        && request.resource.data.mechanicId != request.auth.uid
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() > 0
+        && request.resource.data.comment.size() <= 500
+        && request.resource.data.timestampMillis is int
+        && (!('driverName' in request.resource.data)
+          || (request.resource.data.driverName is string
+            && request.resource.data.driverName.size() <= 120));
+      allow update, delete: if false;
+    }
+
+    // Legacy collections: deny client access (use publicProfiles / jobs instead).
+    match /mechanics/{mechanicId} {
+      allow read, write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if false;
     }
   }
 }
