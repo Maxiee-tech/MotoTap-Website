@@ -1333,6 +1333,7 @@ let selectedSubservice = null;
 let pendingServiceSelection = null;
 let currentUserProfile = null;
 let wasLoggedIn = false;
+let initialAuthHandled = false;
 let lastProfileJobs = [];
 let profileHubActiveTab = "overview";
 let profileLoyaltyNotice = null;
@@ -4043,9 +4044,13 @@ landingToSignupBtn?.addEventListener("click", (e) => {
   showSignupForm();
 });
 
-document.getElementById("welcome-get-started")?.addEventListener("click", (e) => {
+document.getElementById("welcome-get-started")?.addEventListener("click", async (e) => {
   e.preventDefault();
-  showHomePage();
+  if (auth.currentUser) {
+    await proceedAfterAuthenticatedSession();
+  } else {
+    showHomePage();
+  }
 });
 
 loginBackBtn?.addEventListener("click", (e) => {
@@ -4256,14 +4261,24 @@ guestModePartsDealersBtn?.addEventListener("click", () => {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     wasLoggedIn = true;
-    await proceedAfterAuthenticatedSession();
-  } else if (wasLoggedIn) {
-    currentUserProfile = null;
-    clearPendingServiceSelection();
-    stopJobSync();
-    stopGlobalUnreadListener();
-    showHomePage();
-    wasLoggedIn = false;
+    if (!initialAuthHandled) {
+      // Existing session on first page load: prepare state but keep the
+      // welcome screen until the user taps "Get Started".
+      initialAuthHandled = true;
+      await loadUserProfile(auth.currentUser);
+    } else {
+      await proceedAfterAuthenticatedSession();
+    }
+  } else {
+    initialAuthHandled = true;
+    if (wasLoggedIn) {
+      currentUserProfile = null;
+      clearPendingServiceSelection();
+      stopJobSync();
+      stopGlobalUnreadListener();
+      showHomePage();
+      wasLoggedIn = false;
+    }
   }
   updateNavAuthButton();
 });
