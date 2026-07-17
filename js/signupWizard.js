@@ -15,6 +15,7 @@ import {
   validateMechanicStep3,
   validatePartsDealerStep3,
 } from "./utils/signupValidation.js";
+import { initVehiclePickerPair } from "./utils/vehiclePicker.js";
 
 const DEFAULT_MAP_CENTER = { lat: -1.286389, lng: 36.817223 };
 
@@ -82,6 +83,29 @@ function getAddressInputId(role = wizardState.role) {
   return ADDRESS_INPUT_BY_ROLE[normalizeUserRole(role)] || ADDRESS_INPUT_BY_ROLE.mechanic;
 }
 
+function initSignupVehiclePicker() {
+  const makeSelect = document.getElementById("signup-vehicle-make");
+  const modelSelect = document.getElementById("signup-vehicle-model");
+  if (!makeSelect || !modelSelect || makeSelect.dataset.pickerReady) return;
+
+  initVehiclePickerPair(makeSelect, modelSelect);
+  makeSelect.dataset.pickerReady = "true";
+  modelSelect.dataset.pickerReady = "true";
+}
+
+function getSignupGarageMode() {
+  const selected = document.querySelector('input[name="signup-garage-mode"]:checked');
+  return selected?.value === "join" ? "join" : "own";
+}
+
+function syncSignupGarageModeUi() {
+  const joinMode = getSignupGarageMode() === "join";
+  document.getElementById("signup-garage-invite-group")?.toggleAttribute("hidden", !joinMode);
+  document.getElementById("signup-institution-group")?.toggleAttribute("hidden", joinMode);
+  document.getElementById("signup-garage-photo-group")?.toggleAttribute("hidden", joinMode);
+  document.getElementById("signup-garage-location-group")?.toggleAttribute("hidden", joinMode);
+}
+
 function showWizardStep(step, role) {
   wizardState.step = step;
   wizardState.role = normalizeUserRole(role || wizardState.role);
@@ -98,8 +122,17 @@ function showWizardStep(step, role) {
   } else if (step === 3) {
     const panelId = STEP3_PANEL_BY_ROLE[wizardState.role] || STEP3_PANEL_BY_ROLE.driver;
     document.getElementById(panelId)?.classList.add("active");
-    if (isBusinessRole(wizardState.role)) {
-      initBusinessLocationMap(wizardState.role);
+    if (wizardState.role === "driver") {
+      initSignupVehiclePicker();
+    }
+    if (wizardState.role === "mechanic") {
+      syncSignupGarageModeUi();
+      if (getSignupGarageMode() !== "join") {
+        initBusinessLocationMap("mechanic");
+      }
+    }
+    if (wizardState.role === "parts_dealer") {
+      initBusinessLocationMap("parts_dealer");
     }
   }
 
@@ -395,7 +428,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       return;
     }
 
-    const vehicleType = document.getElementById("signup-vehicle-type")?.value || "";
+    const vehicleType = document.getElementById("signup-vehicle-make")?.value || "";
     const vehicleModel = document.getElementById("signup-vehicle-model")?.value?.trim() || "";
     const numberPlate = document.getElementById("signup-number-plate")?.value?.trim() || "";
     const vehiclePhotoFile = document.getElementById("signup-vehicle-photo")?.files?.[0];
@@ -439,6 +472,15 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     showWizardStep(2, wizardState.role);
   });
 
+  document.querySelectorAll('input[name="signup-garage-mode"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      syncSignupGarageModeUi();
+      if (getSignupGarageMode() !== "join") {
+        initBusinessLocationMap("mechanic");
+      }
+    });
+  });
+
   step3MechanicBtn?.addEventListener("click", async (e) => {
     e.preventDefault();
     setWizardError("");
@@ -449,6 +491,8 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       return;
     }
 
+    const garageMode = getSignupGarageMode();
+    const inviteCode = document.getElementById("signup-garage-invite-code")?.value || "";
     const institutionName =
       document.getElementById("signup-institution-name")?.value?.trim() || "";
     const experienceYears =
@@ -458,6 +502,8 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     const garagePhotoFile = document.getElementById("signup-garage-photo")?.files?.[0];
 
     const validationError = validateMechanicStep3({
+      garageMode,
+      inviteCode,
       institutionName,
       experienceYears,
       certificatePhotoFile,
@@ -473,18 +519,25 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
 
     setWizardLoading(true, "signup-step3-mechanic-btn", "Finish Sign Up");
     try {
-      const [certificatePhotoUrl, garagePhotoUrl] = await Promise.all([
-        uploadUserImage(user.uid, "certificate", certificatePhotoFile, {
+      const certificatePhotoUrl = await uploadUserImage(user.uid, "certificate", certificatePhotoFile, {
+        role: wizardState.role,
+      });
+
+      let garagePhotos = [];
+      if (garageMode !== "join") {
+        const garagePhotoUrl = await uploadUserImage(user.uid, "garage", garagePhotoFile, {
           role: wizardState.role,
-        }),
-        uploadUserImage(user.uid, "garage", garagePhotoFile, { role: wizardState.role }),
-      ]);
+        });
+        garagePhotos = [garagePhotoUrl];
+      }
 
       const result = await authService.completeSignupStep3Mechanic(user.uid, {
+        garageMode,
+        inviteCode,
         institutionName,
         experienceYears,
         certificatePhotoUrl,
-        garagePhotos: [garagePhotoUrl],
+        garagePhotos,
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
         address: wizardState.location.address,

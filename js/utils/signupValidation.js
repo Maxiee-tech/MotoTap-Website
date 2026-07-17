@@ -86,13 +86,15 @@ export function validateIdNumber(idNumber, role) {
 }
 
 export function validateDriverStep3({ vehicleType, vehicleModel, numberPlate, vehiclePhotoFile }) {
-  if (!String(vehicleType || "").trim()) return "Vehicle type is required.";
+  if (!String(vehicleType || "").trim()) return "Vehicle make is required.";
   if (!String(vehicleModel || "").trim()) return "Vehicle model is required.";
   if (!String(numberPlate || "").trim()) return "Number plate is required.";
   return validateSignupFile("vehicle", vehiclePhotoFile, "Vehicle photo");
 }
 
 export function validateMechanicStep3({
+  garageMode = "own",
+  inviteCode,
   institutionName,
   experienceYears,
   certificatePhotoFile,
@@ -101,10 +103,21 @@ export function validateMechanicStep3({
   longitude,
   address,
 }) {
-  if (!String(institutionName || "").trim()) return "Institution name is required.";
+  const mode = String(garageMode || "own").trim() === "join" ? "join" : "own";
   if (!String(experienceYears || "").trim()) return "Experience years is required.";
   const certErr = validateSignupFile("certificate", certificatePhotoFile, "Certification photo");
   if (certErr) return certErr;
+
+  if (mode === "join") {
+    const code = String(inviteCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    if (code.length < 4) return "Enter a valid garage invite code.";
+    return "";
+  }
+
+  if (!String(institutionName || "").trim()) return "Garage / institution name is required.";
   const garageErr = validateSignupFile("garage", garagePhotoFile, "Garage front photo");
   if (garageErr) return garageErr;
   if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {

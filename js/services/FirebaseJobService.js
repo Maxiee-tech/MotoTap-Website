@@ -89,6 +89,10 @@ export default class FirebaseJobService extends JobRepository {
         ...(options.driverPhotoUrl
           ? { driverPhotoUrl: options.driverPhotoUrl }
           : {}),
+        ...(options.vehicleId ? { vehicleId: options.vehicleId } : {}),
+        ...(options.vehicleMake ? { vehicleMake: options.vehicleMake } : {}),
+        ...(options.vehicleModel ? { vehicleModel: options.vehicleModel } : {}),
+        ...(options.garageId ? { garageId: options.garageId } : {}),
       });
       return docRef.id;
     } catch (error) {
@@ -279,15 +283,68 @@ export default class FirebaseJobService extends JobRepository {
     }
   }
 
-  async acceptJob(jobId, mechanicId) {
+  async acceptJob(jobId, mechanicId, options = {}) {
     try {
-      await updateDoc(doc(this.firestore, "jobs", jobId), {
+      const payload = {
         mechanicId: mechanicId,
-        status: JobStatus.ASSIGNED
-      });
+        status: JobStatus.ASSIGNED,
+      };
+      if (options.garageId) {
+        payload.garageId = options.garageId;
+      }
+      await updateDoc(doc(this.firestore, "jobs", jobId), payload);
     } catch (error) {
       throw new Error("Failed to accept job");
     }
+  }
+
+  /**
+   * Garage owner assigns or reassigns a job to a team mechanic.
+   * Allowed while job is REQUESTED, MATCHING, or ASSIGNED (not started/completed).
+   */
+  async reassignGarageJob(jobId, mechanicId, { garageId } = {}) {
+    const assigneeId = String(mechanicId || "").trim();
+    if (!jobId || !assigneeId) {
+      throw new Error("Missing job or mechanic for reassignment.");
+    }
+
+    try {
+      const payload = {
+        mechanicId: assigneeId,
+        status: JobStatus.ASSIGNED,
+      };
+      if (garageId) {
+        payload.garageId = garageId;
+      }
+      await updateDoc(doc(this.firestore, "jobs", jobId), payload);
+      return { success: true };
+    } catch (error) {
+      console.error("FirebaseJobService.reassignGarageJob error:", error);
+      throw new Error("Failed to assign job to mechanic.");
+    }
+  }
+
+  /** Real-time jobs for a garage (owner / member oversight). */
+  subscribeGarageJobs(garageId, onChange, onError) {
+    if (!garageId) {
+      onChange?.([]);
+      return () => {};
+    }
+
+    const q = query(
+      collection(this.firestore, "jobs"),
+      where("garageId", "==", garageId),
+      orderBy("createdAtMillis", "desc")
+    );
+
+    return onSnapshot(
+      q,
+      (snapshot) => onChange(this.mapSnapshotToJobs(snapshot)),
+      (error) => {
+        console.error("Garage jobs listener error:", error);
+        onError?.(error);
+      }
+    );
   }
 
   async deleteJobRequest(jobId) {

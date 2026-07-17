@@ -46,6 +46,8 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
       !Array.isArray(profile.servicePrices)
         ? profile.servicePrices
         : {};
+    data.institutionName = String(profile.institutionName || "").trim().slice(0, 120);
+    data.garageId = String(profile.garageId || "").trim().slice(0, 128);
   }
 
   if (isPartsDealerRole(profile.role)) {

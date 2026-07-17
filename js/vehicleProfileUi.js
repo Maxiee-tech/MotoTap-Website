@@ -5,6 +5,7 @@ import {
   normalizeVehicle,
   vehicleDisplayName,
 } from "./models/VehicleProfile.js";
+import { initVehiclePickerPair, setMakeModelSelection } from "./utils/vehiclePicker.js";
 
 function renderActiveVehicleCard(activeVehicle) {
   if (!activeVehicle) {
@@ -98,11 +99,11 @@ export function renderDriverVehicleSection(profile) {
         <input type="hidden" id="profile-vehicle-id" value="" />
         <label class="profile-vehicle-field">
           <span>Make</span>
-          <input type="text" id="profile-vehicle-make" placeholder="e.g. Toyota" required />
+          <select id="profile-vehicle-make" class="vehicle-make-select" required></select>
         </label>
         <label class="profile-vehicle-field">
           <span>Model</span>
-          <input type="text" id="profile-vehicle-model" placeholder="e.g. Camry" required />
+          <select id="profile-vehicle-model" class="vehicle-model-select" required></select>
         </label>
         <label class="profile-vehicle-field">
           <span>Year</span>
@@ -208,8 +209,9 @@ function openVehicleDialog(vehicle = null) {
   const normalized = vehicle ? normalizeVehicle(vehicle) : normalizeVehicle({ id: "" });
 
   document.getElementById("profile-vehicle-id").value = editing ? normalized.id : "";
-  document.getElementById("profile-vehicle-make").value = normalized.make;
-  document.getElementById("profile-vehicle-model").value = normalized.model;
+  const makeSelect = document.getElementById("profile-vehicle-make");
+  const modelSelect = document.getElementById("profile-vehicle-model");
+  setMakeModelSelection(makeSelect, modelSelect, normalized.make, normalized.model);
   document.getElementById("profile-vehicle-year").value = normalized.year;
   document.getElementById("profile-vehicle-plate").value = normalized.licensePlate;
   document.getElementById("profile-vehicle-mileage").value = normalized.mileage;
@@ -245,6 +247,18 @@ function closeVehicleDialog() {
  */
 export function bindVehicleProfileUi(container, { profile, onSaveVehicles } = {}) {
   if (!container) return;
+
+  const makeSelect = document.getElementById("profile-vehicle-make");
+  const modelSelect = document.getElementById("profile-vehicle-model");
+  if (makeSelect && modelSelect && !makeSelect.dataset.pickerReady) {
+    const activeVehicle = ensureVehiclesArray(profile)[0];
+    initVehiclePickerPair(makeSelect, modelSelect, {
+      make: activeVehicle?.make || "",
+      model: activeVehicle?.model || "",
+    });
+    makeSelect.dataset.pickerReady = "true";
+    modelSelect.dataset.pickerReady = "true";
+  }
 
   const vehicles = ensureVehiclesArray(profile);
 

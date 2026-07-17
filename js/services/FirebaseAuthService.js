@@ -34,6 +34,7 @@ import {
 } from "../utils/publicProfile.js";
 import { normalizeServicePrices } from "../utils/mechanicServicePrices.js";
 import { normalizePartPrices } from "../utils/partsDealerPrices.js";
+import FirebaseGarageService from "./FirebaseGarageService.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -51,6 +52,7 @@ export default class FirebaseAuthService extends AuthRepository {
     super();
     this.auth = authInstance;
     this.firestore = firestore;
+    this.garageService = new FirebaseGarageService(firestore);
   }
 
   userDocRef(userId) {
@@ -178,6 +180,88 @@ export default class FirebaseAuthService extends AuthRepository {
   }
 
   async completeSignupStep3Mechanic(userId, data) {
+    const joinMode = String(data.garageMode || "own").trim() === "join";
+    const inviteCode = String(data.inviteCode || "").trim();
+
+    if (joinMode) {
+      const lookup = await this.garageService.lookupInvite(inviteCode);
+      if (!lookup?.garage) {
+        return { success: false, error: "Invalid or expired garage invite code." };
+      }
+
+      const garage = lookup.garage;
+
+      // Join before marking onboarding complete so dashboard auto-setup cannot
+      // create a competing solo garage during this request.
+      const profilePreview = await this.getUserProfile(userId);
+      const joinResult = await this.garageService.joinGarageWithInvite(userId, inviteCode, {
+        name: profilePreview?.name || "",
+      });
+      if (!joinResult.success) {
+        return { success: false, error: joinResult.error || "Unable to join garage." };
+      }
+
+      const result = await this.updateSignupProfile(userId, {
+        institutionName: garage.name,
+        experienceYears: String(data.experienceYears || "").trim(),
+        certificatePhotoUrl: data.certificatePhotoUrl,
+        garagePhotos: garage.garagePhotos || [],
+        latitude: garage.latitude,
+        longitude: garage.longitude,
+        address: garage.address || "",
+        garageId: garage.id,
+        garageRole: "mechanic",
+        onboardingStep: 3,
+        onboardingComplete: true,
+        status: ProfileStatus.PENDING,
+      });
+      if (!result.success) return result;
+
+      const refreshed = await withTimeout(getDoc(this.userDocRef(userId)));
+      if (refreshed.exists()) {
+        await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, refreshed.data()));
+      }
+      return { success: true, garage: joinResult.garage };
+    }
+
+    const result = await this.updateSignupProfile(userId, {
+      institutionName: String(data.institutionName || "").trim(),
+      experienceYears: String(data.experienceYears || "").trim(),
+      certificatePhotoUrl: data.certificatePhotoUrl,
+      garagePhotos: Array.isArray(data.garagePhotos) ? data.garagePhotos : [],
+      latitude: Number(data.latitude),
+      longitude: Number(data.longitude),
+      address: String(data.address || "").trim(),
+      onboardingStep: 3,
+      onboardingComplete: true,
+      status: ProfileStatus.PENDING,
+    });
+    if (!result.success) return result;
+
+    const profile = await this.getUserProfile(userId);
+    const garageResult = await this.garageService.createGarageForOwner(userId, {
+      name: profile?.name || "",
+      institutionName: String(data.institutionName || "").trim(),
+      address: String(data.address || "").trim(),
+      latitude: Number(data.latitude),
+      longitude: Number(data.longitude),
+      garagePhotos: Array.isArray(data.garagePhotos) ? data.garagePhotos : [],
+    });
+    if (!garageResult.success) {
+      return {
+        success: false,
+        error: garageResult.error || "Garage registration failed. Please try again.",
+      };
+    }
+
+    const refreshed = await withTimeout(getDoc(this.userDocRef(userId)));
+    if (refreshed.exists()) {
+      await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, refreshed.data()));
+    }
+    return { success: true, garage: garageResult.garage };
+  }
+
+  async completeSignupStep3PartsDealer(userId, data) {
     return this.updateSignupProfile(userId, {
       institutionName: String(data.institutionName || "").trim(),
       experienceYears: String(data.experienceYears || "").trim(),
@@ -190,10 +274,6 @@ export default class FirebaseAuthService extends AuthRepository {
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
     });
-  }
-
-  async completeSignupStep3PartsDealer(userId, data) {
-    return this.completeSignupStep3Mechanic(userId, data);
   }
 
   async sendDriverEmailVerification() {
@@ -304,46 +384,51 @@ export default class FirebaseAuthService extends AuthRepository {
     }
   }
 
-  async updateMechanicSkills(userId, skills, servicePrices = null) {
+  async updateMechanicSkills(userId, skills, servicePrices = null, options = {}) {
     try {
       const payload = {
         skills,
         availableServices: skills,
       };
       if (servicePrices !== null) {
-        const existingSnap = await withTimeout(getDoc(this.userDocRef(userId)));
-        const existingPrices = existingSnap.exists()
-          ? normalizeServicePrices(existingSnap.data()?.servicePrices)
-          : {};
         const incomingPrices = normalizeServicePrices(servicePrices);
-        const mergedPrices = {};
 
-        skills.forEach((skill) => {
-          const name = String(skill || "").trim();
-          if (!name) return;
+        if (options.replacePrices === true) {
+          payload.servicePrices = incomingPrices;
+        } else {
+          const existingSnap = await withTimeout(getDoc(this.userDocRef(userId)));
+          const existingPrices = existingSnap.exists()
+            ? normalizeServicePrices(existingSnap.data()?.servicePrices)
+            : {};
+          const mergedPrices = {};
 
-          if (Object.prototype.hasOwnProperty.call(incomingPrices, name)) {
-            mergedPrices[name] = incomingPrices[name];
-            return;
-          }
+          skills.forEach((skill) => {
+            const name = String(skill || "").trim();
+            if (!name) return;
 
-          const nameLower = name.toLowerCase();
-          for (const [existingName, price] of Object.entries(existingPrices)) {
-            if (existingName.toLowerCase() === nameLower) {
-              mergedPrices[name] = price;
+            if (Object.prototype.hasOwnProperty.call(incomingPrices, name)) {
+              mergedPrices[name] = incomingPrices[name];
               return;
             }
-          }
 
-          for (const [incomingName, price] of Object.entries(incomingPrices)) {
-            if (incomingName.toLowerCase() === nameLower) {
-              mergedPrices[name] = price;
-              return;
+            const nameLower = name.toLowerCase();
+            for (const [existingName, price] of Object.entries(existingPrices)) {
+              if (existingName.toLowerCase() === nameLower) {
+                mergedPrices[name] = price;
+                return;
+              }
             }
-          }
-        });
 
-        payload.servicePrices = mergedPrices;
+            for (const [incomingName, price] of Object.entries(incomingPrices)) {
+              if (incomingName.toLowerCase() === nameLower) {
+                mergedPrices[name] = price;
+                return;
+              }
+            }
+          });
+
+          payload.servicePrices = mergedPrices;
+        }
       }
       await withTimeout(updateDoc(this.userDocRef(userId), payload));
       const docSnap = await withTimeout(getDoc(this.userDocRef(userId)));

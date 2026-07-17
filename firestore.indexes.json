@@ -39,6 +39,14 @@
         { "fieldPath": "mechanicId", "order": "ASCENDING" },
         { "fieldPath": "createdAtMillis", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "garageId", "order": "ASCENDING" },
+        { "fieldPath": "createdAtMillis", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

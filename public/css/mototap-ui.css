@@ -1085,6 +1085,57 @@ body.mt-brand .mechanic-service-price-input {
   color: var(--mt-black) !important;
 }
 
+body.mt-brand .mechanic-service-price-input:disabled {
+  background: var(--mt-gray-100) !important;
+  border-color: var(--mt-gray-200) !important;
+  color: var(--mt-gray-500) !important;
+  opacity: 1 !important;
+}
+
+body.mt-brand .mechanic-vehicle-prices-toggle,
+body.mt-brand .mechanic-add-vehicle-price-btn {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-red) !important;
+  color: var(--mt-red) !important;
+}
+
+body.mt-brand .mechanic-vehicle-prices-toggle:hover:not(:disabled),
+body.mt-brand .mechanic-add-vehicle-price-btn:hover {
+  background: rgba(192, 0, 0, 0.08) !important;
+}
+
+body.mt-brand .mechanic-vehicle-prices-toggle:disabled {
+  border-color: var(--mt-gray-300) !important;
+  color: var(--mt-gray-500) !important;
+  background: var(--mt-gray-100) !important;
+  opacity: 1 !important;
+}
+
+body.mt-brand .mechanic-vehicle-prices-panel {
+  background: var(--mt-gray-50) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+}
+
+body.mt-brand .mechanic-vehicle-prices-hint {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .mechanic-vehicle-make-input,
+body.mt-brand .mechanic-vehicle-model-input,
+body.mt-brand .mechanic-vehicle-price-input,
+body.mt-brand .vehicle-make-select,
+body.mt-brand .vehicle-model-select {
+  background: var(--mt-white) !important;
+  border: 1px solid var(--mt-gray-200) !important;
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .mechanic-remove-vehicle-price-btn {
+  border-color: rgba(192, 0, 0, 0.35) !important;
+  background: rgba(192, 0, 0, 0.08) !important;
+  color: var(--mt-red) !important;
+}
+
 body.mt-brand .service-card-see-more {
   color: var(--mt-red) !important;
   background: rgba(192, 0, 0, 0.08) !important;

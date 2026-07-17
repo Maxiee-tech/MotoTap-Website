@@ -29,6 +29,10 @@ export function normalizeJob(raw) {
     issueType,
     serviceName: raw?.serviceName || issueType,
     price: raw?.price ?? raw?.suggestedPrice ?? 0,
+    vehicleId: raw?.vehicleId || "",
+    vehicleMake: raw?.vehicleMake || "",
+    vehicleModel: raw?.vehicleModel || "",
+    garageId: raw?.garageId || "",
     createdAtMillis,
   };
 }

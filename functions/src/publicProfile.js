@@ -52,6 +52,8 @@ function buildPublicProfileData(userId, data = {}) {
       data.servicePrices && typeof data.servicePrices === "object" && !Array.isArray(data.servicePrices)
         ? data.servicePrices
         : {};
+    profile.institutionName = String(data.institutionName || "").trim().slice(0, 120);
+    profile.garageId = String(data.garageId || "").trim().slice(0, 128);
     profile.rating = Number(data.rating) || 0;
     profile.reviewCount = Number(data.reviewCount) || 0;
   }

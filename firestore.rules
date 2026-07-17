@@ -48,10 +48,63 @@ service cloud.firestore {
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('vehicles' in data) || (data.vehicles is list && data.vehicles.size() <= 20))
+        && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
+        && (!('garageRole' in data) || data.garageRole in ['owner', 'mechanic'])
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
         && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
         && (!('loyaltyPoints' in data) || (data.loyaltyPoints is int && data.loyaltyPoints >= 0))
         && (!('redeemedRewards' in data) || (data.redeemedRewards is list && data.redeemedRewards.size() <= 50));
+    }
+
+    function garageDoc(garageId) {
+      return get(/databases/$(database)/documents/garages/$(garageId));
+    }
+
+    function isGarageOwner(garageId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/garages/$(garageId))
+        && garageDoc(garageId).data.ownerId == request.auth.uid;
+    }
+
+    function isGarageMember(garageId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/garages/$(garageId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/garages/$(garageId)/members/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function validGarageData(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.ownerId is string
+        && data.ownerId.size() > 0
+        && data.ownerId.size() <= 128
+        && data.status in ['PENDING', 'APPROVED', 'REJECTED']
+        && data.inviteCode is string
+        && data.inviteCode.size() >= 4
+        && data.inviteCode.size() <= 16
+        && data.createdAtMillis is int
+        && data.updatedAtMillis is int
+        && data.memberCount is int
+        && data.memberCount >= 0
+        && data.memberCount <= 200
+        && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('latitude' in data) || data.latitude == null || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+        && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
+        && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
+        && (!('skills' in data) || (data.skills is list && data.skills.size() <= 50))
+        && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200));
+    }
+
+    function validGarageMemberData(data, memberId) {
+      return data.uid == memberId
+        && data.uid is string
+        && data.uid.size() > 0
+        && data.uid.size() <= 128
+        && data.role in ['owner', 'mechanic']
+        && data.status in ['invited', 'active', 'removed']
+        && data.joinedAtMillis is int
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120));
     }
 
     // Owners may redeem points (decrease only) and append rewards — never inflate balances/ratings.
@@ -133,6 +186,8 @@ service cloud.firestore {
         && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
+        && (!('institutionName' in data) || (data.institutionName is string && data.institutionName.size() <= 120))
+        && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
         && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
         && (!('updatedAtMillis' in data) || data.updatedAtMillis is int);
@@ -272,7 +327,12 @@ service cloud.firestore {
       allow read: if signedIn()
         && (resource.data.driverId == request.auth.uid
           || resource.data.mechanicId == request.auth.uid
-          || isOpenJob());
+          || isOpenJob()
+          || (('garageId' in resource.data)
+            && resource.data.garageId is string
+            && resource.data.garageId.size() > 0
+            && resource.data.garageId.size() <= 128
+            && (isGarageOwner(resource.data.garageId) || isGarageMember(resource.data.garageId))));
 
       allow create: if signedIn()
         && request.resource.data.driverId == request.auth.uid
@@ -292,7 +352,19 @@ service cloud.firestore {
           || (request.resource.data.locationLabel is string
             && request.resource.data.locationLabel.size() <= 200))
         && (!('price' in request.resource.data)
-          || (request.resource.data.price is number && request.resource.data.price >= 0));
+          || (request.resource.data.price is number && request.resource.data.price >= 0))
+        && (!('vehicleId' in request.resource.data)
+          || (request.resource.data.vehicleId is string
+            && request.resource.data.vehicleId.size() <= 128))
+        && (!('vehicleMake' in request.resource.data)
+          || (request.resource.data.vehicleMake is string
+            && request.resource.data.vehicleMake.size() <= 80))
+        && (!('vehicleModel' in request.resource.data)
+          || (request.resource.data.vehicleModel is string
+            && request.resource.data.vehicleModel.size() <= 80))
+        && (!('garageId' in request.resource.data)
+          || (request.resource.data.garageId is string
+            && request.resource.data.garageId.size() <= 128));
 
       function isCompletedJob() {
         return resource.data.status in ['COMPLETED', 'PAID', 'CLOSED'];
@@ -336,6 +408,32 @@ service cloud.firestore {
           && request.resource.data.status == 'ASSIGNED'
           && resource.data.status in ['REQUESTED', 'MATCHING']
           && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'mechanicId', 'garageId'])
+          && (!('garageId' in request.resource.data)
+            || request.resource.data.garageId == null
+            || (request.resource.data.garageId is string
+              && request.resource.data.garageId.size() > 0
+              && request.resource.data.garageId.size() <= 128));
+      }
+
+      // Owner may assign / reassign within their garage before work starts.
+      function isGarageOwnerReassignUpdate() {
+        return signedIn()
+          && ('garageId' in resource.data)
+          && resource.data.garageId is string
+          && resource.data.garageId.size() > 0
+          && resource.data.garageId.size() <= 128
+          && isGarageOwner(resource.data.garageId)
+          && jobImmutableCore()
+          && resource.data.status in ['REQUESTED', 'MATCHING', 'ASSIGNED']
+          && request.resource.data.status == 'ASSIGNED'
+          && request.resource.data.garageId == resource.data.garageId
+          && request.resource.data.mechanicId is string
+          && request.resource.data.mechanicId.size() > 0
+          && request.resource.data.mechanicId.size() <= 128
+          && exists(/databases/$(database)/documents/garages/$(resource.data.garageId)/members/$(request.resource.data.mechanicId))
+          && get(/databases/$(database)/documents/garages/$(resource.data.garageId)/members/$(request.resource.data.mechanicId)).data.status == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'mechanicId']);
       }
 
@@ -343,6 +441,7 @@ service cloud.firestore {
         isDriverReviewUpdate()
         || isParticipantStatusUpdate()
         || isMechanicAcceptUpdate()
+        || isGarageOwnerReassignUpdate()
       );
 
       allow delete: if isJobDriver()
@@ -592,6 +691,88 @@ service cloud.firestore {
           || (request.resource.data.driverName is string
             && request.resource.data.driverName.size() <= 120));
       allow update, delete: if false;
+    }
+
+    // Garage org: owner + staff mechanics sharing one shop.
+    match /garages/{garageId} {
+      // Get by ID is needed for invite join; listing stays restricted.
+      allow get: if signedIn();
+      allow list: if signedIn()
+        && (isGarageOwner(garageId) || isGarageMember(garageId) || isAdminUser());
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && validGarageData(request.resource.data)
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.memberCount == 1;
+
+      allow update: if signedIn() && (
+        (isGarageOwner(garageId)
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+          && validGarageData(request.resource.data)
+          && request.resource.data.status == resource.data.status)
+        || (isAdminUser()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['PENDING', 'APPROVED', 'REJECTED'])
+      );
+
+      allow delete: if isGarageOwner(garageId) || isAdminUser();
+
+      match /members/{memberId} {
+        allow read: if signedIn()
+          && (isGarageOwner(garageId) || isGarageMember(garageId) || isAdminUser()
+            || request.auth.uid == memberId);
+
+        allow create: if signedIn()
+          && validGarageMemberData(request.resource.data, memberId)
+          && (
+            (isGarageOwner(garageId)
+              && request.resource.data.role in ['owner', 'mechanic'])
+            || (request.auth.uid == memberId
+              && request.resource.data.role == 'owner'
+              && request.resource.data.status == 'active'
+              && isGarageOwner(garageId))
+            || (request.auth.uid == memberId
+              && request.resource.data.role == 'mechanic'
+              && request.resource.data.status == 'active'
+              && exists(/databases/$(database)/documents/garages/$(garageId))
+              && garageDoc(garageId).data.ownerId != request.auth.uid)
+          );
+
+        allow update: if signedIn() && validGarageMemberData(request.resource.data, memberId) && (
+          isGarageOwner(garageId)
+          || (request.auth.uid == memberId
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.uid == resource.data.uid)
+        );
+
+        allow delete: if isGarageOwner(garageId) || request.auth.uid == memberId || isAdminUser();
+      }
+    }
+
+    // Invite codes are document IDs so joiners can look up without listing all garages.
+    match /garageInvites/{inviteCode} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && request.resource.data.garageId is string
+        && request.resource.data.garageId.size() > 0
+        && request.resource.data.garageId.size() <= 128
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.active == true
+        && request.resource.data.createdAtMillis is int
+        && isGarageOwner(request.resource.data.garageId);
+
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.garageId == resource.data.garageId
+        && request.resource.data.active is bool;
+
+      allow delete: if signedIn()
+        && (resource.data.ownerId == request.auth.uid || isAdminUser());
     }
 
     // Legacy collections: deny client access (use publicProfiles / jobs instead).

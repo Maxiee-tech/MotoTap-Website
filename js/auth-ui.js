@@ -18,7 +18,24 @@ import {
   getMechanicServicePrice,
   normalizeServicePrices,
   parsePriceInput,
+  toFormPriceEntry,
 } from "./utils/mechanicServicePrices.js";
+import { getActiveVehicle, vehicleDisplayName } from "./models/VehicleProfile.js";
+import {
+  createVehicleMakeModelSelects,
+  readMakeModelFromContainer,
+} from "./utils/vehiclePicker.js";
+import {
+  bindGarageTeamPanel,
+  garageService,
+  getCachedGarage,
+  renderGarageTeamPanel,
+} from "./utils/garageTeamUi.js";
+import { GarageMemberRole } from "./models/Garage.js";
+import {
+  groupMechanicEntriesForMap,
+  pickDefaultMemberFromGroup,
+} from "./utils/garageMapGroups.js";
 import {
   buildPartPricesPayload,
   getPartsDealerPartPrice,
@@ -507,7 +524,9 @@ function buildJobCard(
   body.appendChild(description);
 
   const price = document.createElement("p");
-  price.textContent = `Offered Price: KSh ${normalized.price ?? 0}`;
+  const vehicleBits = [normalized.vehicleMake, normalized.vehicleModel].filter(Boolean);
+  const vehicleSuffix = vehicleBits.length ? ` (${vehicleBits.join(" ")})` : "";
+  price.textContent = `Offered Price${vehicleSuffix}: KSh ${normalized.price ?? 0}`;
   body.appendChild(price);
 
   if (showDriver) {
@@ -664,7 +683,9 @@ function paintAvailableJobs(jobs) {
     acceptBtn.textContent = job.mechanicId ? "Confirm Job" : "Accept Job";
     acceptBtn.addEventListener("click", async () => {
       try {
-        await jobService.acceptJob(job.id, currentUserProfile.id);
+        await jobService.acceptJob(job.id, currentUserProfile.id, {
+          garageId: currentUserProfile.garageId || "",
+        });
         jobsStatus.textContent = "Job accepted! Opening chat with the driver…";
         if (job.driverId) {
           openChatWithDriver(job.driverId, job.driverName || "Driver");
@@ -702,7 +723,122 @@ function paintAvailableJobs(jobs) {
 
 let openJobsUnsubscribe = null;
 let requestHistoryUnsubscribe = null;
+let garageJobsUnsubscribe = null;
+let currentGarageContext = { garage: null, isOwner: false, members: [] };
+let selectedMapGroup = null;
 let profileJobsUnsubscribe = null;
+/** @type {string[]} */
+let pendingUnseenGarageJobIds = [];
+
+function garageJobSeenStorageKey(userId, garageId) {
+  return `mototap_seen_garage_jobs_${userId}_${garageId}`;
+}
+
+function garageJobSeenInitKey(userId, garageId) {
+  return `mototap_seen_garage_jobs_init_${userId}_${garageId}`;
+}
+
+function readSeenGarageJobIds(userId, garageId) {
+  try {
+    const raw = localStorage.getItem(garageJobSeenStorageKey(userId, garageId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSeenGarageJobIds(userId, garageId, ids) {
+  try {
+    const unique = [...new Set((ids || []).map(String).filter(Boolean))];
+    localStorage.setItem(
+      garageJobSeenStorageKey(userId, garageId),
+      JSON.stringify(unique)
+    );
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function hideGarageJobAlert() {
+  pendingUnseenGarageJobIds = [];
+  const alertEl = document.getElementById("garage-job-alert");
+  alertEl?.classList.add("hidden");
+}
+
+function updateGarageJobAlert(jobs) {
+  const alertEl = document.getElementById("garage-job-alert");
+  if (!alertEl) return;
+
+  const userId = auth.currentUser?.uid;
+  const garageId = currentGarageContext.garage?.id;
+  if (!userId || !garageId || !currentGarageContext.isOwner) {
+    hideGarageJobAlert();
+    return;
+  }
+
+  const currentIds = (Array.isArray(jobs) ? jobs : [])
+    .map((job) => String(job?.id || "").trim())
+    .filter(Boolean);
+
+  const initKey = garageJobSeenInitKey(userId, garageId);
+  let initialized = false;
+  try {
+    initialized = localStorage.getItem(initKey) === "1";
+  } catch {
+    initialized = false;
+  }
+
+  if (!initialized) {
+    writeSeenGarageJobIds(userId, garageId, currentIds);
+    try {
+      localStorage.setItem(initKey, "1");
+    } catch {
+      // ignore
+    }
+    hideGarageJobAlert();
+    return;
+  }
+
+  const seen = new Set(readSeenGarageJobIds(userId, garageId));
+  const unseen = currentIds.filter((id) => !seen.has(id));
+  pendingUnseenGarageJobIds = unseen;
+
+  if (!unseen.length) {
+    alertEl.classList.add("hidden");
+    return;
+  }
+
+  alertEl.textContent =
+    unseen.length === 1
+      ? "YOU HAVE A NEW JOB — CLICK HERE TO VIEW IT"
+      : `YOU HAVE ${unseen.length} NEW JOBS — CLICK HERE TO VIEW THEM`;
+  alertEl.classList.remove("hidden");
+}
+
+function focusGarageJobsFromAlert() {
+  const userId = auth.currentUser?.uid;
+  const garageId = currentGarageContext.garage?.id;
+  if (userId && garageId) {
+    const seen = new Set(readSeenGarageJobIds(userId, garageId));
+    pendingUnseenGarageJobIds.forEach((id) => seen.add(id));
+    writeSeenGarageJobIds(userId, garageId, [...seen]);
+  }
+  hideGarageJobAlert();
+
+  const role = normalizeUserRole(currentUserProfile?.role);
+  const email = auth.currentUser?.email || currentUserProfile?.email || "";
+  if (role) showDashboard(role, email);
+
+  const section = document.getElementById("garage-jobs-section");
+  if (!section) return;
+  section.classList.remove("hidden");
+  section.scrollIntoView({ behavior: "smooth", block: "start" });
+  section.classList.add("garage-jobs-section-highlight");
+  window.setTimeout(() => {
+    section.classList.remove("garage-jobs-section-highlight");
+  }, 2200);
+}
 
 function stopProfileJobSync() {
   profileJobsUnsubscribe?.();
@@ -714,6 +850,138 @@ function stopJobSync() {
   openJobsUnsubscribe = null;
   requestHistoryUnsubscribe?.();
   requestHistoryUnsubscribe = null;
+  garageJobsUnsubscribe?.();
+  garageJobsUnsubscribe = null;
+  hideGarageJobAlert();
+}
+
+function startGarageJobsSync(garageId) {
+  garageJobsUnsubscribe?.();
+  garageJobsUnsubscribe = null;
+
+  const list = document.getElementById("garage-jobs-list");
+  const status = document.getElementById("garage-jobs-status");
+  if (!list || !garageId) return;
+
+  if (status) status.textContent = "Loading garage jobs…";
+
+  garageJobsUnsubscribe = jobService.subscribeGarageJobs(
+    garageId,
+    (jobs) => paintGarageJobs(jobs),
+    () => {
+      list.innerHTML =
+        '<p class="available-jobs-empty">Unable to load garage jobs.</p>';
+      if (status) status.textContent = "";
+    }
+  );
+}
+
+function paintGarageJobs(jobs) {
+  const list = document.getElementById("garage-jobs-list");
+  const status = document.getElementById("garage-jobs-status");
+  if (!list) return;
+
+  if (status) status.textContent = "";
+  const normalized = sortJobsNewestFirst(
+    (Array.isArray(jobs) ? jobs : []).map(normalizeJob)
+  );
+  const members = currentGarageContext.members || [];
+  const memberNameById = new Map(
+    members.map((m) => [m.uid, m.displayName || "Mechanic"])
+  );
+
+  if (!normalized.length) {
+    list.innerHTML =
+      '<p class="available-jobs-empty">No garage jobs yet. Bookings for your team will show here.</p>';
+    updateGarageJobAlert([]);
+    return;
+  }
+
+  updateGarageJobAlert(normalized);
+
+  const canDispatchStatuses = new Set(["REQUESTED", "MATCHING", "ASSIGNED"]);
+
+  list.innerHTML = "";
+  normalized.forEach((job) => {
+    const card = buildJobCard(job, {
+      includeStatus: true,
+      showDriver: true,
+    });
+    const assignee = document.createElement("p");
+    assignee.className = "job-card-status";
+    if (!job.mechanicId) {
+      assignee.textContent = "Mechanic: Unassigned";
+    } else if (job.mechanicId === currentUserProfile?.id) {
+      assignee.textContent = "Mechanic: You";
+    } else {
+      const name = memberNameById.get(job.mechanicId);
+      assignee.textContent = name
+        ? `Mechanic: ${name}`
+        : `Mechanic ID: ${String(job.mechanicId).slice(0, 8)}…`;
+    }
+    card.querySelector(".job-card-body")?.appendChild(assignee);
+
+    if (
+      currentGarageContext.isOwner &&
+      canDispatchStatuses.has(String(job.status || "")) &&
+      members.length
+    ) {
+      const dispatch = document.createElement("div");
+      dispatch.className = "garage-dispatch-row";
+
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", "Assign mechanic");
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Assign to…";
+      select.appendChild(placeholder);
+      members.forEach((member) => {
+        const option = document.createElement("option");
+        option.value = member.uid;
+        option.textContent =
+          member.uid === currentUserProfile?.id
+            ? `${member.displayName || "You"} (you)`
+            : member.displayName || member.uid.slice(0, 8);
+        if (member.uid === job.mechanicId) option.selected = true;
+        select.appendChild(option);
+      });
+
+      const assignBtn = document.createElement("button");
+      assignBtn.type = "button";
+      assignBtn.className = "btn-secondary";
+      assignBtn.textContent = job.mechanicId ? "Reassign" : "Assign";
+      assignBtn.addEventListener("click", async () => {
+        const mechanicId = select.value;
+        if (!mechanicId) {
+          if (status) status.textContent = "Select a mechanic first.";
+          return;
+        }
+        assignBtn.disabled = true;
+        try {
+          await jobService.reassignGarageJob(job.id, mechanicId, {
+            garageId: currentGarageContext.garage?.id || job.garageId,
+          });
+          if (status) {
+            status.textContent = `Assigned to ${
+              memberNameById.get(mechanicId) || "mechanic"
+            }.`;
+          }
+        } catch (error) {
+          if (status) {
+            status.textContent = error.message || "Unable to assign job.";
+          }
+        } finally {
+          assignBtn.disabled = false;
+        }
+      });
+
+      dispatch.appendChild(select);
+      dispatch.appendChild(assignBtn);
+      card.querySelector(".job-card-body")?.appendChild(dispatch);
+    }
+
+    list.appendChild(card);
+  });
 }
 
 function startJobSync() {
@@ -749,6 +1017,13 @@ function startJobSync() {
         }
       }
     );
+
+    if (
+      currentGarageContext.isOwner &&
+      currentGarageContext.garage?.id
+    ) {
+      startGarageJobsSync(currentGarageContext.garage.id);
+    }
     return;
   }
 
@@ -1250,6 +1525,7 @@ const mechanicPanelDistance = document.getElementById("mechanic-panel-distance")
 const mechanicPanelMeta = document.getElementById("mechanic-panel-meta");
 const mechanicPanelService = document.getElementById("mechanic-panel-service");
 const mechanicPanelPrice = document.getElementById("mechanic-panel-price");
+const mechanicPanelTeam = document.getElementById("mechanic-panel-team");
 const mechanicChatBtn = document.getElementById("mechanic-chat-btn");
 const mechanicBookBtn = document.getElementById("mechanic-book-btn");
 const mechanicCallBtn = document.getElementById("mechanic-call-btn");
@@ -2042,7 +2318,12 @@ function hideDriverMechanicPanel() {
   driverMechanicPanel?.classList.add("hidden");
   closestBadge?.classList.add("hidden");
   selectedMechanicEntry = null;
+  selectedMapGroup = null;
   autoSelectedMechanicId = null;
+  if (mechanicPanelTeam) {
+    mechanicPanelTeam.innerHTML = "";
+    mechanicPanelTeam.classList.add("hidden");
+  }
 }
 
 function resetGoogleMapInstance() {
@@ -2091,6 +2372,7 @@ function clearMechanicMapState({ keepMapVisible = false } = {}) {
   }
   driverPosition = null;
   matchedMechanics = [];
+  selectedMapGroup = null;
   if (!keepMapVisible) {
     mapElement?.classList.remove("active");
   }
@@ -2148,6 +2430,42 @@ async function getDriverPosition() {
   }
 }
 
+async function attachGaragePricesToEntries(entries) {
+  const garageIds = [
+    ...new Set(
+      entries
+        .map((entry) => String(entry.mechanic?.garageId || "").trim())
+        .filter(Boolean)
+    ),
+  ];
+  if (!garageIds.length) return entries;
+
+  const priceByGarageId = new Map();
+  await Promise.all(
+    garageIds.map(async (garageId) => {
+      try {
+        const garage = await garageService.getGarage(garageId);
+        priceByGarageId.set(garageId, garage?.servicePrices || {});
+      } catch (error) {
+        console.warn("Garage price lookup failed:", garageId, error);
+        priceByGarageId.set(garageId, {});
+      }
+    })
+  );
+
+  return entries.map((entry) => {
+    const garageId = String(entry.mechanic?.garageId || "").trim();
+    if (!garageId) return entry;
+    return {
+      ...entry,
+      mechanic: {
+        ...entry.mechanic,
+        garageServicePrices: priceByGarageId.get(garageId) || {},
+      },
+    };
+  });
+}
+
 function buildMechanicEntries(docs, driverPos = null) {
   return docs.map((docItem) => {
     const mechanic = docItem.data();
@@ -2186,6 +2504,7 @@ function refreshSelectedMechanicPanel() {
   selectedMechanicEntry = updated;
   renderMechanicPanel(updated, {
     showClosestBadge: updated.id === autoSelectedMechanicId,
+    mapGroup: selectedMapGroup,
   });
 }
 
@@ -2224,15 +2543,27 @@ async function applyDriverPositionToMap(serviceName) {
       selectedMechanicEntry.id === autoSelectedMechanicId;
 
     if (keepAutoSelection) {
-      autoSelectedMechanicId = closest.id;
-      selectMechanicEntry(closest, { autoClosest: true });
+      const groups = groupMechanicEntriesForMap(withCoords);
+      const closestGroup =
+        groups.find((group) =>
+          group.entries.some((entry) => entry.id === closest.id)
+        ) || groups[0];
+      const defaultEntry = pickDefaultMemberFromGroup(closestGroup) || closest;
+      autoSelectedMechanicId = defaultEntry.id;
+      selectMechanicEntry(defaultEntry, {
+        mapGroup: closestGroup,
+        autoClosest: true,
+      });
     } else {
       const updated = matchedMechanics.find(
         (entry) => entry.id === selectedMechanicEntry.id
       );
       if (updated) {
         selectedMechanicEntry = updated;
-        renderMechanicPanel(updated, { showClosestBadge: false });
+        renderMechanicPanel(updated, {
+          showClosestBadge: false,
+          mapGroup: selectedMapGroup,
+        });
       }
     }
 
@@ -2244,8 +2575,20 @@ async function applyDriverPositionToMap(serviceName) {
       };
     }
 
+    const groups = groupMechanicEntriesForMap(withCoords);
+    const garageCount = groups.filter((g) => g.type === "garage").length;
+    const soloCount = groups.length - garageCount;
+    const parts = [];
+    if (garageCount) parts.push(`${garageCount} garage(s)`);
+    if (soloCount) {
+      parts.push(
+        `${soloCount} ${
+          driverMapDiscoveryMode === "parts_dealers" ? "dealer(s)" : "mechanic(s)"
+        }`
+      );
+    }
     showMapMatchNotification(
-      `${withCoords.length} ${driverMapDiscoveryMode === "parts_dealers" ? "parts dealer(s)" : "mechanic(s)"} nearby for “${serviceName}”. Closest auto-selected.`,
+      `${parts.join(" · ") || "0 matches"} nearby for “${serviceName}”. Closest auto-selected.`,
       { autoDismissMs: 3000 }
     );
   } catch {
@@ -2345,26 +2688,121 @@ function applyDistanceLabel(el, dist, entry) {
   el.textContent = "Calculating distance...";
 }
 
-function renderMechanicPanel(entry, { showClosestBadge = false } = {}) {
+function renderMechanicPanelTeam(group, selectedEntry) {
+  if (!mechanicPanelTeam) return;
+  mechanicPanelTeam.innerHTML = "";
+
+  if (!group || group.type !== "garage" || group.entries.length < 2) {
+    mechanicPanelTeam.classList.add("hidden");
+    return;
+  }
+
+  mechanicPanelTeam.classList.remove("hidden");
+  const label = document.createElement("p");
+  label.className = "mechanic-panel-team-label";
+  label.textContent = `${group.entries.length} specialists for this service`;
+  mechanicPanelTeam.appendChild(label);
+
+  const activeVehicle = getActiveVehicle(currentUserProfile);
+  group.entries.forEach((memberEntry) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mechanic-panel-team-btn";
+    if (memberEntry.id === selectedEntry?.id) {
+      btn.classList.add("is-selected");
+    }
+
+    const name = document.createElement("span");
+    name.textContent = memberEntry.mechanic?.name || "Mechanic";
+    btn.appendChild(name);
+
+    const price = selectedSubservice
+      ? getMechanicServicePrice(
+          memberEntry.mechanic,
+          selectedSubservice,
+          activeVehicle
+        )
+      : null;
+    if (price != null && price > 0) {
+      const priceEl = document.createElement("span");
+      priceEl.className = "mechanic-panel-team-price";
+      priceEl.textContent = `KSh ${formatKsh(price)}`;
+      btn.appendChild(priceEl);
+    }
+
+    btn.addEventListener("click", () => {
+      selectMechanicEntry(memberEntry, {
+        mapGroup: group,
+        zoomDetail: false,
+        autoClosest: false,
+      });
+    });
+    mechanicPanelTeam.appendChild(btn);
+  });
+}
+
+function renderMechanicPanel(
+  entry,
+  { showClosestBadge = false, mapGroup = null } = {}
+) {
   if (!entry || !driverMechanicPanel) return;
   const { mechanic, distanceMeters: dist } = entry;
   const isPartsMode = driverMapDiscoveryMode === "parts_dealers";
   const fallbackName = isPartsMode ? "Parts Dealer" : "Mechanic";
+  const group = mapGroup || selectedMapGroup;
+  const isGarageGroup = group?.type === "garage" && group.entries?.length;
+
   driverMechanicPanel.classList.remove("hidden");
   closestBadge?.classList.toggle("hidden", !showClosestBadge);
-  const displayName = mechanic.name || fallbackName;
+
+  const garageLabel = isGarageGroup
+    ? String(group.label || mechanic.institutionName || "Garage").trim()
+    : String(mechanic.institutionName || "").trim();
+  const displayName = isGarageGroup
+    ? garageLabel || mechanic.name || fallbackName
+    : mechanic.name || fallbackName;
+
   if (mechanicPanelName) {
     mechanicPanelName.textContent = displayName;
   }
-  setMechanicPanelPhoto(mechanic.profilePhotoUrl, displayName);
+  setMechanicPanelPhoto(
+    isGarageGroup
+      ? mechanic.garagePhotos?.[0] || mechanic.profilePhotoUrl
+      : mechanic.profilePhotoUrl,
+    displayName
+  );
   if (mechanicPanelDistance) {
-    applyDistanceLabel(mechanicPanelDistance, dist, entry);
+    const distanceEntry =
+      isGarageGroup && group.distanceMeters != null
+        ? { ...entry, distanceMeters: group.distanceMeters }
+        : entry;
+    applyDistanceLabel(
+      mechanicPanelDistance,
+      distanceEntry.distanceMeters,
+      distanceEntry
+    );
   }
   if (mechanicPanelMeta) {
-    mechanicPanelMeta.textContent =
-      mechanic.city || mechanic.location
-        ? `Area: ${mechanic.city || mechanic.location}`
-        : "Location shared on map";
+    if (isGarageGroup) {
+      const specialist = mechanic.name || "Specialist";
+      const count = group.entries.length;
+      mechanicPanelMeta.textContent =
+        count > 1
+          ? `${count} specialists · booking ${specialist}`
+          : `Garage specialist · ${specialist}`;
+    } else {
+      const garageName = String(mechanic.institutionName || "").trim();
+      const area = mechanic.city || mechanic.location || mechanic.address || "";
+      if (garageName && area) {
+        mechanicPanelMeta.textContent = `${garageName} · ${area}`;
+      } else if (garageName) {
+        mechanicPanelMeta.textContent = garageName;
+      } else if (area) {
+        mechanicPanelMeta.textContent = `Area: ${area}`;
+      } else {
+        mechanicPanelMeta.textContent = "Location shared on map";
+      }
+    }
   }
   if (mechanicPanelService) {
     mechanicPanelService.textContent = selectedSubservice
@@ -2372,48 +2810,151 @@ function renderMechanicPanel(entry, { showClosestBadge = false } = {}) {
       : "";
   }
   if (mechanicPanelPrice) {
+    const activeVehicle = getActiveVehicle(currentUserProfile);
     const price = selectedSubservice
       ? isPartsMode
         ? getPartsDealerPartPrice(mechanic, selectedSubservice)
-        : getMechanicServicePrice(mechanic, selectedSubservice)
+        : getMechanicServicePrice(mechanic, selectedSubservice, activeVehicle)
       : null;
     if (price != null && price > 0) {
-      mechanicPanelPrice.textContent = `Price: KSh ${formatKsh(price)}`;
+      const vehicleLabel = activeVehicle ? vehicleDisplayName(activeVehicle) : "";
+      mechanicPanelPrice.textContent = vehicleLabel
+        ? `Price for ${vehicleLabel}: KSh ${formatKsh(price)}`
+        : `Price: KSh ${formatKsh(price)}`;
       mechanicPanelPrice.classList.remove("hidden");
     } else {
       mechanicPanelPrice.textContent = "";
       mechanicPanelPrice.classList.add("hidden");
     }
   }
+
+  renderMechanicPanelTeam(isGarageGroup ? group : null, entry);
   mechanicBookBtn?.classList.toggle("hidden", isPartsMode);
   updateAdminContactButtons(mechanic);
 }
 
-function selectMechanicEntry(entry, { autoClosest = false, zoomDetail = false } = {}) {
+function selectMechanicEntry(
+  entry,
+  { autoClosest = false, zoomDetail = false, mapGroup = null } = {}
+) {
   if (!entry) return;
   selectedMechanicEntry = entry;
-  renderMechanicPanel(entry, { showClosestBadge: autoClosest });
+  if (mapGroup) {
+    selectedMapGroup = mapGroup;
+  } else if (
+    selectedMapGroup?.type === "garage" &&
+    selectedMapGroup.entries?.some((m) => m.id === entry.id)
+  ) {
+    // keep current garage group when switching specialists
+  } else {
+    selectedMapGroup = {
+      type: "mechanic",
+      id: entry.id,
+      entries: [entry],
+      position: entry.position,
+      label: entry.mechanic?.name || "Mechanic",
+    };
+  }
+
+  renderMechanicPanel(entry, {
+    showClosestBadge: autoClosest,
+    mapGroup: selectedMapGroup,
+  });
 
   const isPartsMode = driverMapDiscoveryMode === "parts_dealers";
   const markerColor = isPartsMode ? "#ff8800" : "#ff0000";
+  const garageColor = "#1565c0";
   const selectedColor = isPartsMode ? "#ffaa33" : "#ff4444";
+  const selectedGarageColor = "#42a5f5";
 
-  mapMarkers.forEach(({ marker, entry: markerEntry }) => {
-    const isSelected = markerEntry.id === entry.id;
+  mapMarkers.forEach(({ marker, entry: markerEntry, group }) => {
+    const isGarageMarker = group?.type === "garage";
+    const isSelected = isGarageMarker
+      ? group.id === selectedMapGroup?.id ||
+        group.entries?.some((m) => m.id === entry.id)
+      : markerEntry.id === entry.id;
+    const baseColor = isGarageMarker ? garageColor : markerColor;
+    const activeColor = isGarageMarker ? selectedGarageColor : selectedColor;
     marker.setIcon({
       path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-      scale: isSelected ? 7 : 5,
-      fillColor: isSelected ? selectedColor : markerColor,
+      scale: isSelected ? 7 : isGarageMarker ? 6 : 5,
+      fillColor: isSelected ? activeColor : baseColor,
       fillOpacity: 1,
       strokeWeight: 2,
       strokeColor: "#ffffff",
     });
-    marker.setZIndex(isSelected ? 1000 : 1);
+    marker.setZIndex(isSelected ? 1000 : isGarageMarker ? 5 : 1);
   });
 
-  if (zoomDetail && entry.position) {
-    smoothCenterMap(entry.position, MAP_MECHANIC_DETAIL_ZOOM);
+  if (zoomDetail && (selectedMapGroup?.position || entry.position)) {
+    smoothCenterMap(
+      selectedMapGroup?.position || entry.position,
+      MAP_MECHANIC_DETAIL_ZOOM
+    );
   }
+}
+
+function placeMapGroups(groups, { serviceLabel = "service", color = "#ff0000" } = {}) {
+  if (!googleMap) return;
+
+  const bounds = new google.maps.LatLngBounds();
+  groups.forEach((group) => {
+    if (!group.position) return;
+    const isGarage = group.type === "garage";
+    const marker = new google.maps.Marker({
+      position: group.position,
+      map: googleMap,
+      title: group.label,
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: isGarage ? 6 : 5,
+        fillColor: isGarage ? "#1565c0" : color,
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: "#ffffff",
+      },
+    });
+
+    marker.addListener("click", () => {
+      const defaultEntry = pickDefaultMemberFromGroup(group);
+      if (!defaultEntry) return;
+      selectMechanicEntry(defaultEntry, {
+        mapGroup: group,
+        zoomDetail: true,
+      });
+    });
+
+    const primaryEntry = pickDefaultMemberFromGroup(group);
+    mapMarkers.push({
+      marker,
+      entry: primaryEntry,
+      group,
+    });
+    bounds.extend(group.position);
+  });
+
+  googleMap.fitBounds(bounds);
+
+  const initialGroup = groups[0];
+  const initialSelection = pickDefaultMemberFromGroup(initialGroup);
+  if (initialSelection) {
+    autoSelectedMechanicId = initialSelection.id;
+    selectMechanicEntry(initialSelection, {
+      mapGroup: initialGroup,
+      autoClosest: true,
+      zoomDetail: false,
+    });
+  }
+
+  const garageCount = groups.filter((g) => g.type === "garage").length;
+  const soloCount = groups.length - garageCount;
+  const parts = [];
+  if (garageCount) parts.push(`${garageCount} garage(s)`);
+  if (soloCount) parts.push(`${soloCount} mechanic(s)`);
+  showMapMatchNotification(
+    `${parts.join(" · ") || "0 matches"} on map for “${serviceLabel}”.`,
+    { autoDismissMs: 3000 }
+  );
 }
 
 function placeDriverMarker(position) {
@@ -2633,7 +3174,9 @@ async function fetchMatchingMechanics(serviceName) {
       return;
     }
 
-    matchedMechanics = buildMechanicEntries(matchingDocs);
+    matchedMechanics = await attachGaragePricesToEntries(
+      buildMechanicEntries(matchingDocs)
+    );
     const withCoords = matchedMechanics.filter((entry) => entry.position);
     if (!withCoords.length) {
       showNoMechanicsOnMap(
@@ -2646,46 +3189,12 @@ async function fetchMatchingMechanics(serviceName) {
     if (mapHint) mapHint.style.display = "block";
     if (!map) return;
 
-    const bounds = new google.maps.LatLngBounds();
-
-    withCoords.forEach((entry) => {
-      const marker = new google.maps.Marker({
-        position: entry.position,
-        map: googleMap,
-        title: entry.mechanic.name || "Mechanic",
-        icon: {
-          path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-          scale: 5,
-          fillColor: "#ff0000",
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: "#ffffff",
-        },
-      });
-
-      marker.addListener("click", () => {
-        selectMechanicEntry(entry, { zoomDetail: true });
-      });
-
-      mapMarkers.push({ marker, entry });
-      bounds.extend(entry.position);
+    const mapGroups = groupMechanicEntriesForMap(withCoords);
+    placeMapGroups(mapGroups, {
+      serviceLabel: serviceName,
+      color: "#ff0000",
     });
 
-    googleMap.fitBounds(bounds);
-
-    const initialSelection = withCoords[0];
-    if (initialSelection) {
-      autoSelectedMechanicId = initialSelection.id;
-      selectMechanicEntry(initialSelection, {
-        autoClosest: true,
-        zoomDetail: false,
-      });
-    }
-
-    showMapMatchNotification(
-      `${withCoords.length} mechanic(s) on map for “${serviceName}”.`,
-      { autoDismissMs: 3000 }
-    );
     fixGoogleMapContainerFill();
     applyDriverPositionToMap(serviceName);
   } catch (error) {
@@ -3142,8 +3651,13 @@ async function handleBookNow() {
     ? `GPS: ${driverPosition.lat.toFixed(5)}, ${driverPosition.lng.toFixed(5)}`
     : "Location not provided";
   const description = "";
+  const activeVehicle = getActiveVehicle(currentUserProfile);
   const suggestedPrice =
-    getMechanicServicePrice(selectedMechanicEntry.mechanic, selectedSubservice) ?? 0;
+    getMechanicServicePrice(
+      selectedMechanicEntry.mechanic,
+      selectedSubservice,
+      activeVehicle
+    ) ?? 0;
 
   mechanicBookBtn.disabled = true;
   mechanicBookBtn.textContent = "Booking…";
@@ -3160,6 +3674,10 @@ async function handleBookNow() {
       {
         driverName: currentUserProfile?.name || "",
         driverPhotoUrl: currentUserProfile?.profilePhotoUrl || "",
+        vehicleId: activeVehicle?.id || "",
+        vehicleMake: activeVehicle?.make || "",
+        vehicleModel: activeVehicle?.model || "",
+        garageId: selectedMechanicEntry.mechanic?.garageId || "",
       }
     );
     bookStatus.textContent = `Booked with ${selectedMechanicEntry.mechanic.name || "mechanic"}. Job #${jobId.slice(0, 8)}… — loyalty tracking started.`;
@@ -3474,6 +3992,21 @@ function mechanicServicesDraftKey(userId) {
   return `mototap_mechanic_services_draft_${userId}`;
 }
 
+function lookupCaseInsensitiveServicePrice(prices, serviceName) {
+  const target = String(serviceName || "").trim();
+  if (!target || !prices || typeof prices !== "object") return null;
+
+  if (Object.prototype.hasOwnProperty.call(prices, target)) {
+    return prices[target];
+  }
+
+  const targetLower = target.toLowerCase();
+  for (const [name, value] of Object.entries(prices)) {
+    if (name.toLowerCase() === targetLower) return value;
+  }
+  return null;
+}
+
 function readMechanicServicesDraft(userId) {
   if (!userId) return null;
   try {
@@ -3510,30 +4043,69 @@ function clearMechanicServicesDraft(userId) {
   }
 }
 
-function collectMechanicServicesFromForm() {
+function collectVehiclePriceOverridesFromBlock(block) {
+  const overrides = [];
+  let incomplete = false;
+
+  block.querySelectorAll(".mechanic-vehicle-price-row").forEach((row) => {
+    const { make, model } = readMakeModelFromContainer(row);
+    const overridePrice = parsePriceInput(
+      row.querySelector(".mechanic-vehicle-price-input")?.value
+    );
+    if (!make && !model && overridePrice === null) return;
+    if (!make || !model || overridePrice === null) {
+      incomplete = true;
+      return;
+    }
+    overrides.push({ make, model, price: overridePrice });
+  });
+
+  return { overrides, incomplete };
+}
+
+function collectMechanicServicesFromForm(root = mechanicServiceList) {
   const selectedSkills = [];
   const pricesByName = {};
   let hasIncomplete = false;
+  const staffMember = usesGarageServicePricing() && root === mechanicServiceList;
 
-  mechanicServiceList?.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
-    const checkbox = row.querySelector("input[type='checkbox']");
+  root?.querySelectorAll(".mechanic-service-offer-block").forEach((block) => {
+    const checkbox = block.querySelector("input[type='checkbox']");
     if (!checkbox?.checked) return;
 
     const serviceName = String(checkbox.value || "").trim();
     if (!serviceName) return;
 
-    const priceInput = row.querySelector(".mechanic-service-price-input");
-    const price = parsePriceInput(priceInput?.value);
-    if (price === null) {
+    if (staffMember) {
+      selectedSkills.push(serviceName);
+      return;
+    }
+
+    const { overrides, incomplete } = collectVehiclePriceOverridesFromBlock(block);
+    if (incomplete || overrides.length === 0) {
       hasIncomplete = true;
       return;
     }
 
     selectedSkills.push(serviceName);
-    pricesByName[serviceName] = price;
+    pricesByName[serviceName] = { overrides };
   });
 
   return { selectedSkills, pricesByName, hasIncomplete };
+}
+
+function collectMechanicServiceDraftEntry(block) {
+  const checkbox = block.querySelector("input[type='checkbox']");
+  if (!checkbox?.checked) return null;
+
+  const serviceName = String(checkbox.value || "").trim();
+  if (!serviceName) return null;
+
+  const { overrides } = collectVehiclePriceOverridesFromBlock(block);
+  return {
+    serviceName,
+    entry: overrides.length > 0 ? { overrides } : null,
+  };
 }
 
 function syncMechanicServicesDraft() {
@@ -3543,22 +4115,93 @@ function syncMechanicServicesDraft() {
   const skills = [];
   const prices = {};
 
-  mechanicServiceList.querySelectorAll(".mechanic-service-offer-row").forEach((row) => {
-    const checkbox = row.querySelector("input[type='checkbox']");
-    if (!checkbox?.checked) return;
-
-    const serviceName = String(checkbox.value || "").trim();
-    if (!serviceName) return;
-
-    skills.push(serviceName);
-    const priceInput = row.querySelector(".mechanic-service-price-input");
-    const price = parsePriceInput(priceInput?.value);
-    if (price != null) {
-      prices[serviceName] = price;
+  mechanicServiceList.querySelectorAll(".mechanic-service-offer-block").forEach((block) => {
+    const draftEntry = collectMechanicServiceDraftEntry(block);
+    if (!draftEntry) return;
+    skills.push(draftEntry.serviceName);
+    if (draftEntry.entry != null) {
+      prices[draftEntry.serviceName] = draftEntry.entry;
     }
   });
 
   writeMechanicServicesDraft(userId, { skills, prices });
+}
+
+function createVehicleOverrideRow(override = {}, onChange) {
+  const row = document.createElement("div");
+  row.className = "mechanic-vehicle-price-row";
+
+  const { makeSelect, modelSelect } = createVehicleMakeModelSelects({
+    makeClass: "mechanic-vehicle-make-input vehicle-make-select",
+    modelClass: "mechanic-vehicle-model-input vehicle-model-select",
+    makeAriaLabel: "Vehicle make",
+    modelAriaLabel: "Vehicle model",
+    selectedMake: override.make || "",
+    selectedModel: override.model || "",
+    onChange,
+  });
+
+  const priceInput = document.createElement("input");
+  priceInput.type = "text";
+  priceInput.inputMode = "numeric";
+  priceInput.className = "mechanic-vehicle-price-input";
+  priceInput.placeholder = "Ksh";
+  priceInput.setAttribute("aria-label", "Price for this vehicle");
+  if (override.price != null) {
+    priceInput.value = String(override.price);
+  }
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "mechanic-remove-vehicle-price-btn";
+  removeBtn.textContent = "Remove";
+  removeBtn.setAttribute("aria-label", "Remove vehicle price");
+
+  const handleChange = () => onChange?.();
+  priceInput.addEventListener("input", handleChange);
+  priceInput.addEventListener("blur", handleChange);
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    onChange?.();
+  });
+
+  row.appendChild(makeSelect);
+  row.appendChild(modelSelect);
+  row.appendChild(priceInput);
+  row.appendChild(removeBtn);
+  return row;
+}
+
+function buildMechanicVehiclePricesPanel(serviceName, savedEntry, onChange) {
+  const panel = document.createElement("div");
+  panel.className = "mechanic-vehicle-prices-panel hidden";
+
+  const hint = document.createElement("p");
+  hint.className = "mechanic-vehicle-prices-hint";
+  hint.textContent =
+    "Set a price for each make and model from the catalog. Drivers see the best match for their vehicle.";
+  panel.appendChild(hint);
+
+  const rows = document.createElement("div");
+  rows.className = "mechanic-vehicle-price-rows";
+  const formEntry = toFormPriceEntry(savedEntry);
+  formEntry.overrides.forEach((override) => {
+    rows.appendChild(createVehicleOverrideRow(override, onChange));
+  });
+  panel.appendChild(rows);
+
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "mechanic-add-vehicle-price-btn";
+  addBtn.textContent = "+ Add vehicle price";
+  addBtn.addEventListener("click", () => {
+    rows.appendChild(createVehicleOverrideRow({}, onChange));
+    onChange?.();
+    rows.lastElementChild?.querySelector(".vehicle-make-select")?.focus();
+  });
+  panel.appendChild(addBtn);
+
+  return { panel, rows, addBtn };
 }
 
 function queueMechanicServicesAutoSave() {
@@ -3566,6 +4209,38 @@ function queueMechanicServicesAutoSave() {
   mechanicAutoSaveTimer = setTimeout(() => {
     void persistMechanicServices({ silent: true });
   }, 900);
+}
+
+function isGarageStaffMember(profile = currentUserProfile) {
+  if (!profile) return false;
+  const garageId = String(profile.garageId || "").trim();
+  if (!garageId) return false;
+  const role = String(profile.garageRole || "").trim();
+  if (role === GarageMemberRole.OWNER) return false;
+  if (role === GarageMemberRole.MECHANIC) return true;
+  // Fallback: in a garage but not marked owner
+  return (
+    currentGarageContext?.garage?.ownerId &&
+    currentGarageContext.garage.ownerId !== profile.id
+  );
+}
+
+/** Garage members (owner + staff) use garage catalog prices, not personal rates. */
+function usesGarageServicePricing(profile = currentUserProfile) {
+  return Boolean(String(profile?.garageId || "").trim());
+}
+
+function updateMechanicServicesBlurb() {
+  const blurb = document.getElementById("mechanic-services-blurb");
+  if (!blurb) return;
+  if (usesGarageServicePricing()) {
+    blurb.textContent = isGarageStaffMember()
+      ? "Choose the services you personally deliver. Prices come from your garage — drivers see those rates when booking you."
+      : "Choose the services you personally deliver. Shop prices are set above under Garage service prices — drivers see those rates when booking anyone from this garage.";
+  } else {
+    blurb.textContent =
+      "Choose the services you can deliver and set a price for each make and model. Drivers see the price that matches their vehicle when booking.";
+  }
 }
 
 async function persistMechanicServices({ silent = false } = {}) {
@@ -3576,9 +4251,11 @@ async function persistMechanicServices({ silent = false } = {}) {
     return { success: false };
   }
 
+  const garagePricing = usesGarageServicePricing();
   const { selectedSkills, pricesByName, hasIncomplete } = collectMechanicServicesFromForm();
-  if (hasIncomplete) {
-    const message = "Enter a price for every selected service before saving.";
+  if (!garagePricing && hasIncomplete) {
+    const message =
+      "Add at least one complete make/model price for every selected service.";
     if (!silent) {
       throw new Error(message);
     }
@@ -3589,7 +4266,9 @@ async function persistMechanicServices({ silent = false } = {}) {
     return { success: false, skipped: true };
   }
 
-  const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
+  const servicePrices = garagePricing
+    ? {}
+    : buildServicePricesPayload(selectedSkills, pricesByName);
 
   if (!silent) {
     saveServicesBtn.disabled = true;
@@ -3601,7 +4280,8 @@ async function persistMechanicServices({ silent = false } = {}) {
     const result = await authService.updateMechanicSkills(
       auth.currentUser.uid,
       selectedSkills,
-      servicePrices
+      servicePrices,
+      { replacePrices: garagePricing }
     );
     if (!result.success) {
       throw new Error(result.error || "Failed to save services.");
@@ -3611,7 +4291,9 @@ async function persistMechanicServices({ silent = false } = {}) {
     currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
 
     if (!silent) {
-      mechanicStatus.textContent = `Saved ${selectedSkills.length} offered service(s) with prices.`;
+      mechanicStatus.textContent = garagePricing
+        ? `Saved ${selectedSkills.length} offered service(s). Prices come from your garage.`
+        : `Saved ${selectedSkills.length} offered service(s) with prices.`;
       mechanicError.textContent = "";
       renderMechanicServiceSelection();
       startJobSync();
@@ -3621,7 +4303,8 @@ async function persistMechanicServices({ silent = false } = {}) {
   } catch (error) {
     if (!silent) {
       mechanicError.textContent =
-        error.message?.startsWith("Enter a price") || error.message?.includes("every selected")
+        error.message?.includes("make/model price") ||
+        error.message?.includes("every selected")
           ? error.message
           : `Unable to save services: ${error.message}`;
     }
@@ -3640,7 +4323,13 @@ async function refreshMechanicDashboard() {
   await loadUserProfile(auth.currentUser);
 }
 
-function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}, servicesDraft = null) {
+function buildMechanicCategoryCard(
+  category,
+  existingSkills,
+  existingPrices = {},
+  servicesDraft = null,
+  { autoSave = true, hidePricing = false } = {}
+) {
   const { card, body } = createServiceCategoryCardShell(category);
 
   category.groups.forEach((group) => {
@@ -3652,6 +4341,9 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
     groupCard.appendChild(groupTitle);
 
     group.items.forEach((serviceName) => {
+      const block = document.createElement("div");
+      block.className = "mechanic-service-offer-block";
+
       const row = document.createElement("div");
       row.className = "mechanic-service-offer-row";
 
@@ -3670,49 +4362,85 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
       nameSpan.className = "mechanic-service-offer-name";
       nameSpan.textContent = serviceName;
 
-      const priceInput = document.createElement("input");
-      priceInput.type = "text";
-      priceInput.inputMode = "numeric";
-      priceInput.className = "mechanic-service-price-input";
-      priceInput.placeholder = "Ksh";
-      priceInput.setAttribute("aria-label", `Price for ${serviceName} in Kenyan Shillings`);
-      const draftPrice = servicesDraft
-        ? getMechanicServicePrice({ servicePrices: servicesDraft.prices }, serviceName)
-        : null;
-      const savedPrice =
-        getMechanicServicePrice({ servicePrices: existingPrices }, serviceName) ??
-        draftPrice;
-      if (savedPrice != null) {
-        priceInput.value = String(savedPrice);
-      }
-      priceInput.disabled = !checkbox.checked;
+      label.appendChild(checkbox);
+      label.appendChild(nameSpan);
+      row.appendChild(label);
 
       const handleMechanicServiceFormChange = () => {
+        if (!autoSave) return;
         syncMechanicServicesDraft();
         queueMechanicServicesAutoSave();
       };
 
+      if (hidePricing) {
+        checkbox.addEventListener("change", handleMechanicServiceFormChange);
+        block.appendChild(row);
+        groupCard.appendChild(block);
+        return;
+      }
+
+      const draftEntry = lookupCaseInsensitiveServicePrice(servicesDraft?.prices, serviceName);
+      const savedEntry =
+        lookupCaseInsensitiveServicePrice(existingPrices, serviceName) ??
+        draftEntry ??
+        null;
+      const formEntry = toFormPriceEntry(savedEntry);
+      const hasVehiclePrices = formEntry.overrides.length > 0;
+
+      const vehicleToggle = document.createElement("button");
+      vehicleToggle.type = "button";
+      vehicleToggle.className = "mechanic-vehicle-prices-toggle";
+      vehicleToggle.textContent = "Vehicle prices";
+      vehicleToggle.title = "Set prices for specific makes and models";
+      vehicleToggle.setAttribute("aria-expanded", "false");
+      vehicleToggle.disabled = !checkbox.checked;
+
+      const { panel: vehiclePanel, rows: vehicleRows } = buildMechanicVehiclePricesPanel(
+        serviceName,
+        savedEntry,
+        handleMechanicServiceFormChange
+      );
+
+      const setVehiclePanelOpen = (open) => {
+        vehiclePanel.classList.toggle("hidden", !open);
+        vehicleToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        vehicleToggle.textContent = open ? "Hide vehicle prices" : "Vehicle prices";
+        if (open && !vehicleRows.querySelector(".mechanic-vehicle-price-row")) {
+          vehicleRows.appendChild(
+            createVehicleOverrideRow({}, handleMechanicServiceFormChange)
+          );
+        }
+      };
+
+      if (checkbox.checked || hasVehiclePrices) {
+        setVehiclePanelOpen(true);
+      }
+
+      vehicleToggle.addEventListener("click", () => {
+        setVehiclePanelOpen(vehiclePanel.classList.contains("hidden"));
+      });
+
       checkbox.addEventListener("change", () => {
-        priceInput.disabled = !checkbox.checked;
+        vehicleToggle.disabled = !checkbox.checked;
         if (!checkbox.checked) {
-          priceInput.value = "";
+          setVehiclePanelOpen(false);
+          vehiclePanel.querySelectorAll(".mechanic-vehicle-price-row").forEach((r) => r.remove());
         } else {
-          priceInput.focus();
+          setVehiclePanelOpen(true);
+          vehicleRows
+            .querySelector(".vehicle-make-select")
+            ?.focus();
         }
         handleMechanicServiceFormChange();
       });
 
-      priceInput.addEventListener("input", handleMechanicServiceFormChange);
-      priceInput.addEventListener("blur", () => {
-        syncMechanicServicesDraft();
-        void persistMechanicServices({ silent: true });
-      });
-
-      label.appendChild(checkbox);
-      label.appendChild(nameSpan);
-      row.appendChild(label);
-      row.appendChild(priceInput);
-      groupCard.appendChild(row);
+      const actions = document.createElement("div");
+      actions.className = "mechanic-service-offer-actions";
+      actions.appendChild(vehicleToggle);
+      row.appendChild(actions);
+      block.appendChild(row);
+      block.appendChild(vehiclePanel);
+      groupCard.appendChild(block);
     });
 
     body.appendChild(groupCard);
@@ -3722,16 +4450,111 @@ function buildMechanicCategoryCard(category, existingSkills, existingPrices = {}
 }
 
 function renderMechanicServiceSelection() {
+  if (!mechanicServiceList) return;
   mechanicServiceList.innerHTML = "";
+  updateMechanicServicesBlurb();
+
   const existingSkills = currentUserProfile?.skills || [];
   const existingPrices = normalizeServicePrices(currentUserProfile?.servicePrices);
   const servicesDraft = readMechanicServicesDraft(auth.currentUser?.uid);
+  const hidePricing = usesGarageServicePricing();
 
   appendCatalogByDisplayGroup(mechanicServiceList, (category) =>
-    buildMechanicCategoryCard(category, existingSkills, existingPrices, servicesDraft)
+    buildMechanicCategoryCard(category, existingSkills, existingPrices, servicesDraft, {
+      hidePricing,
+    })
   );
 
   scheduleServiceCategoryCardBalance();
+}
+
+function renderGarageServiceSelection(garage) {
+  const list = document.getElementById("garage-service-list");
+  if (!list || !garage) return;
+
+  list.innerHTML = "";
+  const existingSkills = garage.skills || [];
+  const existingPrices = normalizeServicePrices(garage.servicePrices);
+
+  appendCatalogByDisplayGroup(list, (category) =>
+    buildMechanicCategoryCard(category, existingSkills, existingPrices, null, {
+      autoSave: false,
+    })
+  );
+}
+
+async function handleSaveGaragePrices() {
+  const statusEl = document.getElementById("garage-catalog-status");
+  const errorEl = document.getElementById("garage-catalog-error");
+  const saveBtn = document.getElementById("save-garage-prices-btn");
+  const list = document.getElementById("garage-service-list");
+  const garage = currentGarageContext.garage || getCachedGarage();
+
+  if (statusEl) statusEl.textContent = "";
+  if (errorEl) errorEl.textContent = "";
+
+  if (!auth.currentUser || !garage?.id) {
+    if (errorEl) errorEl.textContent = "Garage not loaded yet.";
+    return;
+  }
+  if (!currentGarageContext.isOwner) {
+    if (errorEl) errorEl.textContent = "Only the garage owner can update garage prices.";
+    return;
+  }
+
+  const { selectedSkills, pricesByName, hasIncomplete } =
+    collectMechanicServicesFromForm(list);
+  if (hasIncomplete) {
+    if (errorEl) {
+      errorEl.textContent =
+        "Add at least one complete make/model price for every selected garage service.";
+    }
+    return;
+  }
+
+  const servicePrices = buildServicePricesPayload(selectedSkills, pricesByName);
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+  }
+
+  try {
+    const result = await garageService.updateGarageCatalog(garage.id, auth.currentUser.uid, {
+      skills: selectedSkills,
+      servicePrices,
+    });
+    if (!result.success) {
+      throw new Error(result.error || "Failed to save garage prices.");
+    }
+    currentGarageContext.garage = result.garage;
+    if (statusEl) {
+      statusEl.textContent = `Saved ${selectedSkills.length} garage service price(s).`;
+    }
+  } catch (error) {
+    if (errorEl) errorEl.textContent = error.message || "Unable to save garage prices.";
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Garage Prices";
+    }
+  }
+}
+
+function handleGarageReady({ garage, isOwner, members = [] }) {
+  currentGarageContext = {
+    garage,
+    isOwner: Boolean(isOwner),
+    members: Array.isArray(members) ? members : [],
+  };
+  renderMechanicServiceSelection();
+  if (isOwner && garage) {
+    renderGarageServiceSelection(garage);
+    startGarageJobsSync(garage.id);
+  } else {
+    garageJobsUnsubscribe?.();
+    garageJobsUnsubscribe = null;
+    hideGarageJobAlert();
+  }
 }
 
 function showNoCurrentJobsAvailable() {
@@ -3791,6 +4614,20 @@ async function loadUserProfile(user) {
   startGlobalUnreadListener();
   syncCatalogToFirestoreInBackground();
   paintDriverHomeActiveVehicle();
+
+  if (normalizeUserRole(currentUserProfile?.role) === "mechanic") {
+    void renderGarageTeamPanel({
+      profile: currentUserProfile,
+      onProfileRefresh: async () => {
+        if (auth.currentUser) {
+          currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
+        }
+      },
+      onGarageReady: handleGarageReady,
+    });
+  } else {
+    currentGarageContext = { garage: null, isOwner: false, members: [] };
+  }
 
   if (auth.currentUser) {
     const role = normalizeUserRole(currentUserProfile?.role);
@@ -4230,6 +5067,25 @@ function initPasswordToggles() {
 }
 
 initPasswordToggles();
+
+bindGarageTeamPanel({
+  getProfile: () => currentUserProfile,
+  onProfileRefresh: async () => {
+    if (auth.currentUser) {
+      currentUserProfile = await authService.getUserProfile(auth.currentUser.uid);
+    }
+  },
+  onGarageReady: handleGarageReady,
+});
+
+document.getElementById("save-garage-prices-btn")?.addEventListener(
+  "click",
+  () => void handleSaveGaragePrices()
+);
+
+document.getElementById("garage-job-alert")?.addEventListener("click", () => {
+  focusGarageJobsFromAlert();
+});
 
 saveServicesBtn.addEventListener("click", handleMechanicSaveServices);
 

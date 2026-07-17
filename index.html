@@ -2201,6 +2201,57 @@
       margin-bottom: 32px;
     }
 
+    .garage-job-alert {
+      display: block;
+      width: 100%;
+      margin: 0 0 16px;
+      padding: 14px 18px;
+      border: 2px solid #ffcc00;
+      border-radius: 12px;
+      background: #c00000;
+      color: #fff;
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-align: center;
+      cursor: pointer;
+      animation: garage-job-alert-flash 1.1s ease-in-out infinite;
+    }
+
+    .garage-job-alert.hidden {
+      display: none;
+    }
+
+    .garage-job-alert:hover,
+    .garage-job-alert:focus-visible {
+      outline: none;
+      filter: brightness(1.08);
+    }
+
+    @keyframes garage-job-alert-flash {
+      0%,
+      100% {
+        background: #c00000;
+        border-color: #ffcc00;
+        color: #fff;
+        box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.55);
+      }
+      50% {
+        background: #ffcc00;
+        border-color: #c00000;
+        color: #111;
+        box-shadow: 0 0 22px 4px rgba(255, 204, 0, 0.75);
+      }
+    }
+
+    .garage-jobs-section-highlight {
+      outline: 3px solid #ffcc00;
+      outline-offset: 4px;
+      border-radius: 12px;
+      transition: outline-color 0.3s ease;
+    }
+
     .dashboard-panel {
       display: none;
       margin-top: 24px;
@@ -2227,6 +2278,150 @@
     .panel-header {
       margin-bottom: 16px;
       text-align: left;
+    }
+
+    .signup-garage-mode-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .signup-garage-mode-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .signup-field-hint {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .garage-team-panel {
+      margin-bottom: 28px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      background: #fafafa;
+      text-align: left;
+    }
+
+    .garage-team-status,
+    .garage-invite-hint {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .garage-team-name {
+      margin: 0 0 4px;
+      color: #111;
+      font-size: 16px;
+    }
+
+    .garage-team-role-badge {
+      display: inline-block;
+      margin: 0 0 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #eaf3ff;
+      color: #0066cc;
+    }
+
+    .garage-team-meta,
+    .garage-members-list li {
+      color: #333;
+    }
+
+    .garage-member-role {
+      color: #666;
+      text-transform: capitalize;
+    }
+
+    .garage-members-heading {
+      margin: 16px 0 8px;
+      color: #111;
+      font-size: 14px;
+    }
+
+    .garage-invite-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f0f4f8;
+      border: 1px solid #e0e0e0;
+    }
+
+    .garage-invite-label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .garage-invite-code {
+      font-size: 1.25rem;
+      letter-spacing: 0.12em;
+      color: #0066cc;
+    }
+
+    .garage-invite-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .garage-members-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .garage-members-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      color: #333;
+      font-size: 13px;
+    }
+
+    .garage-join-box {
+      margin-top: 12px;
+    }
+
+    .garage-join-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .garage-join-row input {
+      flex: 1;
+      min-width: 140px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
     }
 
     .driver-marketplace-toggle {
@@ -2941,9 +3136,9 @@
     }
 
     .mechanic-service-offer-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: space-between;
       gap: 10px;
       padding: 8px 10px;
       margin-top: 6px;
@@ -2952,11 +3147,119 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
+    .mechanic-service-offer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      justify-self: end;
+    }
+
+    .mechanic-service-offer-block + .mechanic-service-offer-block {
+      margin-top: 4px;
+    }
+
+    .mechanic-vehicle-prices-panel {
+      margin: 0 10px 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mechanic-vehicle-prices-hint {
+      margin: 0 0 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .mechanic-vehicle-price-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 90px auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .mechanic-vehicle-make-input,
+    .mechanic-vehicle-model-input,
+    .mechanic-vehicle-price-input,
+    .vehicle-make-select,
+    .vehicle-model-select {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .profile-vehicle-field .vehicle-make-select,
+    .profile-vehicle-field .vehicle-model-select,
+    #signup-vehicle-make,
+    #signup-vehicle-model {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .mechanic-vehicle-price-input {
+      text-align: right;
+    }
+
+    .mechanic-vehicle-prices-toggle,
+    .mechanic-add-vehicle-price-btn,
+    .mechanic-remove-vehicle-price-btn {
+      flex-shrink: 0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .mechanic-vehicle-prices-toggle:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .mechanic-add-vehicle-price-btn {
+      margin-top: 4px;
+    }
+
+    .mechanic-remove-vehicle-price-btn {
+      border-color: rgba(255, 100, 100, 0.35);
+      background: rgba(255, 80, 80, 0.12);
+    }
+
+    @media (max-width: 640px) {
+      .mechanic-vehicle-price-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .mechanic-vehicle-price-row .mechanic-vehicle-price-input {
+        grid-column: 1;
+      }
+
+      .mechanic-vehicle-price-row .mechanic-remove-vehicle-price-btn {
+        grid-column: 2;
+      }
+    }
+
     .mechanic-service-offer-label {
       display: flex;
       align-items: center;
       gap: 8px;
-      flex: 1;
       min-width: 0;
       cursor: pointer;
       color: #fff;
@@ -2965,11 +3268,14 @@
 
     .mechanic-service-offer-name {
       line-height: 1.35;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .mechanic-service-offer-row .mechanic-service-price-input {
-      width: 90px;
-      flex: 0 0 90px;
+      width: 100px;
+      flex: 0 0 100px;
       flex-shrink: 0;
       padding: 7px 10px;
       border-radius: 8px;
@@ -2981,7 +3287,9 @@
     }
 
     .mechanic-service-price-input:disabled {
-      opacity: 0.45;
+      color: rgba(255, 255, 255, 0.45);
+      border-color: #333;
+      background: #1a1a1a;
       cursor: not-allowed;
     }
 
@@ -3322,6 +3630,71 @@
 
     .mechanic-map-float-panel .mechanic-panel-price.hidden {
       display: none;
+    }
+
+    .mechanic-panel-team {
+      margin: 8px 0 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mechanic-panel-team.hidden {
+      display: none;
+    }
+
+    .mechanic-panel-team-label {
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #777;
+    }
+
+    .mechanic-panel-team-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background: #f7f7f7;
+      color: #222;
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .mechanic-panel-team-btn.is-selected {
+      border-color: #0066cc;
+      background: #eaf3ff;
+    }
+
+    .mechanic-panel-team-price {
+      color: #0066cc;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .garage-dispatch-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .garage-dispatch-row select {
+      flex: 1;
+      min-width: 140px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
     }
 
     .mechanic-map-float-panel .mechanic-panel-book-status {
@@ -4764,21 +5137,12 @@
         <div id="signup-step-3-driver" class="signup-wizard-step">
           <h4>Step 3 — Vehicle Details</h4>
           <div class="form-group">
-            <label for="signup-vehicle-type">Vehicle Type</label>
-            <select id="signup-vehicle-type">
-              <option value="">Select type</option>
-              <option value="Motorcycle">Motorcycle</option>
-              <option value="Personal Car">Personal Car</option>
-              <option value="Tuk Tuk">Tuk Tuk</option>
-              <option value="Van">Van</option>
-              <option value="Matatu">Matatu</option>
-              <option value="Bus">Bus</option>
-              <option value="Lorry">Lorry</option>
-              <option value="Truck">Truck</option>
-            </select>
+            <label for="signup-vehicle-make">Vehicle Make</label>
+            <select id="signup-vehicle-make" class="vehicle-make-select"></select>
           </div>
           <div class="form-group">
-            <input type="text" id="signup-vehicle-model" placeholder="Vehicle Model" />
+            <label for="signup-vehicle-model">Vehicle Model</label>
+            <select id="signup-vehicle-model" class="vehicle-model-select"></select>
           </div>
           <div class="form-group">
             <input type="text" id="signup-number-plate" placeholder="Number Plate" />
@@ -4796,8 +5160,26 @@
         <!-- Step 3: Mechanic -->
         <div id="signup-step-3-mechanic" class="signup-wizard-step">
           <h4>Step 3 — Garage &amp; Certification</h4>
-          <div class="form-group">
-            <input type="text" id="signup-institution-name" placeholder="Institution Name" />
+          <div class="form-group signup-garage-mode-group">
+            <label>How are you joining MotoTap?</label>
+            <div class="signup-garage-mode-options">
+              <label class="signup-garage-mode-option">
+                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-own" value="own" checked />
+                <span>I own / manage this garage</span>
+              </label>
+              <label class="signup-garage-mode-option">
+                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-join" value="join" />
+                <span>I'm joining an existing garage</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group" id="signup-garage-invite-group" hidden>
+            <label for="signup-garage-invite-code">Garage invite code</label>
+            <input type="text" id="signup-garage-invite-code" placeholder="e.g. MT7K2Q" autocomplete="off" maxlength="16" />
+            <p class="signup-field-hint">Ask your garage owner for the invite code from their dashboard.</p>
+          </div>
+          <div class="form-group" id="signup-institution-group">
+            <input type="text" id="signup-institution-name" placeholder="Garage / Institution Name" />
           </div>
           <div class="form-group">
             <label for="signup-experience-years">Experience Years</label>
@@ -4814,11 +5196,11 @@
             <label for="signup-certificate-photo">Mechanic Certification Photo</label>
             <input type="file" id="signup-certificate-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
           </div>
-          <div class="form-group">
+          <div class="form-group" id="signup-garage-photo-group">
             <label for="signup-garage-photo">Garage Front Photo</label>
             <input type="file" id="signup-garage-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
           </div>
-          <div class="form-group">
+          <div class="form-group" id="signup-garage-location-group">
             <label>Garage Location — tap the map to pin</label>
             <div id="signup-location-map" role="application" aria-label="Garage location map"></div>
             <input type="text" id="signup-garage-address" placeholder="Address" readonly />
@@ -4869,14 +5251,76 @@
 
     <!-- Dashboard (shown after auth) -->
     <div id="dashboard" class="form-section">
+      <button
+        type="button"
+        id="garage-job-alert"
+        class="garage-job-alert hidden"
+        aria-live="assertive"
+      >
+        YOU HAVE A NEW JOB — CLICK HERE TO VIEW IT
+      </button>
       <div class="dashboard-header">
         <h2>Welcome</h2>
       </div>
 
       <div id="mechanic-dashboard" class="dashboard-panel">
         <div class="panel-header">
+          <h3 id="garage-section-title">My Garage</h3>
+          <p id="garage-section-blurb">
+            Register your garage, invite mechanics who work with you, and manage specialties per person.
+          </p>
+        </div>
+        <div id="garage-team-panel" class="garage-team-panel">
+          <p class="garage-team-status" id="garage-team-status">Loading garage…</p>
+          <div class="garage-team-details hidden" id="garage-team-details">
+            <p class="garage-team-role-badge hidden" id="garage-team-role-badge"></p>
+            <p class="garage-team-name"><strong id="garage-team-name"></strong></p>
+            <p class="garage-team-meta" id="garage-team-address"></p>
+            <div class="garage-invite-row" id="garage-invite-row">
+              <div>
+                <span class="garage-invite-label">Invite code</span>
+                <code class="garage-invite-code" id="garage-invite-code"></code>
+              </div>
+              <div class="garage-invite-actions">
+                <button type="button" class="btn-secondary" id="garage-copy-invite-btn">Copy</button>
+                <button type="button" class="btn-secondary" id="garage-refresh-invite-btn">New code</button>
+              </div>
+            </div>
+            <p class="garage-invite-hint" id="garage-invite-hint">Share this code with mechanics who should join your garage.</p>
+            <h4 class="garage-members-heading">Team</h4>
+            <ul class="garage-members-list" id="garage-members-list"></ul>
+          </div>
+          <div class="garage-catalog-section hidden" id="garage-catalog-section">
+            <h4 class="garage-members-heading">Garage service prices</h4>
+            <p class="garage-invite-hint">
+              Set shop-wide make/model prices. Drivers see a mechanic’s personal price when set; otherwise these garage prices apply.
+            </p>
+            <div class="mechanic-service-list" id="garage-service-list"></div>
+            <button type="button" class="btn-primary" id="save-garage-prices-btn">Save Garage Prices</button>
+            <div class="dashboard-status" id="garage-catalog-status"></div>
+            <div class="dashboard-error" id="garage-catalog-error"></div>
+          </div>
+          <div class="garage-jobs-section hidden" id="garage-jobs-section">
+            <h4 class="garage-members-heading">Garage jobs</h4>
+            <p class="garage-invite-hint">All bookings tied to this garage appear here for the owner.</p>
+            <div class="available-jobs-list" id="garage-jobs-list"></div>
+            <div class="dashboard-status" id="garage-jobs-status"></div>
+          </div>
+          <div class="garage-join-box hidden" id="garage-join-box">
+            <label for="garage-join-code-input">Have an invite code?</label>
+            <div class="garage-join-row">
+              <input type="text" id="garage-join-code-input" placeholder="Enter invite code" maxlength="16" />
+              <button type="button" class="btn-primary" id="garage-join-btn">Join garage</button>
+            </div>
+          </div>
+          <div class="dashboard-error" id="garage-team-error"></div>
+        </div>
+
+        <div class="panel-header">
           <h3>Mechanic Service Selection</h3>
-          <p>Choose the sub-services you can deliver and set your price for each in Ksh. Drivers will see your prices when booking.</p>
+          <p id="mechanic-services-blurb">
+            Choose the services you can deliver. If you belong to a garage, shop prices are set under Garage service prices; otherwise set make/model prices here.
+          </p>
         </div>
         <div class="mechanic-service-list" id="mechanic-service-list"></div>
         <button class="btn-primary" id="save-services-btn">Save Offered Services</button>
@@ -4930,6 +5374,7 @@
             <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
             <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
             <p id="mechanic-panel-price" class="mechanic-panel-price hidden"></p>
+            <div id="mechanic-panel-team" class="mechanic-panel-team hidden"></div>
             <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
             <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
           </div>

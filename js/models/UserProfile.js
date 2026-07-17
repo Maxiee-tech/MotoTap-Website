@@ -84,6 +84,8 @@ export function createUserProfile(data = {}) {
     onboardingStep: data.onboardingStep ?? null,
     onboardingComplete: data.onboardingComplete === true,
     isAdmin: data.isAdmin === true,
+    garageId: data.garageId || "",
+    garageRole: data.garageRole || "",
   };
 }
 
@@ -125,5 +127,7 @@ export function mapFirestoreUserDoc(userId, data) {
     onboardingStep: data.onboardingStep,
     onboardingComplete: data.onboardingComplete,
     isAdmin: data.isAdmin,
+    garageId: data.garageId,
+    garageRole: data.garageRole,
   });
 }
