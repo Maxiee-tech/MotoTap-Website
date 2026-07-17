@@ -1079,6 +1079,23 @@ body.mt-brand .mechanic-service-offer-label {
   color: var(--mt-black) !important;
 }
 
+@media (max-width: 767px) {
+  body.mt-brand #mechanic-service-list,
+  body.mt-brand #garage-service-list,
+  body.mt-brand #parts-dealer-parts-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.mt-brand .garage-team-panel {
+    padding: 12px !important;
+  }
+
+  body.mt-brand .garage-invite-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
 body.mt-brand .mechanic-service-price-input {
   background: var(--mt-white) !important;
   border: 1px solid var(--mt-gray-200) !important;

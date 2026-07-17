@@ -103,6 +103,11 @@ function balanceListCards(list) {
   if (!cards.length || !isCatalogListVisible(list)) return;
 
   cards.forEach(resetCardSizing);
+
+  if (window.matchMedia("(max-width: 767px)").matches) {
+    return;
+  }
+
   void list.offsetHeight;
 
   const reference =

@@ -1714,15 +1714,94 @@
       .mechanic-service-list {
         grid-template-columns: 1fr;
         max-height: none;
-      }
-
-      .available-jobs-list {
-        grid-template-columns: 1fr;
+        gap: 14px;
       }
 
       .service-category-card,
       .service-group-card {
         min-height: auto;
+        padding: 14px;
+      }
+
+      #mechanic-service-list .service-category-card.is-balanced,
+      #garage-service-list .service-category-card.is-balanced,
+      #parts-dealer-parts-list .service-category-card.is-balanced {
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible;
+      }
+
+      #mechanic-service-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body,
+      #garage-service-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body,
+      #parts-dealer-parts-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body {
+        max-height: none;
+        overflow: visible;
+      }
+
+      .mechanic-service-offer-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .mechanic-service-offer-actions {
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      .mechanic-vehicle-prices-toggle {
+        width: 100%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.3;
+      }
+
+      .mechanic-service-offer-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+
+      .mechanic-vehicle-prices-panel {
+        margin-left: 0;
+        margin-right: 0;
+      }
+
+      .garage-team-panel {
+        padding: 12px;
+      }
+
+      .garage-invite-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .garage-invite-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .garage-invite-actions .btn-secondary {
+        flex: 1 1 auto;
+      }
+
+      .garage-job-alert {
+        font-size: 0.8rem;
+        padding: 12px 14px;
+        letter-spacing: 0.03em;
+      }
+
+      .garage-dispatch-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .garage-dispatch-row select,
+      .garage-dispatch-row .btn-secondary {
+        width: 100%;
+      }
+
+      .available-jobs-list {
+        grid-template-columns: 1fr;
       }
 
       .hero {
@@ -1889,8 +1968,7 @@
     }
 
     @media (min-width: 992px) {
-      .service-category-list,
-      .mechanic-service-list {
+      .service-category-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -2457,13 +2535,19 @@
     .service-category-list,
     .mechanic-service-list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
       gap: 18px;
       text-align: left;
       max-height: none;
       overflow: visible;
       padding-right: 0;
       align-items: stretch;
+    }
+
+    #mechanic-service-list,
+    #garage-service-list,
+    #parts-dealer-parts-list {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
     }
 
     .service-display-group {
@@ -2542,6 +2626,8 @@
       font-weight: 800;
       line-height: 1.3;
       min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .service-category-card {
@@ -3244,15 +3330,64 @@
 
     @media (max-width: 640px) {
       .mechanic-vehicle-price-row {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
       }
 
-      .mechanic-vehicle-price-row .mechanic-vehicle-price-input {
-        grid-column: 1;
-      }
-
+      .mechanic-vehicle-price-row .mechanic-vehicle-price-input,
       .mechanic-vehicle-price-row .mechanic-remove-vehicle-price-btn {
-        grid-column: 2;
+        grid-column: auto;
+        width: 100%;
+      }
+
+      .mechanic-add-vehicle-price-btn {
+        width: 100%;
+      }
+    }
+
+    /* Tablets / small laptops: stack dense mechanic rows before they clip */
+    @media (max-width: 767px) {
+      #mechanic-service-list,
+      #garage-service-list,
+      #parts-dealer-parts-list {
+        grid-template-columns: 1fr;
+      }
+
+      .mechanic-service-offer-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .mechanic-service-offer-actions {
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      .mechanic-vehicle-prices-toggle {
+        width: 100%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.3;
+      }
+
+      .mechanic-service-offer-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+
+      #mechanic-service-list .service-category-card.is-balanced,
+      #garage-service-list .service-category-card.is-balanced,
+      #parts-dealer-parts-list .service-category-card.is-balanced {
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible;
+      }
+
+      #mechanic-service-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body,
+      #garage-service-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body,
+      #parts-dealer-parts-list .service-category-card.is-balanced:not(.is-expanded) .service-card-body {
+        max-height: none;
+        overflow: visible;
       }
     }
 
