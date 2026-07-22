@@ -105,6 +105,14 @@ export function toFormPriceEntry(entry) {
 }
 
 /**
+ * Build a stored price entry from a default (flat or per-km) amount plus
+ * optional make/model overrides.
+ */
+export function buildPriceEntryFromDefaultAndOverrides(defaultPrice, overrides = []) {
+  return buildStoredPriceEntry({ default: defaultPrice, overrides });
+}
+
+/**
  * Normalize Firestore `servicePrices`.
  * Values may be a flat KSh amount or a vehicle-keyed map with `_default`.
  */
@@ -200,6 +208,29 @@ export function formatKsh(amount) {
   const value = Number(amount);
   if (!Number.isFinite(value) || value < 0) return "0";
   return Math.round(value).toLocaleString("en-KE");
+}
+
+/**
+ * Format a listed service price for display.
+ * Towing services are charged per kilometre — pass `isPerKm` true for those.
+ */
+export function formatServicePriceLabel(amount, { isPerKm = false, vehicleLabel = "" } = {}) {
+  const base = `KSh ${formatKsh(amount)}${isPerKm ? "/km" : ""}`;
+  if (vehicleLabel) {
+    return isPerKm
+      ? `Rate for ${vehicleLabel}: ${base}`
+      : `Price for ${vehicleLabel}: ${base}`;
+  }
+  return isPerKm ? `Rate: ${base}` : `Price: ${base}`;
+}
+
+/** Estimate a towing total from rate (KSh/km) and distance. */
+export function estimateTowingTotal(ratePerKm, kilometres) {
+  const rate = Number(ratePerKm);
+  const km = Number(kilometres);
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  if (!Number.isFinite(km) || km <= 0) return null;
+  return Math.round(rate * km);
 }
 
 function buildStoredPriceEntry(raw) {

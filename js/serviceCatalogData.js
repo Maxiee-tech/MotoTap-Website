@@ -33,6 +33,9 @@ export function getServiceCategoryIcon(categoryId) {
   return SERVICE_CATEGORY_MATERIAL_ICONS[categoryId] || "settings";
 }
 
+/** Category id for towing — prices for these services are KSh per kilometre. */
+export const TOWING_CATEGORY_ID = "towing-services";
+
 export const SERVICE_CATEGORIES = [
   // —— Category 1: Emergency Services ——
   {
@@ -368,3 +371,23 @@ export const SERVICE_CATEGORIES = [
     ],
   },
 ];
+
+/** Flat list of towing service names from the catalog. */
+export function getTowingServiceNames() {
+  const category = SERVICE_CATEGORIES.find((c) => c.id === TOWING_CATEGORY_ID);
+  if (!category) return [];
+  return category.groups.flatMap((group) => group.items || []);
+}
+
+const towingNameLookup = new Set(
+  getTowingServiceNames().map((name) => String(name).trim().toLowerCase())
+);
+
+/** True when a service is billed per kilometre (towing). */
+export function isTowingService(serviceName) {
+  const key = String(serviceName || "")
+    .trim()
+    .toLowerCase();
+  if (!key) return false;
+  return towingNameLookup.has(key);
+}

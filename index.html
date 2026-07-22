@@ -3767,6 +3767,72 @@
       display: none;
     }
 
+    .mechanic-map-float-panel .towing-distance-row {
+      margin: 8px 0 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mechanic-map-float-panel .towing-distance-row.hidden {
+      display: none;
+    }
+
+    .mechanic-map-float-panel .towing-distance-row label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .mechanic-map-float-panel .towing-distance-row input {
+      width: 100%;
+      max-width: 140px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .mechanic-map-float-panel .towing-estimate-total {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #c62828;
+    }
+
+    .mechanic-map-float-panel .towing-estimate-total:empty {
+      display: none;
+    }
+
+    .mechanic-towing-rate-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 4px 28px;
+    }
+
+    .mechanic-towing-rate-row label {
+      font-size: 0.75rem;
+      color: #666;
+      font-weight: 600;
+    }
+
+    .mechanic-towing-rate-input {
+      width: 110px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .mechanic-towing-rate-hint {
+      flex-basis: 100%;
+      margin: 0;
+      font-size: 0.7rem;
+      color: #888;
+    }
+
     .mechanic-panel-team {
       margin: 8px 0 4px;
       display: flex;
@@ -5428,7 +5494,7 @@
           <div class="garage-catalog-section hidden" id="garage-catalog-section">
             <h4 class="garage-members-heading">Garage service prices</h4>
             <p class="garage-invite-hint">
-              Set shop-wide make/model prices. Drivers see a mechanic’s personal price when set; otherwise these garage prices apply.
+              Set shop-wide prices. Towing is charged per kilometre (KSh/km); other services use make/model prices. Drivers see a mechanic’s personal price when set; otherwise these garage prices apply.
             </p>
             <div class="mechanic-service-list" id="garage-service-list"></div>
             <button type="button" class="btn-primary" id="save-garage-prices-btn">Save Garage Prices</button>
@@ -5509,6 +5575,19 @@
             <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
             <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
             <p id="mechanic-panel-price" class="mechanic-panel-price hidden"></p>
+            <div id="towing-distance-row" class="towing-distance-row hidden">
+              <label for="towing-distance-km">Estimated distance (km)</label>
+              <input
+                type="number"
+                id="towing-distance-km"
+                min="1"
+                step="0.1"
+                inputmode="decimal"
+                placeholder="e.g. 15"
+                aria-label="Estimated towing distance in kilometres"
+              />
+              <p id="towing-estimate-total" class="towing-estimate-total"></p>
+            </div>
             <div id="mechanic-panel-team" class="mechanic-panel-team hidden"></div>
             <div class="dashboard-status mechanic-panel-book-status" id="book-status"></div>
             <div class="dashboard-error mechanic-panel-book-error" id="book-error"></div>
