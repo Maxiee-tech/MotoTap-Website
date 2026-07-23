@@ -21,7 +21,6 @@ import {
   normalizeServicePrices,
   parsePriceInput,
   toFormPriceEntry,
-  buildPriceEntryFromDefaultAndOverrides,
 } from "./utils/mechanicServicePrices.js";
 import { getActiveVehicle, vehicleDisplayName } from "./models/VehicleProfile.js";
 import {
@@ -4128,10 +4127,6 @@ function collectVehiclePriceOverridesFromBlock(block) {
   return { overrides, incomplete };
 }
 
-function collectTowingRateFromBlock(block) {
-  return parsePriceInput(block.querySelector(".mechanic-towing-rate-input")?.value);
-}
-
 function collectMechanicServicesFromForm(root = mechanicServiceList) {
   const selectedSkills = [];
   const pricesByName = {};
@@ -4151,26 +4146,7 @@ function collectMechanicServicesFromForm(root = mechanicServiceList) {
     }
 
     const { overrides, incomplete } = collectVehiclePriceOverridesFromBlock(block);
-    if (incomplete) {
-      hasIncomplete = true;
-      return;
-    }
-
-    if (isTowingService(serviceName)) {
-      const rate = collectTowingRateFromBlock(block);
-      if (rate == null && overrides.length === 0) {
-        hasIncomplete = true;
-        return;
-      }
-      selectedSkills.push(serviceName);
-      pricesByName[serviceName] = {
-        default: rate,
-        overrides,
-      };
-      return;
-    }
-
-    if (overrides.length === 0) {
+    if (incomplete || overrides.length === 0) {
       hasIncomplete = true;
       return;
     }
@@ -4190,17 +4166,6 @@ function collectMechanicServiceDraftEntry(block) {
   if (!serviceName) return null;
 
   const { overrides } = collectVehiclePriceOverridesFromBlock(block);
-  if (isTowingService(serviceName)) {
-    const rate = collectTowingRateFromBlock(block);
-    if (rate == null && overrides.length === 0) {
-      return { serviceName, entry: null };
-    }
-    return {
-      serviceName,
-      entry: buildPriceEntryFromDefaultAndOverrides(rate, overrides),
-    };
-  }
-
   return {
     serviceName,
     entry: overrides.length > 0 ? { overrides } : null,
@@ -4283,7 +4248,7 @@ function buildMechanicVehiclePricesPanel(serviceName, savedEntry, onChange) {
   const hint = document.createElement("p");
   hint.className = "mechanic-vehicle-prices-hint";
   hint.textContent = perKm
-    ? "Optional: set a different per-km rate for specific makes and models. Drivers see the best match for their vehicle."
+    ? "Set a per-km rate for each make and model. Drivers see the best match for their vehicle."
     : "Set a price for each make and model from the catalog. Drivers see the best match for their vehicle.";
   panel.appendChild(hint);
 
@@ -4360,7 +4325,7 @@ async function persistMechanicServices({ silent = false } = {}) {
   const { selectedSkills, pricesByName, hasIncomplete } = collectMechanicServicesFromForm();
   if (!garagePricing && hasIncomplete) {
     const message =
-      "Complete pricing for every selected service. Towing needs a KSh/km rate; other services need at least one make/model price.";
+      "Complete pricing for every selected service. Add at least one make/model price (KSh/km for towing).";
     if (!silent) {
       throw new Error(message);
     }
@@ -4498,7 +4463,7 @@ function buildMechanicCategoryCard(
       vehicleToggle.className = "mechanic-vehicle-prices-toggle";
       vehicleToggle.textContent = towing ? "Vehicle rates" : "Vehicle prices";
       vehicleToggle.title = towing
-        ? "Optional per-km rates for specific makes and models"
+        ? "Set per-km rates for specific makes and models"
         : "Set prices for specific makes and models";
       vehicleToggle.setAttribute("aria-expanded", "false");
       vehicleToggle.disabled = !checkbox.checked;
@@ -4508,37 +4473,6 @@ function buildMechanicCategoryCard(
         savedEntry,
         handleMechanicServiceFormChange
       );
-
-      let towingRateRow = null;
-      let towingRateInput = null;
-      if (towing) {
-        towingRateRow = document.createElement("div");
-        towingRateRow.className = "mechanic-towing-rate-row";
-
-        const rateLabel = document.createElement("label");
-        rateLabel.textContent = "Rate (KSh/km)";
-
-        towingRateInput = document.createElement("input");
-        towingRateInput.type = "text";
-        towingRateInput.inputMode = "numeric";
-        towingRateInput.className = "mechanic-towing-rate-input";
-        towingRateInput.placeholder = "e.g. 150";
-        towingRateInput.setAttribute("aria-label", `Per-kilometre rate for ${serviceName}`);
-        if (formEntry.default != null) {
-          towingRateInput.value = String(formEntry.default);
-        }
-        towingRateInput.disabled = !checkbox.checked;
-        towingRateInput.addEventListener("input", handleMechanicServiceFormChange);
-        towingRateInput.addEventListener("blur", handleMechanicServiceFormChange);
-
-        const rateHint = document.createElement("p");
-        rateHint.className = "mechanic-towing-rate-hint";
-        rateHint.textContent = "Towing is charged per kilometre.";
-
-        towingRateRow.appendChild(rateLabel);
-        towingRateRow.appendChild(towingRateInput);
-        towingRateRow.appendChild(rateHint);
-      }
 
       const setVehiclePanelOpen = (open) => {
         vehiclePanel.classList.toggle("hidden", !open);
@@ -4550,18 +4484,14 @@ function buildMechanicCategoryCard(
           : towing
             ? "Vehicle rates"
             : "Vehicle prices";
-        if (open && !vehicleRows.querySelector(".mechanic-vehicle-price-row") && !towing) {
+        if (open && !vehicleRows.querySelector(".mechanic-vehicle-price-row")) {
           vehicleRows.appendChild(
             createVehicleOverrideRow({ perKm: towing }, handleMechanicServiceFormChange)
           );
         }
       };
 
-      // Towing: keep vehicle rates collapsed by default (base rate is enough).
-      // Other services: open when checked or when overrides exist.
-      if (!towing && (checkbox.checked || hasVehiclePrices)) {
-        setVehiclePanelOpen(true);
-      } else if (towing && hasVehiclePrices) {
+      if (checkbox.checked || hasVehiclePrices) {
         setVehiclePanelOpen(true);
       }
 
@@ -4571,16 +4501,12 @@ function buildMechanicCategoryCard(
 
       checkbox.addEventListener("change", () => {
         vehicleToggle.disabled = !checkbox.checked;
-        if (towingRateInput) towingRateInput.disabled = !checkbox.checked;
         if (!checkbox.checked) {
           setVehiclePanelOpen(false);
           vehiclePanel.querySelectorAll(".mechanic-vehicle-price-row").forEach((r) => r.remove());
-          if (towingRateInput) towingRateInput.value = "";
-        } else if (!towing) {
+        } else {
           setVehiclePanelOpen(true);
           vehicleRows.querySelector(".vehicle-make-select")?.focus();
-        } else {
-          towingRateInput?.focus();
         }
         handleMechanicServiceFormChange();
       });
@@ -4590,7 +4516,6 @@ function buildMechanicCategoryCard(
       actions.appendChild(vehicleToggle);
       row.appendChild(actions);
       block.appendChild(row);
-      if (towingRateRow) block.appendChild(towingRateRow);
       block.appendChild(vehiclePanel);
       groupCard.appendChild(block);
     });
@@ -4659,7 +4584,7 @@ async function handleSaveGaragePrices() {
   if (hasIncomplete) {
     if (errorEl) {
       errorEl.textContent =
-        "Complete pricing for every selected garage service. Towing needs a KSh/km rate; other services need at least one make/model price.";
+        "Complete pricing for every selected garage service. Add at least one make/model price (KSh/km for towing).";
     }
     return;
   }

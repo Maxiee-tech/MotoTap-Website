@@ -3804,34 +3804,6 @@
       display: none;
     }
 
-    .mechanic-towing-rate-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      margin: 6px 0 4px 28px;
-    }
-
-    .mechanic-towing-rate-row label {
-      font-size: 0.75rem;
-      color: #666;
-      font-weight: 600;
-    }
-
-    .mechanic-towing-rate-input {
-      width: 110px;
-      padding: 6px 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.875rem;
-    }
-
-    .mechanic-towing-rate-hint {
-      flex-basis: 100%;
-      margin: 0;
-      font-size: 0.7rem;
-      color: #888;
-    }
 
     .mechanic-panel-team {
       margin: 8px 0 4px;
@@ -5299,7 +5271,7 @@
                 <label><input type="radio" name="role" value="driver" checked /> Driver</label>
               </div>
               <div class="role-option">
-                <label><input type="radio" name="role" value="mechanic" /> Mechanic</label>
+                <label><input type="radio" name="role" value="mechanic" /> Mechanic / Garage</label>
               </div>
               <div class="role-option">
                 <label><input type="radio" name="role" value="parts_dealer" /> Parts Dealer</label>
@@ -5316,8 +5288,8 @@
           <h4>Step 2 — Identity Verification</h4>
           <div class="form-group">
             <label for="signup-profile-photo">Profile Photo</label>
-            <input type="file" id="signup-profile-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="user" />
-            <p class="signup-file-hint">Upload a clear photo of your face.</p>
+            <input type="file" id="signup-profile-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+            <p class="signup-file-hint">Choose a clear photo of your face from your device (gallery or files). Camera is optional.</p>
           </div>
           <div class="form-group">
             <label for="signup-id-number" id="signup-id-number-label">Driving License Number</label>
@@ -5325,8 +5297,8 @@
           </div>
           <div class="form-group">
             <label for="signup-id-front-photo">ID Front Photo</label>
-            <input type="file" id="signup-id-front-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
-            <p class="signup-file-hint">Photo of the front of your license or certification.</p>
+            <input type="file" id="signup-id-front-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
+            <p class="signup-file-hint">Upload a photo or PDF of the front of your license or certification from your device.</p>
           </div>
           <div class="signup-wizard-actions">
             <button class="btn-secondary" id="signup-step2-back" type="button">Back</button>
@@ -5350,7 +5322,8 @@
           </div>
           <div class="form-group">
             <label for="signup-vehicle-photo">Vehicle Photo</label>
-            <input type="file" id="signup-vehicle-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" />
+            <input type="file" id="signup-vehicle-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+            <p class="signup-file-hint">Choose a vehicle photo from your device gallery or files.</p>
           </div>
           <div class="signup-wizard-actions">
             <button class="btn-secondary" id="signup-step3-driver-back" type="button">Back</button>
@@ -5395,11 +5368,13 @@
           </div>
           <div class="form-group">
             <label for="signup-certificate-photo">Mechanic Certification Photo</label>
-            <input type="file" id="signup-certificate-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+            <input type="file" id="signup-certificate-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
+            <p class="signup-file-hint">Upload a photo or PDF from your device.</p>
           </div>
           <div class="form-group" id="signup-garage-photo-group">
             <label for="signup-garage-photo">Garage Front Photo</label>
-            <input type="file" id="signup-garage-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+            <input type="file" id="signup-garage-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
+            <p class="signup-file-hint">Upload a photo or PDF from your device.</p>
           </div>
           <div class="form-group" id="signup-garage-location-group">
             <label>Garage Location — tap the map to pin</label>
@@ -5431,11 +5406,13 @@
           </div>
           <div class="form-group">
             <label for="signup-parts-license-photo">Business License Photo</label>
-            <input type="file" id="signup-parts-license-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+            <input type="file" id="signup-parts-license-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
+            <p class="signup-file-hint">Upload a photo or PDF from your device.</p>
           </div>
           <div class="form-group">
             <label for="signup-parts-shop-photo">Shop Front Photo</label>
-            <input type="file" id="signup-parts-shop-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" capture="environment" />
+            <input type="file" id="signup-parts-shop-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
+            <p class="signup-file-hint">Upload a photo or PDF from your device.</p>
           </div>
           <div class="form-group">
             <label>Shop Location — tap the map to pin</label>
@@ -5494,7 +5471,7 @@
           <div class="garage-catalog-section hidden" id="garage-catalog-section">
             <h4 class="garage-members-heading">Garage service prices</h4>
             <p class="garage-invite-hint">
-              Set shop-wide prices. Towing is charged per kilometre (KSh/km); other services use make/model prices. Drivers see a mechanic’s personal price when set; otherwise these garage prices apply.
+              Set shop-wide make/model prices. Towing rates are per kilometre (KSh/km) by make and model. Drivers see a mechanic’s personal price when set; otherwise these garage prices apply.
             </p>
             <div class="mechanic-service-list" id="garage-service-list"></div>
             <button type="button" class="btn-primary" id="save-garage-prices-btn">Save Garage Prices</button>
