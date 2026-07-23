@@ -75,7 +75,7 @@ export function validateIdNumber(idNumber, role) {
     const normalized = String(role || "").toLowerCase();
     const label =
       normalized === "mechanic"
-        ? "Mechanic certification number"
+        ? "Certificate of Corporation number"
         : normalized === "parts_dealer"
           ? "Business license number"
           : "Driving license number";
@@ -102,13 +102,15 @@ export function validateMechanicStep3({
   latitude,
   longitude,
   address,
+  inviteVerified = false,
 }) {
   const mode = String(garageMode || "own").trim() === "join" ? "join" : "own";
   if (!String(experienceYears || "").trim()) return "Experience years is required.";
-  const certErr = validateSignupFile("certificate", certificatePhotoFile, "Certification photo");
-  if (certErr) return certErr;
 
   if (mode === "join") {
+    if (!inviteVerified) {
+      return "Verify a valid garage invite code before finishing sign up.";
+    }
     const code = String(inviteCode || "")
       .trim()
       .toUpperCase()
@@ -117,6 +119,8 @@ export function validateMechanicStep3({
     return "";
   }
 
+  const certErr = validateSignupFile("certificate", certificatePhotoFile, "Certification photo");
+  if (certErr) return certErr;
   if (!String(institutionName || "").trim()) return "Garage / institution name is required.";
   const garageErr = validateSignupFile("garage", garagePhotoFile, "Garage front photo");
   if (garageErr) return garageErr;

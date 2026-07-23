@@ -38,6 +38,8 @@ const ADDRESS_INPUT_BY_ROLE = {
 let wizardState = {
   step: 1,
   role: "driver",
+  garageMode: "own",
+  verifiedInvite: null,
   location: { latitude: null, longitude: null, address: "" },
 };
 
@@ -99,11 +101,57 @@ function getSignupGarageMode() {
 }
 
 function syncSignupGarageModeUi() {
-  const joinMode = getSignupGarageMode() === "join";
-  document.getElementById("signup-garage-invite-group")?.toggleAttribute("hidden", !joinMode);
+  const role = normalizeUserRole(wizardState.role);
+  const isMechanic = role === "mechanic";
+  const joinMode = isMechanic && getSignupGarageMode() === "join";
+  wizardState.garageMode = joinMode ? "join" : "own";
+
+  document.getElementById("signup-step1-garage-mode")?.toggleAttribute("hidden", !isMechanic);
+  document.getElementById("signup-step1-invite-group")?.toggleAttribute("hidden", !joinMode);
+
+  // Step 2: joiners only need a profile photo.
+  document.getElementById("signup-id-number-group")?.toggleAttribute("hidden", joinMode);
+  document.getElementById("signup-id-front-photo-group")?.toggleAttribute("hidden", joinMode);
+
+  // Step 3: joiners skip garage docs + personal cert.
   document.getElementById("signup-institution-group")?.toggleAttribute("hidden", joinMode);
+  document.getElementById("signup-certificate-photo-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-photo-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-location-group")?.toggleAttribute("hidden", joinMode);
+
+  const banner = document.getElementById("signup-join-garage-banner");
+  if (banner) {
+    if (joinMode && wizardState.verifiedInvite?.garageName) {
+      banner.hidden = false;
+      banner.textContent = `Joining ${wizardState.verifiedInvite.garageName}. The owner will approve your request.`;
+    } else if (joinMode) {
+      banner.hidden = false;
+      banner.textContent = "Verify your garage invite code in step 1 before finishing.";
+    } else {
+      banner.hidden = true;
+      banner.textContent = "";
+    }
+  }
+
+  const verifiedEl = document.getElementById("signup-invite-verified");
+  if (verifiedEl) {
+    if (joinMode && wizardState.verifiedInvite?.garageName) {
+      verifiedEl.hidden = false;
+      verifiedEl.textContent = `Verified: ${wizardState.verifiedInvite.garageName}`;
+    } else {
+      verifiedEl.hidden = true;
+      verifiedEl.textContent = "";
+    }
+  }
+}
+
+function clearVerifiedInvite() {
+  wizardState.verifiedInvite = null;
+  const verifiedEl = document.getElementById("signup-invite-verified");
+  if (verifiedEl) {
+    verifiedEl.hidden = true;
+    verifiedEl.textContent = "";
+  }
 }
 
 function showWizardStep(step, role) {
@@ -119,6 +167,7 @@ function showWizardStep(step, role) {
   } else if (step === 2) {
     document.getElementById("signup-step-2")?.classList.add("active");
     updateStep2Labels(wizardState.role);
+    syncSignupGarageModeUi();
   } else if (step === 3) {
     const panelId = STEP3_PANEL_BY_ROLE[wizardState.role] || STEP3_PANEL_BY_ROLE.driver;
     document.getElementById(panelId)?.classList.add("active");
@@ -144,21 +193,44 @@ function updateStep2Labels(role) {
   const normalized = normalizeUserRole(role);
   const idLabel = document.getElementById("signup-id-number-label");
   const idInput = document.getElementById("signup-id-number");
+  const photoLabel = document.getElementById("signup-id-front-photo-label");
+  const photoHint = document.getElementById("signup-id-front-photo-hint");
   const labelByRole = {
-    mechanic: "Mechanic Certification Number",
+    mechanic: "Certificate of Corporation Number",
     parts_dealer: "Business License Number",
     driver: "Driving License Number",
   };
   const placeholderByRole = {
-    mechanic: "Certification number",
+    mechanic: "Certificate of Corporation number",
     parts_dealer: "Business license number",
     driver: "License number",
+  };
+  const photoLabelByRole = {
+    mechanic: "Certificate of Corporation",
+    parts_dealer: "Business License Photo",
+    driver: "ID Front Photo",
+  };
+  const photoHintByRole = {
+    mechanic:
+      "Upload a photo or PDF of your Certificate of Corporation from your device.",
+    parts_dealer:
+      "Upload a photo or PDF of your business license from your device.",
+    driver:
+      "Upload a photo or PDF of the front of your license from your device.",
   };
   if (idLabel) {
     idLabel.textContent = labelByRole[normalized] || labelByRole.driver;
   }
   if (idInput) {
     idInput.placeholder = placeholderByRole[normalized] || placeholderByRole.driver;
+  }
+  if (photoLabel) {
+    photoLabel.textContent =
+      photoLabelByRole[normalized] || photoLabelByRole.driver;
+  }
+  if (photoHint) {
+    photoHint.textContent =
+      photoHintByRole[normalized] || photoHintByRole.driver;
   }
 }
 
@@ -334,21 +406,64 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     }
 
     wizardState.role = normalizeUserRole(fields.role);
+    wizardState.garageMode = getSignupGarageMode();
     authViewModel.name = fields.name;
     authViewModel.email = fields.email;
     authViewModel.password = fields.password;
     authViewModel.phoneNumber = fields.phone;
     authViewModel.role = fields.role;
 
+    if (wizardState.role === "mechanic" && wizardState.garageMode === "join") {
+      const code = document.getElementById("signup-garage-invite-code")?.value || "";
+      if (!wizardState.verifiedInvite?.inviteCode) {
+        setWizardError("Verify your garage invite code before continuing.");
+        return;
+      }
+      const normalizedCode = String(code).trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (normalizedCode !== wizardState.verifiedInvite.inviteCode) {
+        clearVerifiedInvite();
+        setWizardError("Invite code changed. Verify it again before continuing.");
+        return;
+      }
+    } else {
+      clearVerifiedInvite();
+      wizardState.garageMode = "own";
+    }
+
     setWizardLoading(true, "signup-step1-btn", "Continue");
     await authViewModel.signUp();
-    setWizardLoading(false, "signup-step1-btn", "Continue");
 
     if (authViewModel.uiState === "error") {
+      setWizardLoading(false, "signup-step1-btn", "Continue");
       setWizardError(authViewModel.errorMessage);
       return;
     }
 
+    // Re-verify after auth so the invite still resolves for the signed-in user.
+    if (wizardState.role === "mechanic" && wizardState.garageMode === "join") {
+      try {
+        const lookup = await authService.garageService.lookupInvite(
+          wizardState.verifiedInvite.inviteCode
+        );
+        if (!lookup?.garage) {
+          clearVerifiedInvite();
+          setWizardLoading(false, "signup-step1-btn", "Continue");
+          setWizardError("Invalid or expired garage invite code.");
+          return;
+        }
+        wizardState.verifiedInvite = {
+          inviteCode: lookup.inviteCode,
+          garageId: lookup.garage.id,
+          garageName: lookup.garage.name || "Garage",
+        };
+      } catch (error) {
+        setWizardLoading(false, "signup-step1-btn", "Continue");
+        setWizardError(error.message || "Could not verify invite code.");
+        return;
+      }
+    }
+
+    setWizardLoading(false, "signup-step1-btn", "Continue");
     showWizardStep(2, wizardState.role);
   });
 
@@ -375,11 +490,23 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     const profilePhotoFile = document.getElementById("signup-profile-photo")?.files?.[0];
     const idPhotoFile = document.getElementById("signup-id-front-photo")?.files?.[0];
     const idNumber = document.getElementById("signup-id-number")?.value?.trim() || "";
+    const joinMode =
+      normalizeUserRole(wizardState.role) === "mechanic" && getSignupGarageMode() === "join";
 
-    const photoErr =
-      validateSignupFile("profile", profilePhotoFile, "Profile photo") ||
-      validateIdNumber(idNumber, wizardState.role) ||
-      validateSignupFile("id_front", idPhotoFile, "ID front photo");
+    const role = normalizeUserRole(wizardState.role);
+    const idDocLabel =
+      role === "mechanic"
+        ? "Certificate of Corporation"
+        : role === "parts_dealer"
+          ? "Business license photo"
+          : "ID front photo";
+    let photoErr = validateSignupFile("profile", profilePhotoFile, "Profile photo");
+    if (!joinMode) {
+      photoErr =
+        photoErr ||
+        validateIdNumber(idNumber, wizardState.role) ||
+        validateSignupFile("id_front", idPhotoFile, idDocLabel);
+    }
     if (photoErr) {
       setWizardError(photoErr);
       return;
@@ -387,15 +514,20 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
 
     setWizardLoading(true, "signup-step2-btn", "Continue");
     try {
-      const [profilePhotoUrl, idPhotoUrl] = await Promise.all([
-        uploadUserImage(user.uid, "profile", profilePhotoFile, { role: wizardState.role }),
-        uploadUserImage(user.uid, "id_front", idPhotoFile, { role: wizardState.role }),
-      ]);
+      const profilePhotoUrl = await uploadUserImage(user.uid, "profile", profilePhotoFile, {
+        role: wizardState.role,
+      });
+      let idPhotoUrl = "";
+      if (!joinMode) {
+        idPhotoUrl = await uploadUserImage(user.uid, "id_front", idPhotoFile, {
+          role: wizardState.role,
+        });
+      }
 
       const result = await authService.completeSignupStep2(user.uid, {
         profilePhotoUrl,
         idPhotoUrl,
-        idNumber,
+        idNumber: joinMode ? "" : idNumber,
         role: wizardState.role,
       });
 
@@ -474,11 +606,70 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
 
   document.querySelectorAll('input[name="signup-garage-mode"]').forEach((input) => {
     input.addEventListener("change", () => {
+      clearVerifiedInvite();
       syncSignupGarageModeUi();
       if (getSignupGarageMode() !== "join") {
         initBusinessLocationMap("mechanic");
       }
     });
+  });
+
+  document.getElementById("signup-garage-invite-code")?.addEventListener("input", () => {
+    if (wizardState.verifiedInvite) clearVerifiedInvite();
+  });
+
+  document.getElementById("signup-verify-invite-btn")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    setWizardError("");
+    const code = document.getElementById("signup-garage-invite-code")?.value || "";
+    const normalized = String(code).trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (normalized.length < 4) {
+      setWizardError("Enter a valid garage invite code.");
+      return;
+    }
+
+    const btn = document.getElementById("signup-verify-invite-btn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Checking…";
+    }
+    try {
+      // Invite lookup requires auth. If not signed in yet, accept format and verify after account creation.
+      if (!authService.auth.currentUser) {
+        wizardState.verifiedInvite = {
+          inviteCode: normalized,
+          garageId: "",
+          garageName: "",
+          pendingAuthVerify: true,
+        };
+        const verifiedEl = document.getElementById("signup-invite-verified");
+        if (verifiedEl) {
+          verifiedEl.hidden = false;
+          verifiedEl.textContent = `Code ${normalized} ready. It will be confirmed after account creation.`;
+        }
+        return;
+      }
+      const lookup = await authService.garageService.lookupInvite(normalized);
+      if (!lookup?.garage) {
+        clearVerifiedInvite();
+        setWizardError("Invalid or expired garage invite code.");
+        return;
+      }
+      wizardState.verifiedInvite = {
+        inviteCode: lookup.inviteCode,
+        garageId: lookup.garage.id,
+        garageName: lookup.garage.name || "Garage",
+      };
+      syncSignupGarageModeUi();
+    } catch (error) {
+      clearVerifiedInvite();
+      setWizardError(error.message || "Could not verify invite code.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Verify";
+      }
+    }
   });
 
   step3MechanicBtn?.addEventListener("click", async (e) => {
@@ -492,7 +683,10 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     }
 
     const garageMode = getSignupGarageMode();
-    const inviteCode = document.getElementById("signup-garage-invite-code")?.value || "";
+    const inviteCode =
+      wizardState.verifiedInvite?.inviteCode ||
+      document.getElementById("signup-garage-invite-code")?.value ||
+      "";
     const institutionName =
       document.getElementById("signup-institution-name")?.value?.trim() || "";
     const experienceYears =
@@ -511,6 +705,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       latitude: wizardState.location.latitude,
       longitude: wizardState.location.longitude,
       address: wizardState.location.address,
+      inviteVerified: Boolean(wizardState.verifiedInvite?.inviteCode),
     });
     if (validationError) {
       setWizardError(validationError);
@@ -519,12 +714,12 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
 
     setWizardLoading(true, "signup-step3-mechanic-btn", "Finish Sign Up");
     try {
-      const certificatePhotoUrl = await uploadUserImage(user.uid, "certificate", certificatePhotoFile, {
-        role: wizardState.role,
-      });
-
+      let certificatePhotoUrl = "";
       let garagePhotos = [];
       if (garageMode !== "join") {
+        certificatePhotoUrl = await uploadUserImage(user.uid, "certificate", certificatePhotoFile, {
+          role: wizardState.role,
+        });
         const garagePhotoUrl = await uploadUserImage(user.uid, "garage", garagePhotoFile, {
           role: wizardState.role,
         });
@@ -624,9 +819,13 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
   document.querySelectorAll('input[name="role"]').forEach((radio) => {
     radio.addEventListener("change", () => {
       wizardState.role = normalizeUserRole(radio.value);
+      clearVerifiedInvite();
       updateStep2Labels(wizardState.role);
+      syncSignupGarageModeUi();
     });
   });
+
+  syncSignupGarageModeUi();
 }
 
 export { isProfileOnboardingComplete, getSignupResumeStep as getResumeStep };

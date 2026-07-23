@@ -3,7 +3,7 @@
  * garages/{id}, members/{uid}, garageInvites/{code}, users.garageId / garageRole,
  * jobs.garageId, garages.skills / servicePrices.
  */
-/** @typedef {'invited' | 'active' | 'removed'} GarageMemberStatus */
+/** @typedef {'invited' | 'pending' | 'active' | 'removed'} GarageMemberStatus */
 /** @typedef {'PENDING' | 'APPROVED' | 'REJECTED'} GarageStatus */
 
 /** @typedef {Object} Garage
@@ -36,6 +36,7 @@ export const GarageMemberRole = {
 
 export const GarageMemberStatus = {
   INVITED: "invited",
+  PENDING: "pending",
   ACTIVE: "active",
   REMOVED: "removed",
 };

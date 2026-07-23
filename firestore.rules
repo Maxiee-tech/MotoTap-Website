@@ -50,6 +50,7 @@ service cloud.firestore {
         && (!('vehicles' in data) || (data.vehicles is list && data.vehicles.size() <= 20))
         && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
         && (!('garageRole' in data) || data.garageRole in ['owner', 'mechanic'])
+        && (!('garageMemberStatus' in data) || data.garageMemberStatus in ['invited', 'pending', 'active', 'removed'])
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
         && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
         && (!('loyaltyPoints' in data) || (data.loyaltyPoints is int && data.loyaltyPoints >= 0))
@@ -102,7 +103,7 @@ service cloud.firestore {
         && data.uid.size() > 0
         && data.uid.size() <= 128
         && data.role in ['owner', 'mechanic']
-        && data.status in ['invited', 'active', 'removed']
+        && data.status in ['invited', 'pending', 'active', 'removed']
         && data.joinedAtMillis is int
         && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120));
     }
@@ -202,7 +203,11 @@ service cloud.firestore {
 
     function ownerPublicProfileUpdate(data, existing) {
       return data.userId == existing.userId
-        && (!('status' in data) || data.status == existing.status)
+        && (
+          !('status' in data)
+          || data.status == existing.status
+          || (existing.status == 'PENDING' && data.status == 'APPROVED')
+        )
         && (!('rating' in data) || data.rating == existing.rating)
         && (!('reviewCount' in data) || data.reviewCount == existing.reviewCount)
         && validPublicProfile(data);
@@ -224,7 +229,17 @@ service cloud.firestore {
         && request.resource.data.email == resource.data.email
         && request.resource.data.role == resource.data.role
         && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
-        && request.resource.data.status == resource.data.status
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'PENDING'
+            && request.resource.data.status == 'APPROVED'
+            && ('garageId' in resource.data)
+            && resource.data.garageId is string
+            && resource.data.garageId.size() > 0
+            && isGarageMember(resource.data.garageId)
+          )
+        )
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
@@ -735,7 +750,7 @@ service cloud.firestore {
               && isGarageOwner(garageId))
             || (request.auth.uid == memberId
               && request.resource.data.role == 'mechanic'
-              && request.resource.data.status == 'active'
+              && request.resource.data.status in ['pending', 'active']
               && exists(/databases/$(database)/documents/garages/$(garageId))
               && garageDoc(garageId).data.ownerId != request.auth.uid)
           );

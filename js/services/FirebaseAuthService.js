@@ -204,13 +204,14 @@ export default class FirebaseAuthService extends AuthRepository {
       const result = await this.updateSignupProfile(userId, {
         institutionName: garage.name,
         experienceYears: String(data.experienceYears || "").trim(),
-        certificatePhotoUrl: data.certificatePhotoUrl,
+        certificatePhotoUrl: data.certificatePhotoUrl || "",
         garagePhotos: garage.garagePhotos || [],
         latitude: garage.latitude,
         longitude: garage.longitude,
         address: garage.address || "",
         garageId: garage.id,
         garageRole: "mechanic",
+        garageMemberStatus: "pending",
         onboardingStep: 3,
         onboardingComplete: true,
         status: ProfileStatus.PENDING,
@@ -221,7 +222,7 @@ export default class FirebaseAuthService extends AuthRepository {
       if (refreshed.exists()) {
         await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, refreshed.data()));
       }
-      return { success: true, garage: joinResult.garage };
+      return { success: true, garage: joinResult.garage, pendingApproval: true };
     }
 
     const result = await this.updateSignupProfile(userId, {

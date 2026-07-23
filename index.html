@@ -2383,6 +2383,48 @@
       color: rgba(255, 255, 255, 0.6);
     }
 
+    .signup-invite-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .signup-invite-row input {
+      flex: 1;
+    }
+
+    .signup-invite-verified {
+      margin: 8px 0 0;
+      font-size: 0.85rem;
+      color: #7ddea5;
+      font-weight: 600;
+    }
+
+    .garage-pending-list {
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .garage-pending-item {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .garage-pending-actions {
+      display: flex;
+      gap: 8px;
+    }
+
     .garage-team-panel {
       margin-bottom: 28px;
       padding: 14px 16px;
@@ -5278,6 +5320,28 @@
               </div>
             </div>
           </div>
+          <div class="form-group signup-garage-mode-group" id="signup-step1-garage-mode" hidden>
+            <label>How are you joining MotoTap?</label>
+            <div class="signup-garage-mode-options">
+              <label class="signup-garage-mode-option">
+                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-own" value="own" checked />
+                <span>I own / manage this garage</span>
+              </label>
+              <label class="signup-garage-mode-option">
+                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-join" value="join" />
+                <span>I'm joining an existing garage</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group" id="signup-step1-invite-group" hidden>
+            <label for="signup-garage-invite-code">Garage invite code</label>
+            <div class="signup-invite-row">
+              <input type="text" id="signup-garage-invite-code" placeholder="e.g. MT7K2Q" autocomplete="off" maxlength="16" />
+              <button type="button" class="btn-secondary" id="signup-verify-invite-btn">Verify</button>
+            </div>
+            <p class="signup-field-hint" id="signup-invite-hint">Ask your garage owner for the invite code. Verify it before continuing.</p>
+            <p class="signup-invite-verified" id="signup-invite-verified" hidden></p>
+          </div>
           <button class="btn-primary" id="signup-step1-btn" type="button">Continue</button>
           <div class="divider">OR</div>
           <button class="btn-secondary" id="to-login" type="button">Have an Account? Sign In</button>
@@ -5291,14 +5355,14 @@
             <input type="file" id="signup-profile-photo" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
             <p class="signup-file-hint">Choose a clear photo of your face from your device (gallery or files). Camera is optional.</p>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="signup-id-number-group">
             <label for="signup-id-number" id="signup-id-number-label">Driving License Number</label>
             <input type="text" id="signup-id-number" placeholder="License number" />
           </div>
-          <div class="form-group">
-            <label for="signup-id-front-photo">ID Front Photo</label>
+          <div class="form-group" id="signup-id-front-photo-group">
+            <label for="signup-id-front-photo" id="signup-id-front-photo-label">ID Front Photo</label>
             <input type="file" id="signup-id-front-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
-            <p class="signup-file-hint">Upload a photo or PDF of the front of your license or certification from your device.</p>
+            <p class="signup-file-hint" id="signup-id-front-photo-hint">Upload a photo or PDF of the front of your license or certification from your device.</p>
           </div>
           <div class="signup-wizard-actions">
             <button class="btn-secondary" id="signup-step2-back" type="button">Back</button>
@@ -5334,24 +5398,7 @@
         <!-- Step 3: Mechanic -->
         <div id="signup-step-3-mechanic" class="signup-wizard-step">
           <h4>Step 3 — Garage &amp; Certification</h4>
-          <div class="form-group signup-garage-mode-group">
-            <label>How are you joining MotoTap?</label>
-            <div class="signup-garage-mode-options">
-              <label class="signup-garage-mode-option">
-                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-own" value="own" checked />
-                <span>I own / manage this garage</span>
-              </label>
-              <label class="signup-garage-mode-option">
-                <input type="radio" name="signup-garage-mode" id="signup-garage-mode-join" value="join" />
-                <span>I'm joining an existing garage</span>
-              </label>
-            </div>
-          </div>
-          <div class="form-group" id="signup-garage-invite-group" hidden>
-            <label for="signup-garage-invite-code">Garage invite code</label>
-            <input type="text" id="signup-garage-invite-code" placeholder="e.g. MT7K2Q" autocomplete="off" maxlength="16" />
-            <p class="signup-field-hint">Ask your garage owner for the invite code from their dashboard.</p>
-          </div>
+          <p class="signup-field-hint" id="signup-join-garage-banner" hidden></p>
           <div class="form-group" id="signup-institution-group">
             <input type="text" id="signup-institution-name" placeholder="Garage / Institution Name" />
           </div>
@@ -5366,7 +5413,7 @@
               <option value="10+">10+ years</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="signup-certificate-photo-group">
             <label for="signup-certificate-photo">Mechanic Certification Photo</label>
             <input type="file" id="signup-certificate-photo" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" />
             <p class="signup-file-hint">Upload a photo or PDF from your device.</p>
@@ -5467,6 +5514,14 @@
             <p class="garage-invite-hint" id="garage-invite-hint">Share this code with mechanics who should join your garage.</p>
             <h4 class="garage-members-heading">Team</h4>
             <ul class="garage-members-list" id="garage-members-list"></ul>
+            <div id="garage-pending-section" class="garage-pending-section hidden">
+              <h4 class="garage-members-heading">Join requests</h4>
+              <p class="garage-invite-hint">Approve mechanics who verified your invite code.</p>
+              <ul class="garage-pending-list" id="garage-pending-list"></ul>
+            </div>
+            <p class="garage-invite-hint" id="garage-pending-self-hint" hidden>
+              Waiting for the garage owner to approve your join request.
+            </p>
           </div>
           <div class="garage-catalog-section hidden" id="garage-catalog-section">
             <h4 class="garage-members-heading">Garage service prices</h4>

@@ -226,7 +226,13 @@ export default class FirebaseGarageService {
     }
 
     if (existingGarageId === garage.id) {
-      return { success: true, garage, alreadyMember: true };
+      const existingMember = await this.getMember(garage.id, uid);
+      if (existingMember?.status === GarageMemberStatus.ACTIVE) {
+        return { success: true, garage, alreadyMember: true };
+      }
+      if (existingMember?.status === GarageMemberStatus.PENDING) {
+        return { success: true, garage, pendingApproval: true };
+      }
     }
 
     if (garage.ownerId === uid) {
@@ -243,7 +249,7 @@ export default class FirebaseGarageService {
           uid,
           displayName: String(profile.name || userSnap.data()?.name || "").trim().slice(0, 120),
           role: GarageMemberRole.MECHANIC,
-          status: GarageMemberStatus.ACTIVE,
+          status: GarageMemberStatus.PENDING,
           joinedAtMillis: now,
         },
         { merge: true }
@@ -254,6 +260,7 @@ export default class FirebaseGarageService {
       updateDoc(userRef, {
         garageId: garage.id,
         garageRole: GarageMemberRole.MECHANIC,
+        garageMemberStatus: GarageMemberStatus.PENDING,
         institutionName: garage.name,
         address: garage.address || "",
         latitude: garage.latitude,
@@ -262,7 +269,91 @@ export default class FirebaseGarageService {
       })
     );
 
-    return { success: true, garage };
+    return { success: true, garage, pendingApproval: true };
+  }
+
+  async getMember(garageId, memberId) {
+    if (!garageId || !memberId) return null;
+    const snap = await withTimeout(getDoc(this.memberRef(garageId, memberId)));
+    if (!snap.exists()) return null;
+    return normalizeGarageMember({ uid: snap.id, ...snap.data() });
+  }
+
+  /**
+   * Owner approves a pending joiner. The joiner's client upgrades their own
+   * user.status to APPROVED when they see membership become active.
+   */
+  async approveMember(garageId, ownerId, memberId) {
+    const garage = await this.getGarage(garageId);
+    if (!garage) return { success: false, error: "Garage not found." };
+    if (garage.ownerId !== ownerId) {
+      return { success: false, error: "Only the garage owner can approve join requests." };
+    }
+    const member = await this.getMember(garageId, memberId);
+    if (!member || member.status === GarageMemberStatus.REMOVED) {
+      return { success: false, error: "Join request not found." };
+    }
+    if (member.status === GarageMemberStatus.ACTIVE) {
+      return { success: true, alreadyActive: true };
+    }
+
+    await withTimeout(
+      setDoc(
+        this.memberRef(garageId, memberId),
+        {
+          uid: memberId,
+          displayName: member.displayName,
+          role: GarageMemberRole.MECHANIC,
+          status: GarageMemberStatus.ACTIVE,
+          joinedAtMillis: member.joinedAtMillis || Date.now(),
+          approvedAtMillis: Date.now(),
+        },
+        { merge: true }
+      )
+    );
+
+    // Best-effort memberCount bump (owner can write garage doc).
+    try {
+      await withTimeout(
+        updateDoc(this.garageRef(garageId), {
+          memberCount: Math.max(1, Number(garage.memberCount || 1)) + 1,
+          updatedAtMillis: Date.now(),
+        })
+      );
+    } catch (error) {
+      console.warn("Could not bump garage memberCount:", error);
+    }
+
+    return { success: true };
+  }
+
+  async rejectMember(garageId, ownerId, memberId) {
+    const garage = await this.getGarage(garageId);
+    if (!garage) return { success: false, error: "Garage not found." };
+    if (garage.ownerId !== ownerId) {
+      return { success: false, error: "Only the garage owner can reject join requests." };
+    }
+    const member = await this.getMember(garageId, memberId);
+    if (!member) {
+      return { success: false, error: "Join request not found." };
+    }
+
+    await withTimeout(
+      setDoc(
+        this.memberRef(garageId, memberId),
+        {
+          uid: memberId,
+          displayName: member.displayName,
+          role: member.role || GarageMemberRole.MECHANIC,
+          status: GarageMemberStatus.REMOVED,
+          joinedAtMillis: member.joinedAtMillis || Date.now(),
+          rejectedAtMillis: Date.now(),
+        },
+        { merge: true }
+      )
+    );
+
+    return { success: true };
   }
 
   async regenerateInviteCode(garageId, ownerId) {
