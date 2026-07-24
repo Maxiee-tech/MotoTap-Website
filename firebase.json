@@ -52,6 +52,19 @@
         ]
       },
       {
+        "source": "/app-version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      },
+      {
         "source": "/index.html",
         "headers": [
           {

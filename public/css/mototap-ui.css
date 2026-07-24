@@ -1625,6 +1625,18 @@ body.mt-brand .messages-inbox-item {
   color: var(--mt-black) !important;
 }
 
+body.mt-brand .messages-inbox-avatar {
+  background: var(--mt-gray-100) !important;
+  color: var(--mt-black) !important;
+  border: 1px solid var(--mt-gray-200);
+}
+
+body.mt-brand .messages-inbox-avatar.is-fallback {
+  background: linear-gradient(145deg, var(--mt-red), #8a0000) !important;
+  color: #fff !important;
+  border-color: transparent;
+}
+
 body.mt-brand .messages-inbox-item:hover {
   border-color: var(--mt-red) !important;
   background: var(--mt-gray-50) !important;

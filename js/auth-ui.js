@@ -2017,9 +2017,14 @@ async function resolveChatPartnerInfo(partnerId, context = {}) {
     chatPartnerNameCache.set(partnerId, finalName);
   }
 
+  const photoUrl = String(
+    profile?.profilePhotoUrl || profile?.photoUrl || ""
+  ).trim();
+
   return {
     name: finalName,
     role: role || fallbackRole,
+    photoUrl,
   };
 }
 
@@ -2125,6 +2130,7 @@ async function renderMessagesInbox(entries) {
         partnerId,
         partnerName: partnerInfo.name,
         partnerLabel: formatInboxPartnerLabel(partnerInfo.name, partnerInfo.role),
+        partnerPhotoUrl: partnerInfo.photoUrl || "",
         preview,
         unread: isEntryUnread(entry, myId),
       };
@@ -2138,10 +2144,37 @@ async function renderMessagesInbox(entries) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `messages-inbox-item${row.unread ? " is-unread" : ""}`;
-    button.innerHTML = `
+
+    const avatar = document.createElement("span");
+    avatar.className = "messages-inbox-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    const photoUrl = String(row.partnerPhotoUrl || "").trim();
+    if (photoUrl) {
+      const img = document.createElement("img");
+      img.src = photoUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      img.addEventListener("error", () => {
+        avatar.classList.add("is-fallback");
+        avatar.textContent = getInitials(row.partnerName);
+        img.remove();
+      });
+      avatar.appendChild(img);
+    } else {
+      avatar.classList.add("is-fallback");
+      avatar.textContent = getInitials(row.partnerName);
+    }
+
+    const textWrap = document.createElement("span");
+    textWrap.className = "messages-inbox-item-text";
+    textWrap.innerHTML = `
       <span class="messages-inbox-item-name">${escapeHtml(row.partnerLabel)}</span>
       <span class="messages-inbox-item-preview">${row.preview}</span>
     `;
+
+    button.appendChild(avatar);
+    button.appendChild(textWrap);
     button.addEventListener("click", () => {
       openChatWithPartner(row.partnerId, row.partnerName);
     });

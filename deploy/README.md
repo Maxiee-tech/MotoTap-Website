@@ -64,6 +64,11 @@ curl -sI https://mototap.co.ke | head
   loads in the production container build.
 - Deploy Firestore rules after security updates:
   `firebase deploy --only firestore:rules`
+- **Android app updates:** keep `public/app-version.json` in sync with the APK you
+  publish. Bump `versionCode` / `versionName` to match `app/build.gradle.kts`, set
+  `apkUrl` to the Cloudflare download link, and optionally `"forceUpdate": true`.
+  Redeploy hosting (`npm run deploy:hosting`) so the app can see the new file at
+  `/app-version.json`. Optionally also host the same JSON on the Cloudflare worker.
 - **Cloudinary uploads:** require Firebase Functions (`getCloudinaryUploadSignature`).
   See [deploy/CLOUDINARY_FUNCTIONS.md](./CLOUDINARY_FUNCTIONS.md). Deploy with:
   `npm run deploy:functions`
