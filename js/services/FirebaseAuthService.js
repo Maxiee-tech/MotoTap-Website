@@ -322,9 +322,13 @@ export default class FirebaseAuthService extends AuthRepository {
     }
 
     try {
+      // Continue URL after reset (authorized domain). The email's action link
+      // itself is controlled by Firebase Console → Authentication → Templates
+      // → customize action URL (should point at /auth/action on this site).
+      const origin = window.location.origin || "https://mototap.co.ke";
       await withTimeout(
         sendPasswordResetEmail(this.auth, trimmed, {
-          url: `${window.location.origin}/`,
+          url: `${origin}/`,
           handleCodeInApp: false,
         })
       );

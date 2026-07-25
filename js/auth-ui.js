@@ -4876,7 +4876,7 @@ forgotPasswordSubmitBtn?.addEventListener("click", async (e) => {
   }
 
   forgotPasswordStatusDiv.textContent =
-    "If an account exists for that email, a reset link has been sent. Check your inbox and spam folder, then sign in with your new password.";
+    "If an account exists for that email, a reset link has been sent. Check your inbox and spam folder. The link is valid for about 1 hour — open the latest email and set your new password on the page (do not rely on link previews).";
 });
 
 emailVerificationResendBtn?.addEventListener("click", async () => {

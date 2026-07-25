@@ -69,6 +69,13 @@ curl -sI https://mototap.co.ke | head
   `apkUrl` to the Cloudflare download link, and optionally `"forceUpdate": true`.
   Redeploy hosting (`npm run deploy:hosting`) so the app can see the new file at
   `/app-version.json`. Optionally also host the same JSON on the Cloudflare worker.
+- **Password reset / auth emails:** Firebase reset links expire in ~1 hour (not
+  configurable). Customize action URL in Firebase Console must use a Firebase
+  Hosting domain with the reserved path `/__/auth/action` (custom paths and
+  non-Hosting domains like Docker-served `mototap.co.ke` are rejected). Current
+  setting: `https://mototap-447fe.web.app/__/auth/action`. That applies to all
+  Auth email templates. Hosting also ships `/auth/action` as an optional custom
+  handler page if Console later allows a non-`/__/` path.
 - **Cloudinary uploads:** require Firebase Functions (`getCloudinaryUploadSignature`).
   See [deploy/CLOUDINARY_FUNCTIONS.md](./CLOUDINARY_FUNCTIONS.md). Deploy with:
   `npm run deploy:functions`

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>MotoTap — Account action</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --mt-red: #c00000;
+        --mt-red-dark: #9a0000;
+        --mt-black: #1a1a1a;
+        --mt-gray-100: #f5f5f5;
+        --mt-gray-200: #e8e8e8;
+        --mt-gray-500: #888888;
+        --mt-gray-700: #444444;
+        --mt-white: #ffffff;
+        --mt-radius: 12px;
+        --mt-font: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--mt-font);
+        color: var(--mt-black);
+        background:
+          radial-gradient(ellipse at top left, rgba(192, 0, 0, 0.08), transparent 50%),
+          radial-gradient(ellipse at bottom right, rgba(0, 102, 204, 0.08), transparent 45%),
+          var(--mt-gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--mt-white);
+        border-radius: var(--mt-radius);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        padding: 28px 24px 24px;
+      }
+
+      .brand {
+        font-weight: 700;
+        font-size: 1.35rem;
+        letter-spacing: 0.02em;
+        color: var(--mt-red);
+        margin: 0 0 4px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .muted {
+        color: var(--mt-gray-700);
+        font-size: 0.92rem;
+        line-height: 1.45;
+        margin: 0 0 20px;
+      }
+
+      .email {
+        font-weight: 600;
+        word-break: break-all;
+      }
+
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 0 0 6px;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--mt-gray-200);
+        border-radius: 8px;
+        font: inherit;
+        font-size: 1rem;
+        margin-bottom: 14px;
+      }
+
+      input[type="password"]:focus {
+        outline: 2px solid var(--mt-red);
+        border-color: transparent;
+      }
+
+      button {
+        width: 100%;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        background: var(--mt-red);
+        color: var(--mt-white);
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--mt-red-dark);
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--mt-red);
+        margin-top: 10px;
+        border: 1px solid var(--mt-gray-200);
+      }
+
+      .error {
+        color: var(--mt-red);
+        font-size: 0.9rem;
+        margin: 0 0 12px;
+        line-height: 1.4;
+      }
+
+      .hint {
+        color: var(--mt-gray-500);
+        font-size: 0.8rem;
+        margin: -6px 0 14px;
+        line-height: 1.4;
+      }
+
+      .status {
+        color: var(--mt-gray-700);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      a {
+        color: var(--mt-red);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <p class="brand">MotoTap</p>
+      <h1 id="title">Working…</h1>
+      <p id="subtitle" class="muted">Please wait while we check your link.</p>
+
+      <div id="error" class="error hidden" role="alert"></div>
+
+      <div id="reset-form" class="hidden">
+        <p class="muted">
+          Choose a new password for <span id="reset-email" class="email"></span>.
+        </p>
+        <label for="password">New password</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+        <label for="password-confirm">Confirm password</label>
+        <input
+          id="password-confirm"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+        <p class="hint">
+          At least 8 characters, with uppercase, lowercase, a number, and a
+          special character.
+        </p>
+        <button type="button" id="reset-submit">Update password</button>
+      </div>
+
+      <div id="verify-panel" class="hidden">
+        <p class="muted" id="verify-copy">
+          Confirm your email address to finish setting up your account.
+        </p>
+        <button type="button" id="verify-submit">Verify email</button>
+      </div>
+
+      <div id="recover-panel" class="hidden">
+        <p class="muted" id="recover-copy">
+          Someone tried to change the email on this account. You can undo that
+          change.
+        </p>
+        <button type="button" id="recover-submit">Restore my email</button>
+      </div>
+
+      <div id="done" class="hidden">
+        <p id="done-message" class="status"></p>
+        <a id="continue-link" class="hidden" href="/">Continue to MotoTap</a>
+        <button type="button" id="done-home" class="secondary">Back to sign in</button>
+      </div>
+    </main>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+      import {
+        getAuth,
+        verifyPasswordResetCode,
+        confirmPasswordReset,
+        checkActionCode,
+        applyActionCode,
+      } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDpbfjsBQ8My221Yzw6hdKvERt9Dm7pc_4",
+        authDomain: "mototap-447fe.firebaseapp.com",
+        projectId: "mototap-447fe",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get("mode");
+      const actionCode = params.get("oobCode");
+      const continueUrl = params.get("continueUrl");
+
+      const titleEl = document.getElementById("title");
+      const subtitleEl = document.getElementById("subtitle");
+      const errorEl = document.getElementById("error");
+      const resetForm = document.getElementById("reset-form");
+      const verifyPanel = document.getElementById("verify-panel");
+      const recoverPanel = document.getElementById("recover-panel");
+      const doneEl = document.getElementById("done");
+      const doneMessage = document.getElementById("done-message");
+      const continueLink = document.getElementById("continue-link");
+      const doneHome = document.getElementById("done-home");
+
+      function showError(message) {
+        errorEl.textContent = message;
+        errorEl.classList.remove("hidden");
+        subtitleEl.classList.add("hidden");
+      }
+
+      function mapActionError(error) {
+        const code = error?.code || "";
+        if (code === "auth/expired-action-code") {
+          return "This link has expired (reset links are valid for about 1 hour). Request a new one from the sign-in screen.";
+        }
+        if (code === "auth/invalid-action-code") {
+          return "This link is invalid or has already been used. Request a new one from the sign-in screen, and open the latest email.";
+        }
+        if (code === "auth/weak-password") {
+          return "Password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a special character.";
+        }
+        return error?.message || "Something went wrong. Please try again.";
+      }
+
+      function validatePassword(password) {
+        const errors = [];
+        if (!password || password.length < 8) {
+          errors.push("Password must be at least 8 characters.");
+        }
+        if (!/[A-Z]/.test(password)) {
+          errors.push("Password must contain an uppercase letter.");
+        }
+        if (!/[a-z]/.test(password)) {
+          errors.push("Password must contain a lowercase letter.");
+        }
+        if (!/[0-9]/.test(password)) {
+          errors.push("Password must contain a number.");
+        }
+        if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+          errors.push("Password must contain a special character.");
+        }
+        return errors;
+      }
+
+      function safeContinueHref() {
+        if (!continueUrl) return "/";
+        try {
+          const url = new URL(continueUrl);
+          const allowed = ["mototap.co.ke", "www.mototap.co.ke", "mototap-447fe.web.app", "mototap-447fe.firebaseapp.com"];
+          if (allowed.includes(url.hostname)) return url.href;
+        } catch {
+          /* ignore */
+        }
+        return "/";
+      }
+
+      function showDone(message) {
+        resetForm.classList.add("hidden");
+        verifyPanel.classList.add("hidden");
+        recoverPanel.classList.add("hidden");
+        subtitleEl.classList.add("hidden");
+        doneEl.classList.remove("hidden");
+        doneMessage.textContent = message;
+        const href = safeContinueHref();
+        continueLink.href = href;
+        continueLink.classList.toggle("hidden", href === "/");
+        if (href !== "/") {
+          continueLink.classList.remove("hidden");
+          continueLink.style.display = "inline-block";
+          continueLink.style.margin = "12px 0 4px";
+        }
+      }
+
+      doneHome.addEventListener("click", () => {
+        window.location.href = "/";
+      });
+
+      async function handleResetPassword() {
+        titleEl.textContent = "Reset your password";
+        subtitleEl.textContent = "Checking your reset link…";
+
+        try {
+          // verifyPasswordResetCode does NOT consume the one-time code.
+          // Only confirmPasswordReset (on form submit) does — so email scanners
+          // that prefetch this page will not invalidate the link.
+          const email = await verifyPasswordResetCode(auth, actionCode);
+          subtitleEl.classList.add("hidden");
+          document.getElementById("reset-email").textContent = email;
+          resetForm.classList.remove("hidden");
+
+          const submitBtn = document.getElementById("reset-submit");
+          submitBtn.addEventListener("click", async () => {
+            errorEl.classList.add("hidden");
+            const password = document.getElementById("password").value;
+            const confirm = document.getElementById("password-confirm").value;
+            if (password !== confirm) {
+              showError("Passwords do not match.");
+              return;
+            }
+            const issues = validatePassword(password);
+            if (issues.length) {
+              showError(issues[0]);
+              return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Updating…";
+            try {
+              await confirmPasswordReset(auth, actionCode, password);
+              titleEl.textContent = "Password updated";
+              showDone("Your password has been changed. You can sign in with your new password.");
+            } catch (err) {
+              showError(mapActionError(err));
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Update password";
+            }
+          });
+        } catch (err) {
+          titleEl.textContent = "Link not valid";
+          showError(mapActionError(err));
+        }
+      }
+
+      async function handleVerifyEmail() {
+        titleEl.textContent = "Verify your email";
+        subtitleEl.classList.add("hidden");
+        verifyPanel.classList.remove("hidden");
+
+        try {
+          const info = await checkActionCode(auth, actionCode);
+          const email = info?.data?.email;
+          if (email) {
+            const copy = document.getElementById("verify-copy");
+            copy.textContent = "";
+            copy.append("Confirm ");
+            const strong = document.createElement("span");
+            strong.className = "email";
+            strong.textContent = email;
+            copy.append(strong);
+            copy.append(" to finish setting up your account.");
+          }
+        } catch (err) {
+          verifyPanel.classList.add("hidden");
+          titleEl.textContent = "Link not valid";
+          showError(mapActionError(err));
+          return;
+        }
+
+        const btn = document.getElementById("verify-submit");
+        btn.addEventListener("click", async () => {
+          errorEl.classList.add("hidden");
+          btn.disabled = true;
+          btn.textContent = "Verifying…";
+          try {
+            await applyActionCode(auth, actionCode);
+            titleEl.textContent = "Email verified";
+            showDone("Your email is verified. You can continue in the app or on the website.");
+          } catch (err) {
+            showError(mapActionError(err));
+            btn.disabled = false;
+            btn.textContent = "Verify email";
+          }
+        });
+      }
+
+      async function handleRecoverEmail() {
+        titleEl.textContent = "Restore email";
+        subtitleEl.classList.add("hidden");
+        recoverPanel.classList.remove("hidden");
+
+        let restoredEmail = null;
+        try {
+          const info = await checkActionCode(auth, actionCode);
+          restoredEmail = info?.data?.email || null;
+          if (restoredEmail) {
+            const copy = document.getElementById("recover-copy");
+            copy.textContent = "";
+            copy.append("Restore your account email to ");
+            const strong = document.createElement("span");
+            strong.className = "email";
+            strong.textContent = restoredEmail;
+            copy.append(strong);
+            copy.append("?");
+          }
+        } catch (err) {
+          recoverPanel.classList.add("hidden");
+          titleEl.textContent = "Link not valid";
+          showError(mapActionError(err));
+          return;
+        }
+
+        const btn = document.getElementById("recover-submit");
+        btn.addEventListener("click", async () => {
+          errorEl.classList.add("hidden");
+          btn.disabled = true;
+          btn.textContent = "Restoring…";
+          try {
+            await applyActionCode(auth, actionCode);
+            titleEl.textContent = "Email restored";
+            showDone(
+              restoredEmail
+                ? `Your account email was restored to ${restoredEmail}.`
+                : "Your previous email address has been restored."
+            );
+          } catch (err) {
+            showError(mapActionError(err));
+            btn.disabled = false;
+            btn.textContent = "Restore my email";
+          }
+        });
+      }
+
+      if (!mode || !actionCode) {
+        titleEl.textContent = "Invalid link";
+        showError("This page needs a valid link from your MotoTap email. Request a new password reset or verification email from the app or website.");
+      } else if (mode === "resetPassword") {
+        handleResetPassword();
+      } else if (mode === "verifyEmail") {
+        handleVerifyEmail();
+      } else if (mode === "recoverEmail") {
+        handleRecoverEmail();
+      } else {
+        titleEl.textContent = "Unsupported action";
+        showError("This email action is not supported here. Open the link from a recent MotoTap email, or contact support.");
+      }
+    </script>
+  </body>
+</html>
