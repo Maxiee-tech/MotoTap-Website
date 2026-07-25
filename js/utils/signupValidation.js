@@ -97,7 +97,6 @@ export function validateMechanicStep3({
   inviteCode,
   institutionName,
   experienceYears,
-  certificatePhotoFile,
   garagePhotoFile,
   latitude,
   longitude,
@@ -119,8 +118,6 @@ export function validateMechanicStep3({
     return "";
   }
 
-  const certErr = validateSignupFile("certificate", certificatePhotoFile, "Certification photo");
-  if (certErr) return certErr;
   if (!String(institutionName || "").trim()) return "Garage / institution name is required.";
   const garageErr = validateSignupFile("garage", garagePhotoFile, "Garage front photo");
   if (garageErr) return garageErr;

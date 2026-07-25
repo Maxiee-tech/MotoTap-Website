@@ -113,9 +113,8 @@ function syncSignupGarageModeUi() {
   document.getElementById("signup-id-number-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-id-front-photo-group")?.toggleAttribute("hidden", joinMode);
 
-  // Step 3: joiners skip garage docs + personal cert.
+  // Step 3: joiners skip garage docs.
   document.getElementById("signup-institution-group")?.toggleAttribute("hidden", joinMode);
-  document.getElementById("signup-certificate-photo-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-photo-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-location-group")?.toggleAttribute("hidden", joinMode);
 
@@ -691,8 +690,6 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       document.getElementById("signup-institution-name")?.value?.trim() || "";
     const experienceYears =
       document.getElementById("signup-experience-years")?.value || "";
-    const certificatePhotoFile =
-      document.getElementById("signup-certificate-photo")?.files?.[0];
     const garagePhotoFile = document.getElementById("signup-garage-photo")?.files?.[0];
 
     const validationError = validateMechanicStep3({
@@ -700,7 +697,6 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       inviteCode,
       institutionName,
       experienceYears,
-      certificatePhotoFile,
       garagePhotoFile,
       latitude: wizardState.location.latitude,
       longitude: wizardState.location.longitude,
@@ -714,12 +710,8 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
 
     setWizardLoading(true, "signup-step3-mechanic-btn", "Finish Sign Up");
     try {
-      let certificatePhotoUrl = "";
       let garagePhotos = [];
       if (garageMode !== "join") {
-        certificatePhotoUrl = await uploadUserImage(user.uid, "certificate", certificatePhotoFile, {
-          role: wizardState.role,
-        });
         const garagePhotoUrl = await uploadUserImage(user.uid, "garage", garagePhotoFile, {
           role: wizardState.role,
         });
@@ -731,7 +723,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         inviteCode,
         institutionName,
         experienceYears,
-        certificatePhotoUrl,
+        certificatePhotoUrl: "",
         garagePhotos,
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
