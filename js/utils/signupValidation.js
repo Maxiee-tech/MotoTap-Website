@@ -1,4 +1,5 @@
 import { folderToPreset, validateUpload } from "./uploadValidation.js";
+import { validateWorkingHours } from "./workingHours.js";
 
 /** Full name must contain at least two non-empty name parts. */
 export function validateFullName(name) {
@@ -102,6 +103,7 @@ export function validateMechanicStep3({
   longitude,
   address,
   inviteVerified = false,
+  workingHours,
 }) {
   const mode = String(garageMode || "own").trim() === "join" ? "join" : "own";
   if (!String(experienceYears || "").trim()) return "Experience years is required.";
@@ -125,6 +127,8 @@ export function validateMechanicStep3({
     return "Please pin your garage location on the map.";
   }
   if (!String(address || "").trim()) return "Garage address is required.";
+  const hoursErr = validateWorkingHours(workingHours);
+  if (hoursErr) return hoursErr;
   return "";
 }
 
@@ -136,6 +140,7 @@ export function validatePartsDealerStep3({
   latitude,
   longitude,
   address,
+  workingHours,
 }) {
   if (!String(shopName || "").trim()) return "Shop name is required.";
   if (!String(experienceYears || "").trim()) return "Years in business is required.";
@@ -147,5 +152,7 @@ export function validatePartsDealerStep3({
     return "Please pin your shop location on the map.";
   }
   if (!String(address || "").trim()) return "Shop address is required.";
+  const hoursErr = validateWorkingHours(workingHours);
+  if (hoursErr) return hoursErr;
   return "";
 }

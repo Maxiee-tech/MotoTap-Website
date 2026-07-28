@@ -78,6 +78,13 @@ function buildPublicProfileData(userId, data = {}) {
       typeof data.longitude === "number" && Number.isFinite(data.longitude) ? data.longitude : null;
     profile.address = String(data.address || "").trim().slice(0, 300);
     profile.garagePhotos = Array.isArray(data.garagePhotos) ? data.garagePhotos.slice(0, 5) : [];
+    if (
+      data.workingHours &&
+      typeof data.workingHours === "object" &&
+      !Array.isArray(data.workingHours)
+    ) {
+      profile.workingHours = data.workingHours;
+    }
   }
 
   return profile;

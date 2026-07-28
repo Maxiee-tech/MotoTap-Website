@@ -76,6 +76,13 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
     data.garagePhotos = Array.isArray(profile.garagePhotos)
       ? profile.garagePhotos.slice(0, 5)
       : [];
+    if (
+      profile.workingHours &&
+      typeof profile.workingHours === "object" &&
+      !Array.isArray(profile.workingHours)
+    ) {
+      data.workingHours = profile.workingHours;
+    }
   }
 
   return data;

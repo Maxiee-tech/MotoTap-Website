@@ -129,6 +129,12 @@ export default class FirebaseGarageService {
       memberCount: 1,
       skills: [],
       servicePrices: {},
+      workingHours:
+        profile.workingHours &&
+        typeof profile.workingHours === "object" &&
+        !Array.isArray(profile.workingHours)
+          ? profile.workingHours
+          : {},
       createdAtMillis: now,
       updatedAtMillis: now,
     };

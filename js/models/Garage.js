@@ -1,8 +1,9 @@
 /**
  * Garage org model — keep field names aligned with Android when porting:
  * garages/{id}, members/{uid}, garageInvites/{code}, users.garageId / garageRole,
- * jobs.garageId, garages.skills / servicePrices.
+ * jobs.garageId, garages.skills / servicePrices / workingHours.
  */
+import { normalizeWorkingHours } from "../utils/workingHours.js";
 /** @typedef {'invited' | 'pending' | 'active' | 'removed'} GarageMemberStatus */
 /** @typedef {'PENDING' | 'APPROVED' | 'REJECTED'} GarageStatus */
 
@@ -104,6 +105,7 @@ export function normalizeGarage(data = {}) {
       data.servicePrices && typeof data.servicePrices === "object" && !Array.isArray(data.servicePrices)
         ? data.servicePrices
         : {},
+    workingHours: normalizeWorkingHours(data.workingHours),
     createdAtMillis: Number(data.createdAtMillis) || 0,
     updatedAtMillis: Number(data.updatedAtMillis) || 0,
   };

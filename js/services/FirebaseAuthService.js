@@ -201,7 +201,7 @@ export default class FirebaseAuthService extends AuthRepository {
         return { success: false, error: joinResult.error || "Unable to join garage." };
       }
 
-      const result = await this.updateSignupProfile(userId, {
+      const joinPayload = {
         institutionName: garage.name,
         experienceYears: String(data.experienceYears || "").trim(),
         certificatePhotoUrl: data.certificatePhotoUrl || "",
@@ -215,7 +215,11 @@ export default class FirebaseAuthService extends AuthRepository {
         onboardingStep: 3,
         onboardingComplete: true,
         status: ProfileStatus.PENDING,
-      });
+      };
+      if (garage.workingHours) {
+        joinPayload.workingHours = garage.workingHours;
+      }
+      const result = await this.updateSignupProfile(userId, joinPayload);
       if (!result.success) return result;
 
       const refreshed = await withTimeout(getDoc(this.userDocRef(userId)));
@@ -225,7 +229,7 @@ export default class FirebaseAuthService extends AuthRepository {
       return { success: true, garage: joinResult.garage, pendingApproval: true };
     }
 
-    const result = await this.updateSignupProfile(userId, {
+    const ownPayload = {
       institutionName: String(data.institutionName || "").trim(),
       experienceYears: String(data.experienceYears || "").trim(),
       certificatePhotoUrl: data.certificatePhotoUrl,
@@ -236,7 +240,9 @@ export default class FirebaseAuthService extends AuthRepository {
       onboardingStep: 3,
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
-    });
+    };
+    if (data.workingHours) ownPayload.workingHours = data.workingHours;
+    const result = await this.updateSignupProfile(userId, ownPayload);
     if (!result.success) return result;
 
     const profile = await this.getUserProfile(userId);
@@ -247,6 +253,7 @@ export default class FirebaseAuthService extends AuthRepository {
       latitude: Number(data.latitude),
       longitude: Number(data.longitude),
       garagePhotos: Array.isArray(data.garagePhotos) ? data.garagePhotos : [],
+      workingHours: data.workingHours || undefined,
     });
     if (!garageResult.success) {
       return {
@@ -263,7 +270,7 @@ export default class FirebaseAuthService extends AuthRepository {
   }
 
   async completeSignupStep3PartsDealer(userId, data) {
-    return this.updateSignupProfile(userId, {
+    const payload = {
       institutionName: String(data.institutionName || "").trim(),
       experienceYears: String(data.experienceYears || "").trim(),
       certificatePhotoUrl: data.certificatePhotoUrl,
@@ -274,7 +281,45 @@ export default class FirebaseAuthService extends AuthRepository {
       onboardingStep: 3,
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
-    });
+    };
+    if (data.workingHours) payload.workingHours = data.workingHours;
+    const result = await this.updateSignupProfile(userId, payload);
+    if (!result.success) return result;
+    const refreshed = await withTimeout(getDoc(this.userDocRef(userId)));
+    if (refreshed.exists()) {
+      await this.syncPublicProfile(userId, mapFirestoreUserDoc(userId, refreshed.data()));
+    }
+    return { success: true };
+  }
+
+  /** Save working hours for garage owners / mechanics / parts dealers (post-signup gate). */
+  async saveWorkingHours(userId, workingHours) {
+    const uid = String(userId || "").trim();
+    if (!uid) return { success: false, error: "Not signed in." };
+    const profile = await this.getUserProfile(uid);
+    if (!profile) return { success: false, error: "Profile not found." };
+
+    const result = await this.updateSignupProfile(uid, { workingHours });
+    if (!result.success) return result;
+
+    if (profile.garageRole === "owner" && profile.garageId) {
+      try {
+        await withTimeout(
+          updateDoc(doc(this.firestore, "garages", profile.garageId), {
+            workingHours,
+            updatedAtMillis: Date.now(),
+          })
+        );
+      } catch (error) {
+        console.warn("Could not sync garage workingHours:", error);
+      }
+    }
+
+    const refreshed = await withTimeout(getDoc(this.userDocRef(uid)));
+    if (refreshed.exists()) {
+      await this.syncPublicProfile(uid, mapFirestoreUserDoc(uid, refreshed.data()));
+    }
+    return { success: true };
   }
 
   async sendDriverEmailVerification() {

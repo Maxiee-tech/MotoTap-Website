@@ -16,6 +16,15 @@ import {
   validatePartsDealerStep3,
 } from "./utils/signupValidation.js";
 import { initVehiclePickerPair } from "./utils/vehiclePicker.js";
+import {
+  applyWorkingHoursToForm,
+  bindWorkingHoursForm,
+  defaultWorkingHours,
+  normalizeWorkingHours,
+  readWorkingHoursFromForm,
+  validateWorkingHours,
+  workingHoursFormHtml,
+} from "./utils/workingHours.js";
 
 const DEFAULT_MAP_CENTER = { lat: -1.286389, lng: 36.817223 };
 
@@ -113,10 +122,11 @@ function syncSignupGarageModeUi() {
   document.getElementById("signup-id-number-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-id-front-photo-group")?.toggleAttribute("hidden", joinMode);
 
-  // Step 3: joiners skip garage docs.
+  // Step 3: joiners skip garage docs and hours (inherited from garage).
   document.getElementById("signup-institution-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-photo-group")?.toggleAttribute("hidden", joinMode);
   document.getElementById("signup-garage-location-group")?.toggleAttribute("hidden", joinMode);
+  document.getElementById("signup-mechanic-hours-group")?.toggleAttribute("hidden", joinMode);
 
   const banner = document.getElementById("signup-join-garage-banner");
   if (banner) {
@@ -153,6 +163,19 @@ function clearVerifiedInvite() {
   }
 }
 
+function mountWorkingHoursEditor(containerId, existing = null) {
+  const root = document.getElementById(containerId);
+  if (!root) return null;
+  if (!root.dataset.mounted) {
+    root.innerHTML = workingHoursFormHtml(containerId);
+    root.dataset.mounted = "1";
+    bindWorkingHoursForm(root.querySelector(".working-hours-editor") || root);
+  }
+  const editor = root.querySelector(".working-hours-editor") || root;
+  applyWorkingHoursToForm(editor, existing || defaultWorkingHours());
+  return editor;
+}
+
 function showWizardStep(step, role) {
   wizardState.step = step;
   wizardState.role = normalizeUserRole(role || wizardState.role);
@@ -177,14 +200,19 @@ function showWizardStep(step, role) {
       syncSignupGarageModeUi();
       if (getSignupGarageMode() !== "join") {
         initBusinessLocationMap("mechanic");
+        mountWorkingHoursEditor("signup-mechanic-hours");
       }
     }
     if (wizardState.role === "parts_dealer") {
       initBusinessLocationMap("parts_dealer");
+      mountWorkingHoursEditor("signup-parts-hours");
     }
+  } else if (step === "hours") {
+    document.getElementById("signup-step-hours")?.classList.add("active");
+    mountWorkingHoursEditor("signup-hours-only", wizardState.existingHours || null);
   }
 
-  updateStepIndicators(step);
+  updateStepIndicators(step === "hours" ? 3 : step);
   setWizardError("");
 }
 
@@ -366,6 +394,14 @@ export function resumeSignupWizardFromProfile(profile) {
     if (addressInput && profile.address) addressInput.value = profile.address;
   }
   showWizardStep(step, wizardState.role);
+  return true;
+}
+
+/** Show the hours-only signup step for business accounts missing weekly hours. */
+export function showWorkingHoursUpdateStep(profile) {
+  wizardState.role = normalizeUserRole(profile?.role);
+  wizardState.existingHours = profile?.workingHours || null;
+  showWizardStep("hours", wizardState.role);
   return true;
 }
 
@@ -691,6 +727,13 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     const experienceYears =
       document.getElementById("signup-experience-years")?.value || "";
     const garagePhotoFile = document.getElementById("signup-garage-photo")?.files?.[0];
+    const hoursRoot = document.getElementById("signup-mechanic-hours");
+    const workingHours =
+      garageMode === "join"
+        ? null
+        : normalizeWorkingHours(
+            readWorkingHoursFromForm(hoursRoot?.querySelector(".working-hours-editor") || hoursRoot)
+          );
 
     const validationError = validateMechanicStep3({
       garageMode,
@@ -702,6 +745,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       longitude: wizardState.location.longitude,
       address: wizardState.location.address,
       inviteVerified: Boolean(wizardState.verifiedInvite?.inviteCode),
+      workingHours: garageMode === "join" ? undefined : workingHours,
     });
     if (validationError) {
       setWizardError(validationError);
@@ -728,6 +772,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
         address: wizardState.location.address,
+        workingHours,
       });
 
       if (!result.success) {
@@ -762,6 +807,10 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       document.getElementById("signup-parts-experience-years")?.value || "";
     const licensePhotoFile = document.getElementById("signup-parts-license-photo")?.files?.[0];
     const shopPhotoFile = document.getElementById("signup-parts-shop-photo")?.files?.[0];
+    const hoursRoot = document.getElementById("signup-parts-hours");
+    const workingHours = normalizeWorkingHours(
+      readWorkingHoursFromForm(hoursRoot?.querySelector(".working-hours-editor") || hoursRoot)
+    );
 
     const validationError = validatePartsDealerStep3({
       shopName,
@@ -771,6 +820,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       latitude: wizardState.location.latitude,
       longitude: wizardState.location.longitude,
       address: wizardState.location.address,
+      workingHours,
     });
     if (validationError) {
       setWizardError(validationError);
@@ -794,6 +844,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
         address: wizardState.location.address,
+        workingHours,
       });
 
       if (!result.success) {
@@ -805,6 +856,38 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       setWizardError(error.message || "Unable to finish sign up.");
     } finally {
       setWizardLoading(false, "signup-step3-parts-dealer-btn", "Finish Sign Up");
+    }
+  });
+
+  document.getElementById("signup-hours-save-btn")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    setWizardError("");
+    const user = authService.auth.currentUser;
+    if (!user) {
+      setWizardError("Session expired. Please sign in again.");
+      return;
+    }
+    const hoursRoot = document.getElementById("signup-hours-only");
+    const workingHours = normalizeWorkingHours(
+      readWorkingHoursFromForm(hoursRoot?.querySelector(".working-hours-editor") || hoursRoot)
+    );
+    const hoursErr = validateWorkingHours(workingHours);
+    if (hoursErr) {
+      setWizardError(hoursErr);
+      return;
+    }
+    setWizardLoading(true, "signup-hours-save-btn", "Save working hours");
+    try {
+      const result = await authService.saveWorkingHours(user.uid, workingHours);
+      if (!result.success) {
+        setWizardError(result.error || "Unable to save working hours.");
+        return;
+      }
+      onComplete?.();
+    } catch (error) {
+      setWizardError(error.message || "Unable to save working hours.");
+    } finally {
+      setWizardLoading(false, "signup-hours-save-btn", "Save working hours");
     }
   });
 

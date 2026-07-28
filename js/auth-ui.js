@@ -92,8 +92,11 @@ import {
   initSignupWizard,
   showSignupWizard,
   resumeSignupWizardFromProfile,
+  showWorkingHoursUpdateStep,
   isProfileOnboardingComplete,
 } from "./signupWizard.js";
+import { needsWorkingHoursUpdate } from "./models/UserProfile.js";
+import { getOpenClosedStatus, hasValidWorkingHours } from "./utils/workingHours.js";
 import { computeLoyalty } from "./utils/loyalty.js";
 import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
@@ -1261,6 +1264,19 @@ async function showProfilePage({ focusVehicles = false } = {}) {
     return;
   }
 
+  if (needsWorkingHoursUpdate(currentUserProfile)) {
+    document.body.classList.add("auth-screen-active");
+    if (mainNavbar) {
+      mainNavbar.hidden = true;
+      mainNavbar.style.display = "none";
+    }
+    setHomeMenuVisible(false);
+    signupSection.classList.add("active");
+    showWorkingHoursUpdateStep(currentUserProfile);
+    updateNavActiveState("auth");
+    return;
+  }
+
   if (enforceDriverEmailVerificationGate()) return;
 
   const role = normalizeUserRole(currentUserProfile?.role);
@@ -1526,6 +1542,7 @@ const mechanicPanelName = document.getElementById("mechanic-panel-name");
 const mechanicPanelPhoto = document.getElementById("mechanic-panel-photo");
 const mechanicPanelDistance = document.getElementById("mechanic-panel-distance");
 const mechanicPanelMeta = document.getElementById("mechanic-panel-meta");
+const mechanicPanelHours = document.getElementById("mechanic-panel-hours");
 const mechanicPanelService = document.getElementById("mechanic-panel-service");
 const mechanicPanelPrice = document.getElementById("mechanic-panel-price");
 const towingDistanceRow = document.getElementById("towing-distance-row");
@@ -1780,6 +1797,22 @@ async function proceedAfterAuthenticatedSession() {
     setHomeMenuVisible(false);
     signupSection.classList.add("active");
     resumeSignupWizardFromProfile(currentUserProfile);
+    updateNavActiveState("auth");
+    return;
+  }
+
+  if (needsWorkingHoursUpdate(currentUserProfile)) {
+    hideWelcomeScreen();
+    closeMenu();
+    hideAllSections();
+    document.body.classList.add("auth-screen-active");
+    if (mainNavbar) {
+      mainNavbar.hidden = true;
+      mainNavbar.style.display = "none";
+    }
+    setHomeMenuVisible(false);
+    signupSection.classList.add("active");
+    showWorkingHoursUpdateStep(currentUserProfile);
     updateNavActiveState("auth");
     return;
   }
@@ -2479,15 +2512,15 @@ async function attachGaragePricesToEntries(entries) {
   ];
   if (!garageIds.length) return entries;
 
-  const priceByGarageId = new Map();
+  const garageById = new Map();
   await Promise.all(
     garageIds.map(async (garageId) => {
       try {
         const garage = await garageService.getGarage(garageId);
-        priceByGarageId.set(garageId, garage?.servicePrices || {});
+        garageById.set(garageId, garage || null);
       } catch (error) {
-        console.warn("Garage price lookup failed:", garageId, error);
-        priceByGarageId.set(garageId, {});
+        console.warn("Garage lookup failed:", garageId, error);
+        garageById.set(garageId, null);
       }
     })
   );
@@ -2495,11 +2528,16 @@ async function attachGaragePricesToEntries(entries) {
   return entries.map((entry) => {
     const garageId = String(entry.mechanic?.garageId || "").trim();
     if (!garageId) return entry;
+    const garage = garageById.get(garageId);
     return {
       ...entry,
       mechanic: {
         ...entry.mechanic,
-        garageServicePrices: priceByGarageId.get(garageId) || {},
+        garageServicePrices: garage?.servicePrices || {},
+        workingHours:
+          (hasValidWorkingHours(garage?.workingHours) && garage.workingHours) ||
+          entry.mechanic.workingHours ||
+          null,
       },
     };
   });
@@ -2844,6 +2882,16 @@ function renderMechanicPanel(
         mechanicPanelMeta.textContent = "Location shared on map";
       }
     }
+  }
+  if (mechanicPanelHours) {
+    const hoursSource =
+      (isGarageGroup && group.entries?.[0]?.mechanic?.workingHours) ||
+      mechanic.workingHours;
+    const status = getOpenClosedStatus(hoursSource);
+    mechanicPanelHours.textContent = status.label;
+    mechanicPanelHours.classList.toggle("is-open", status.isOpen);
+    mechanicPanelHours.classList.toggle("is-closed", !status.isOpen);
+    mechanicPanelHours.classList.remove("hidden");
   }
   if (mechanicPanelService) {
     mechanicPanelService.textContent = selectedSubservice

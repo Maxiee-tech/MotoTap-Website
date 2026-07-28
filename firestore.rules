@@ -55,7 +55,8 @@ service cloud.firestore {
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
         && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
         && (!('loyaltyPoints' in data) || (data.loyaltyPoints is int && data.loyaltyPoints >= 0))
-        && (!('redeemedRewards' in data) || (data.redeemedRewards is list && data.redeemedRewards.size() <= 50));
+        && (!('redeemedRewards' in data) || (data.redeemedRewards is list && data.redeemedRewards.size() <= 50))
+        && (!('workingHours' in data) || (data.workingHours is map && data.workingHours.size() <= 10));
     }
 
     function garageDoc(garageId) {
@@ -95,7 +96,8 @@ service cloud.firestore {
         && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('skills' in data) || (data.skills is list && data.skills.size() <= 50))
-        && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200));
+        && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200))
+        && (!('workingHours' in data) || (data.workingHours is map && data.workingHours.size() <= 10));
     }
 
     function validGarageMemberData(data, memberId) {
@@ -192,7 +194,8 @@ service cloud.firestore {
         && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
         && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
         && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
-        && (!('updatedAtMillis' in data) || data.updatedAtMillis is int);
+        && (!('updatedAtMillis' in data) || data.updatedAtMillis is int)
+        && (!('workingHours' in data) || (data.workingHours is map && data.workingHours.size() <= 10));
     }
 
     function ownerPublicProfileCreate(data) {

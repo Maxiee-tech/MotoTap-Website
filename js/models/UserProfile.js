@@ -1,4 +1,5 @@
 import { normalizeVehicleList } from "./VehicleProfile.js";
+import { hasValidWorkingHours, normalizeWorkingHours } from "../utils/workingHours.js";
 
 export const UserRole = {
   DRIVER: "DRIVER",
@@ -41,6 +42,15 @@ export function isProfileOnboardingComplete(profile) {
   if (Number.isFinite(step) && step >= 1) return false;
 
   return true;
+}
+
+/** Garage owners, mechanics, and parts dealers must publish weekly working hours. */
+export function needsWorkingHoursUpdate(profile) {
+  if (!profile) return false;
+  const role = toFirestoreRole(profile.role);
+  if (role !== UserRole.MECHANIC && role !== UserRole.PARTS_DEALER) return false;
+  if (!isProfileOnboardingComplete(profile)) return false;
+  return !hasValidWorkingHours(profile.workingHours);
 }
 
 export function createUserProfile(data = {}) {
@@ -86,6 +96,7 @@ export function createUserProfile(data = {}) {
     isAdmin: data.isAdmin === true,
     garageId: data.garageId || "",
     garageRole: data.garageRole || "",
+    workingHours: normalizeWorkingHours(data.workingHours),
   };
 }
 
@@ -129,5 +140,6 @@ export function mapFirestoreUserDoc(userId, data) {
     isAdmin: data.isAdmin,
     garageId: data.garageId,
     garageRole: data.garageRole,
+    workingHours: data.workingHours,
   });
 }

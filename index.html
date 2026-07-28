@@ -3829,12 +3829,66 @@
     }
 
     .mechanic-map-float-panel .mechanic-panel-meta,
+    .mechanic-map-float-panel .mechanic-panel-hours,
     .mechanic-map-float-panel .mechanic-panel-service,
     .mechanic-map-float-panel .mechanic-panel-price {
       font-size: 0.8125rem;
       color: #555;
       margin: 0 0 4px;
       line-height: 1.45;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-hours.is-open {
+      color: #0a7a32;
+      font-weight: 600;
+    }
+
+    .mechanic-map-float-panel .mechanic-panel-hours.is-closed {
+      color: #c00000;
+      font-weight: 600;
+    }
+
+    .working-hours-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .working-hours-row {
+      display: grid;
+      grid-template-columns: minmax(72px, 1fr) auto auto auto auto;
+      gap: 6px 8px;
+      align-items: center;
+      font-size: 0.875rem;
+    }
+
+    .working-hours-day {
+      font-weight: 600;
+    }
+
+    .working-hours-closed {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .working-hours-row input[type="time"] {
+      min-width: 0;
+      width: 100%;
+      max-width: 7.5rem;
+      padding: 6px 8px;
+    }
+
+    .working-hours-row.is-closed input[type="time"] {
+      opacity: 0.45;
+    }
+
+    .working-hours-sep {
+      color: #888;
     }
 
     .mechanic-map-float-panel .mechanic-panel-price {
@@ -5460,6 +5514,10 @@
             <div id="signup-location-map" role="application" aria-label="Garage location map"></div>
             <input type="text" id="signup-garage-address" placeholder="Address" readonly />
           </div>
+          <div class="form-group" id="signup-mechanic-hours-group">
+            <label>Working hours (24-hour)</label>
+            <div id="signup-mechanic-hours"></div>
+          </div>
           <div class="signup-wizard-actions">
             <button class="btn-secondary" id="signup-step3-mechanic-back" type="button">Back</button>
             <button class="btn-primary" id="signup-step3-mechanic-btn" type="button">Finish Sign Up</button>
@@ -5498,9 +5556,27 @@
             <div id="signup-parts-location-map" role="application" aria-label="Shop location map"></div>
             <input type="text" id="signup-parts-shop-address" placeholder="Address" readonly />
           </div>
+          <div class="form-group" id="signup-parts-hours-group">
+            <label>Working hours (24-hour)</label>
+            <div id="signup-parts-hours"></div>
+          </div>
           <div class="signup-wizard-actions">
             <button class="btn-secondary" id="signup-step3-parts-dealer-back" type="button">Back</button>
             <button class="btn-primary" id="signup-step3-parts-dealer-btn" type="button">Finish Sign Up</button>
+          </div>
+        </div>
+
+        <!-- Working hours update (legacy / incomplete business profiles) -->
+        <div id="signup-step-hours" class="signup-wizard-step">
+          <h4>Working hours</h4>
+          <p class="signup-field-hint">
+            Drivers need to know when you are open. Set your weekly hours in 24-hour format.
+          </p>
+          <div class="form-group">
+            <div id="signup-hours-only"></div>
+          </div>
+          <div class="signup-wizard-actions">
+            <button class="btn-primary" id="signup-hours-save-btn" type="button">Save working hours</button>
           </div>
         </div>
       </div>
@@ -5637,6 +5713,7 @@
               </div>
             </div>
             <p id="mechanic-panel-meta" class="mechanic-panel-meta"></p>
+            <p id="mechanic-panel-hours" class="mechanic-panel-hours"></p>
             <p id="mechanic-panel-service" class="mechanic-panel-service"></p>
             <p id="mechanic-panel-price" class="mechanic-panel-price hidden"></p>
             <div id="towing-distance-row" class="towing-distance-row hidden">
