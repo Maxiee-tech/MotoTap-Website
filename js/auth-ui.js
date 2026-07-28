@@ -1264,18 +1264,7 @@ async function showProfilePage({ focusVehicles = false } = {}) {
     return;
   }
 
-  if (needsWorkingHoursUpdate(currentUserProfile)) {
-    document.body.classList.add("auth-screen-active");
-    if (mainNavbar) {
-      mainNavbar.hidden = true;
-      mainNavbar.style.display = "none";
-    }
-    setHomeMenuVisible(false);
-    signupSection.classList.add("active");
-    showWorkingHoursUpdateStep(currentUserProfile);
-    updateNavActiveState("auth");
-    return;
-  }
+  if (enforceWorkingHoursGate()) return;
 
   if (enforceDriverEmailVerificationGate()) return;
 
@@ -1337,6 +1326,15 @@ function showBusinessDashboard(role) {
 }
 
 function showHomePage() {
+  if (
+    auth.currentUser &&
+    currentUserProfile &&
+    isProfileOnboardingComplete(currentUserProfile) &&
+    enforceWorkingHoursGate()
+  ) {
+    return;
+  }
+
   if (
     auth.currentUser &&
     currentUserProfile &&
@@ -1780,6 +1778,40 @@ function enforceDriverEmailVerificationGate() {
   return true;
 }
 
+function showWorkingHoursGateUi() {
+  hideWelcomeScreen();
+  closeMenu();
+  hideAllSections();
+  document.body.classList.add("auth-screen-active");
+  if (mainNavbar) {
+    mainNavbar.hidden = true;
+    mainNavbar.style.display = "none";
+  }
+  setHomeMenuVisible(false);
+  signupSection.classList.add("active");
+  const headerTitle = signupSection.querySelector(".auth-card-header h3");
+  const headerBlurb = signupSection.querySelector(".auth-card-header p");
+  if (headerTitle) headerTitle.textContent = "Working hours";
+  if (headerBlurb) {
+    headerBlurb.textContent =
+      "Set your weekly hours in 24-hour format so drivers can see when you are open.";
+  }
+  const progress = signupSection.querySelector(".signup-wizard-progress");
+  const labels = signupSection.querySelector(".signup-step-labels");
+  if (progress) progress.hidden = true;
+  if (labels) labels.hidden = true;
+  showWorkingHoursUpdateStep(currentUserProfile);
+  updateNavActiveState("auth");
+}
+
+/** Returns true when the current business profile must finish working hours first. */
+function enforceWorkingHoursGate() {
+  if (!auth.currentUser || !currentUserProfile) return false;
+  if (!needsWorkingHoursUpdate(currentUserProfile)) return false;
+  showWorkingHoursGateUi();
+  return true;
+}
+
 async function proceedAfterAuthenticatedSession() {
   if (!auth.currentUser) return;
 
@@ -1801,21 +1833,7 @@ async function proceedAfterAuthenticatedSession() {
     return;
   }
 
-  if (needsWorkingHoursUpdate(currentUserProfile)) {
-    hideWelcomeScreen();
-    closeMenu();
-    hideAllSections();
-    document.body.classList.add("auth-screen-active");
-    if (mainNavbar) {
-      mainNavbar.hidden = true;
-      mainNavbar.style.display = "none";
-    }
-    setHomeMenuVisible(false);
-    signupSection.classList.add("active");
-    showWorkingHoursUpdateStep(currentUserProfile);
-    updateNavActiveState("auth");
-    return;
-  }
+  if (enforceWorkingHoursGate()) return;
 
   if (enforceDriverEmailVerificationGate()) return;
 
@@ -1826,6 +1844,7 @@ async function proceedAfterAuthenticatedSession() {
 
 
 function showDashboard(role, email) {
+  if (enforceWorkingHoursGate()) return;
   hideWelcomeScreen();
   closeMenu();
   hideAllSections();
@@ -5016,6 +5035,10 @@ loginBtn.addEventListener("click", async (e) => {
   }
 
   await authViewModel.signIn();
+  if (authViewModel.uiState === "success" && auth.currentUser) {
+    // Don't rely only on onAuthStateChanged — gate hours immediately after login.
+    await proceedAfterAuthenticatedSession();
+  }
 });
 
 signupPasswordInput.addEventListener("input", (e) => {
@@ -5309,6 +5332,7 @@ initSignupWizard({
     if (auth.currentUser) {
       await loadUserProfile(auth.currentUser);
     }
+    if (enforceWorkingHoursGate()) return;
     if (enforceDriverEmailVerificationGate()) return;
     showHomePage();
   },
