@@ -26,6 +26,7 @@ import {
   ProfileStatus,
   defaultProfileStatusForRole,
   UserRole,
+  canManageWorkingHours,
 } from "../models/UserProfile.js";
 import { vehiclesForFirestore } from "../models/VehicleProfile.js";
 import {
@@ -292,12 +293,18 @@ export default class FirebaseAuthService extends AuthRepository {
     return { success: true };
   }
 
-  /** Save working hours for garage owners / mechanics / parts dealers (post-signup gate). */
+  /** Save working hours for garage owners and parts dealers (joined staff cannot). */
   async saveWorkingHours(userId, workingHours) {
     const uid = String(userId || "").trim();
     if (!uid) return { success: false, error: "Not signed in." };
     const profile = await this.getUserProfile(uid);
     if (!profile) return { success: false, error: "Profile not found." };
+    if (!canManageWorkingHours(profile)) {
+      return {
+        success: false,
+        error: "Only the garage owner can update working hours.",
+      };
+    }
 
     const result = await this.updateSignupProfile(uid, { workingHours });
     if (!result.success) return result;

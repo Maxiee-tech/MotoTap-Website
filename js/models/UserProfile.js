@@ -44,12 +44,26 @@ export function isProfileOnboardingComplete(profile) {
   return true;
 }
 
-/** Garage owners, mechanics, and parts dealers must publish weekly working hours. */
-export function needsWorkingHoursUpdate(profile) {
+/**
+ * Garage owners and parts dealers may set shop hours.
+ * Joined garage mechanics (garageRole === "mechanic") inherit the owner's hours.
+ */
+export function canManageWorkingHours(profile) {
   if (!profile) return false;
   const role = toFirestoreRole(profile.role);
   if (role !== UserRole.MECHANIC && role !== UserRole.PARTS_DEALER) return false;
+  const garageRole = String(profile.garageRole || "")
+    .trim()
+    .toLowerCase();
+  if (garageRole === "mechanic") return false;
+  return true;
+}
+
+/** Garage owners and parts dealers must publish weekly working hours; joined staff do not. */
+export function needsWorkingHoursUpdate(profile) {
+  if (!profile) return false;
   if (!isProfileOnboardingComplete(profile)) return false;
+  if (!canManageWorkingHours(profile)) return false;
   return !hasValidWorkingHours(profile.workingHours);
 }
 
