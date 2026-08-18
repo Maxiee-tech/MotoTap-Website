@@ -4216,12 +4216,26 @@ function collectVehiclePriceOverridesFromBlock(block) {
     const overridePrice = parsePriceInput(
       row.querySelector(".mechanic-vehicle-price-input")?.value
     );
+    
+    // Empty row - skip it
     if (!make && !model && overridePrice === null) return;
-    if (!make || !model || overridePrice === null) {
+    
+    // Incomplete make/model (one filled, one empty)
+    if ((make && !model) || (!make && model)) {
       incomplete = true;
       return;
     }
-    overrides.push({ make, model, price: overridePrice });
+    
+    // Price filled but no vehicle info
+    if (overridePrice !== null && !make && !model) {
+      incomplete = true;
+      return;
+    }
+    
+    // Valid entry: make and model filled (price is optional)
+    if (make && model) {
+      overrides.push({ make, model, price: overridePrice });
+    }
   });
 
   return { overrides, incomplete };
@@ -4246,13 +4260,15 @@ function collectMechanicServicesFromForm(root = mechanicServiceList) {
     }
 
     const { overrides, incomplete } = collectVehiclePriceOverridesFromBlock(block);
-    if (incomplete || overrides.length === 0) {
+    if (incomplete) {
       hasIncomplete = true;
       return;
     }
 
     selectedSkills.push(serviceName);
-    pricesByName[serviceName] = { overrides };
+    if (overrides.length > 0) {
+      pricesByName[serviceName] = { overrides };
+    }
   });
 
   return { selectedSkills, pricesByName, hasIncomplete };
@@ -4409,7 +4425,7 @@ function updateMechanicServicesBlurb() {
       : "Choose the services you personally deliver. Shop prices are set above under Garage service prices — drivers see those rates when booking anyone from this garage.";
   } else {
     blurb.textContent =
-      "Choose the services you can deliver and set a price for each make and model. Drivers see the price that matches their vehicle when booking.";
+      "Choose the services you can deliver. Optionally, set a price for specific makes/models — drivers see your price when available, or just know you offer the service.";
   }
 }
 
@@ -4423,9 +4439,9 @@ async function persistMechanicServices({ silent = false } = {}) {
 
   const garagePricing = usesGarageServicePricing();
   const { selectedSkills, pricesByName, hasIncomplete } = collectMechanicServicesFromForm();
-  if (!garagePricing && hasIncomplete) {
+  if (hasIncomplete) {
     const message =
-      "Complete pricing for every selected service. Add at least one make/model price (KSh/km for towing).";
+      "Complete vehicle rows for pricing. Ensure make and model are both filled, or leave the row empty. Price is optional.";
     if (!silent) {
       throw new Error(message);
     }
@@ -4463,7 +4479,7 @@ async function persistMechanicServices({ silent = false } = {}) {
     if (!silent) {
       mechanicStatus.textContent = garagePricing
         ? `Saved ${selectedSkills.length} offered service(s). Prices come from your garage.`
-        : `Saved ${selectedSkills.length} offered service(s) with prices.`;
+        : `Saved ${selectedSkills.length} offered service(s).`;
       mechanicError.textContent = "";
       renderMechanicServiceSelection();
       startJobSync();
@@ -4684,7 +4700,7 @@ async function handleSaveGaragePrices() {
   if (hasIncomplete) {
     if (errorEl) {
       errorEl.textContent =
-        "Complete pricing for every selected garage service. Add at least one make/model price (KSh/km for towing).";
+        "Complete vehicle rows for pricing. Ensure make and model are both filled, or leave the row empty. Price is optional.";
     }
     return;
   }
@@ -4701,14 +4717,14 @@ async function handleSaveGaragePrices() {
       servicePrices,
     });
     if (!result.success) {
-      throw new Error(result.error || "Failed to save garage prices.");
+      throw new Error(result.error || "Failed to save garage services.");
     }
     currentGarageContext.garage = result.garage;
     if (statusEl) {
-      statusEl.textContent = `Saved ${selectedSkills.length} garage service price(s).`;
+      statusEl.textContent = `Saved ${selectedSkills.length} garage service(s).`;
     }
   } catch (error) {
-    if (errorEl) errorEl.textContent = error.message || "Unable to save garage prices.";
+    if (errorEl) errorEl.textContent = error.message || "Unable to save garage services.";
   } finally {
     if (saveBtn) {
       saveBtn.disabled = false;
