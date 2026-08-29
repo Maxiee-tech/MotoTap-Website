@@ -1,13 +1,19 @@
-# MotoTap static site, fronted by snipeit's existing Caddy.
+# MotoTap static site.
 #
-# The container has no host ports and no TLS -- snipeit's Caddy terminates
-# HTTPS and reverse-proxies mototap.co.ke to this container over the shared
-# snipeit network. So this joins snipeit's default network as external.
+# Reverse proxying is handled by the host-wide caddy-docker-proxy in
+# /root/caddy on the server -- domains are declared via container labels
+# below. The container has no host ports and no TLS; caddy-docker-proxy
+# terminates HTTPS and reaches it over the shared `caddy` network.
 #
-# Bring snipeit up first (it creates `snipeit_default`).
+# NOTE on headers: caddy-docker-proxy header labels APPEND, they do not
+# replace. The container's own Caddyfile (baked into the image) already sets
+# X-Content-Type-Options, X-Frame-Options, Referrer-Policy and
+# Permissions-Policy, so those labels are deliberately absent here -- adding
+# them would duplicate every header. HSTS is the only one the app does not
+# send, so it stays here at the TLS terminator.
 
 networks:
-  snipeit_default:
+  caddy:
     external: true
 
 services:
@@ -28,6 +34,27 @@ services:
     container_name: mototap-web
     restart: unless-stopped
     networks:
-      - snipeit_default
+      - caddy
     expose:
       - "80"
+    labels:
+      caddy: mototap.co.ke
+      caddy.reverse_proxy: "{{upstreams 80}}"
+      # Quote values containing spaces, or Caddy parses them as multiple args.
+      caddy.header.Strict-Transport-Security: '"max-age=31536000; includeSubDomains"'
+      caddy.encode: "gzip zstd"
+      caddy.log: ""
+      caddy.log.output: "stdout"
+      caddy.log.format: "console"
+
+  # caddy-docker-proxy maps one container to one site block, so the www ->
+  # apex redirect needs its own (idle) container to carry the labels.
+  www-redirect:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    command: sleep infinity
+    networks:
+      - caddy
+    labels:
+      caddy: www.mototap.co.ke
+      caddy.redir: "https://mototap.co.ke{uri} permanent"
