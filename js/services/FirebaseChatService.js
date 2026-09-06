@@ -85,6 +85,7 @@ export default class FirebaseChatService extends ChatRepository {
   async syncChatPartnerEntries({
     participantIds,
     participantNames = {},
+    participantGarageNames = {},
     preview = "",
     millis = Date.now(),
     senderId = "",
@@ -106,6 +107,10 @@ export default class FirebaseChatService extends ChatRepository {
         roomId: getChatRoomId(userA, userB),
         updatedAtMillis: millis,
       };
+      const garageName = String(participantGarageNames[partnerId] || "").trim();
+      if (garageName) {
+        payload.partnerGarageName = garageName.slice(0, 120);
+      }
       if (trimmedPreview) {
         payload.lastMessageText = trimmedPreview;
         payload.lastMessageSenderId = senderId;
@@ -141,7 +146,12 @@ export default class FirebaseChatService extends ChatRepository {
     );
   }
 
-  async ensureChatRooms(roomIds, participantIds, participantNames = {}) {
+  async ensureChatRooms(
+    roomIds,
+    participantIds,
+    participantNames = {},
+    participantGarageNames = {}
+  ) {
     await Promise.all(
       roomIds.map((roomId) =>
         this.ensureChatRoom(roomId, participantIds, participantNames)
@@ -150,6 +160,7 @@ export default class FirebaseChatService extends ChatRepository {
     await this.syncChatPartnerEntries({
       participantIds,
       participantNames,
+      participantGarageNames,
       preview: "",
       millis: Date.now(),
     });

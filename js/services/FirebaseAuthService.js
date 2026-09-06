@@ -210,6 +210,7 @@ export default class FirebaseAuthService extends AuthRepository {
         latitude: garage.latitude,
         longitude: garage.longitude,
         address: garage.address || "",
+        locationName: garage.locationName || "",
         garageId: garage.id,
         garageRole: "mechanic",
         garageMemberStatus: "pending",
@@ -238,6 +239,7 @@ export default class FirebaseAuthService extends AuthRepository {
       latitude: Number(data.latitude),
       longitude: Number(data.longitude),
       address: String(data.address || "").trim(),
+      locationName: String(data.locationName || "").trim().slice(0, 120),
       onboardingStep: 3,
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
@@ -251,6 +253,7 @@ export default class FirebaseAuthService extends AuthRepository {
       name: profile?.name || "",
       institutionName: String(data.institutionName || "").trim(),
       address: String(data.address || "").trim(),
+      locationName: String(data.locationName || "").trim().slice(0, 120),
       latitude: Number(data.latitude),
       longitude: Number(data.longitude),
       garagePhotos: Array.isArray(data.garagePhotos) ? data.garagePhotos : [],
@@ -279,6 +282,7 @@ export default class FirebaseAuthService extends AuthRepository {
       latitude: Number(data.latitude),
       longitude: Number(data.longitude),
       address: String(data.address || "").trim(),
+      locationName: String(data.locationName || "").trim().slice(0, 120),
       onboardingStep: 3,
       onboardingComplete: true,
       status: ProfileStatus.PENDING,
@@ -521,6 +525,85 @@ export default class FirebaseAuthService extends AuthRepository {
   }
 
   /** Persist the driver's vehicles[] array (Android-aligned fleet management). */
+  async updateGarageProfilePhotos(userId, photos = []) {
+    const uid = String(userId || "").trim();
+    if (!uid) return { success: false, error: "You must be signed in." };
+
+    const garagePhotos = Array.isArray(photos)
+      ? photos.map((url) => String(url || "").trim()).filter(Boolean).slice(0, 5)
+      : [];
+    if (!garagePhotos.length) {
+      return { success: false, error: "Choose a garage photo." };
+    }
+
+    const profile = await this.getUserProfile(uid);
+    if (!profile) return { success: false, error: "Profile not found." };
+
+    const garageRole = String(profile.garageRole || "").toLowerCase();
+    if (garageRole === "mechanic") {
+      return {
+        success: false,
+        error: "Only the garage owner can update the garage photo.",
+      };
+    }
+
+    const result = await this.updateSignupProfile(uid, { garagePhotos });
+    if (!result.success) return result;
+
+    if (garageRole === "owner" && profile.garageId) {
+      const garageResult = await this.garageService.updateGaragePhotos(
+        profile.garageId,
+        uid,
+        garagePhotos
+      );
+      if (!garageResult.success) {
+        return {
+          success: false,
+          error: garageResult.error || "Could not update the garage photo.",
+        };
+      }
+    }
+
+    return { success: true, garagePhotos };
+  }
+
+  async updateGarageLocationName(userId, locationName) {
+    const uid = String(userId || "").trim();
+    const name = String(locationName || "").trim().slice(0, 120);
+    if (!uid) return { success: false, error: "You must be signed in." };
+    if (!name) return { success: false, error: "Choose a popular place near you." };
+
+    const profile = await this.getUserProfile(uid);
+    if (!profile) return { success: false, error: "Profile not found." };
+
+    const garageRole = String(profile.garageRole || "").toLowerCase();
+    if (garageRole === "mechanic") {
+      return {
+        success: false,
+        error: "Only the garage owner can update the location name.",
+      };
+    }
+
+    const result = await this.updateSignupProfile(uid, { locationName: name });
+    if (!result.success) return result;
+
+    if (garageRole === "owner" && profile.garageId) {
+      const garageResult = await this.garageService.updateGarageLocationName(
+        profile.garageId,
+        uid,
+        name
+      );
+      if (!garageResult.success) {
+        return {
+          success: false,
+          error: garageResult.error || "Could not update the location name.",
+        };
+      }
+    }
+
+    return { success: true, locationName: name };
+  }
+
   async updateUserVehicles(userId, vehicles) {
     try {
       const payload = vehiclesForFirestore(vehicles);

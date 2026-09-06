@@ -73,6 +73,7 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
         ? profile.longitude
         : null;
     data.address = String(profile.address || "").trim().slice(0, 300);
+    data.locationName = String(profile.locationName || "").trim().slice(0, 120);
     data.garagePhotos = Array.isArray(profile.garagePhotos)
       ? profile.garagePhotos.slice(0, 5)
       : [];

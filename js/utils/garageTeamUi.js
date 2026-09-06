@@ -1,11 +1,15 @@
 import FirebaseGarageService from "../services/FirebaseGarageService.js";
+import FirebaseAuthService from "../services/FirebaseAuthService.js";
+import { uploadUserImage } from "../services/CloudinaryStorageService.js";
 import { GarageMemberRole, GarageMemberStatus } from "../models/Garage.js";
 import { ProfileStatus } from "../models/UserProfile.js";
 import { escapeHtml } from "./html.js";
+import { attachPlaceAutocomplete, refreshLandmarkChips } from "./placePicker.js";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase.js";
 
 const garageService = new FirebaseGarageService();
+const authService = new FirebaseAuthService();
 
 function withTimeout(promise, timeoutMs = 25000) {
   return Promise.race([
@@ -32,6 +36,21 @@ function setError(message) {
 
 function show(el, visible) {
   el?.classList.toggle("hidden", !visible);
+}
+
+function setGaragePhotoPreview(url) {
+  const img = document.getElementById("garage-photo-img");
+  const placeholder = document.getElementById("garage-photo-placeholder");
+  const trimmed = String(url || "").trim();
+  if (img && trimmed) {
+    img.src = trimmed;
+    img.hidden = false;
+    placeholder?.classList.add("hidden");
+  } else if (img) {
+    img.removeAttribute("src");
+    img.hidden = true;
+    placeholder?.classList.remove("hidden");
+  }
 }
 
 export function getCachedGarage() {
@@ -136,6 +155,7 @@ export async function renderGarageTeamPanel({
         name: workingProfile.name,
         institutionName: workingProfile.institutionName || workingProfile.name,
         address: workingProfile.address,
+        locationName: workingProfile.locationName,
         latitude: workingProfile.latitude,
         longitude: workingProfile.longitude,
         garagePhotos: workingProfile.garagePhotos,
@@ -190,7 +210,27 @@ export async function renderGarageTeamPanel({
     statusEl.textContent = "";
     show(detailsEl, true);
     setText("garage-team-name", garage.name || "Garage");
-    setText("garage-team-address", garage.address || "Location on file");
+    setText(
+      "garage-team-address",
+      garage.locationName || "Add a popular place drivers will see"
+    );
+    const locationInput = document.getElementById("garage-location-name-input");
+    if (locationInput) locationInput.value = garage.locationName || "";
+    setText("garage-location-status", "");
+    show(document.getElementById("garage-location-editor"), isOwner);
+    setGaragePhotoPreview(garage.garagePhotos?.[0]);
+    setText("garage-photo-status", "");
+    show(document.getElementById("garage-photo-actions"), isOwner);
+    if (isOwner) {
+      refreshLandmarkChips(
+        document.getElementById("garage-location-landmarks"),
+        Number(garage.latitude),
+        Number(garage.longitude),
+        (name) => {
+          if (locationInput) locationInput.value = name;
+        }
+      ).catch(() => {});
+    }
     setText("garage-invite-code", garage.inviteCode || "—");
     show(inviteRow, isOwner);
     show(inviteHint, isOwner);
@@ -206,7 +246,7 @@ export async function renderGarageTeamPanel({
       if (sectionTitle) sectionTitle.textContent = "My Garage";
       if (sectionBlurb) {
         sectionBlurb.textContent =
-          "Invite mechanics who work with you, approve join requests, set garage make/model prices, and assign jobs across your team.";
+          "Invite mechanics who work with you, approve join requests, choose the vehicle types you service, set garage make/model prices, and assign jobs across your team.";
       }
       if (roleBadge) {
         roleBadge.textContent = "Your role: Owner";
@@ -281,6 +321,81 @@ export function bindGarageTeamPanel({ getProfile, onProfileRefresh, onGarageRead
   const refreshBtn = document.getElementById("garage-refresh-invite-btn");
   const joinBtn = document.getElementById("garage-join-btn");
   const pendingList = document.getElementById("garage-pending-list");
+  const photoEditBtn = document.getElementById("garage-photo-edit-btn");
+  const photoInput = document.getElementById("garage-photo-input");
+  const locationInput = document.getElementById("garage-location-name-input");
+  const locationSaveBtn = document.getElementById("garage-location-save-btn");
+
+  const saveGarageLocationName = async (rawName) => {
+    const profile = getProfile?.();
+    const name = String(rawName ?? locationInput?.value ?? "").trim();
+    if (locationInput) locationInput.value = name;
+    if (!profile?.id) return;
+    if (locationSaveBtn) locationSaveBtn.disabled = true;
+    setText("garage-location-status", "Saving location name…");
+    setError("");
+    try {
+      const result = await authService.updateGarageLocationName(profile.id, name);
+      if (!result.success) {
+        setError(result.error || "Could not update the location name.");
+        setText("garage-location-status", "");
+        return;
+      }
+      if (cachedGarage) {
+        cachedGarage = { ...cachedGarage, locationName: result.locationName || name };
+      }
+      setText("garage-team-address", result.locationName || name);
+      setText("garage-location-status", "Location name updated.");
+      await onProfileRefresh?.();
+    } catch (error) {
+      setError(error.message || "Could not update the location name.");
+      setText("garage-location-status", "");
+    } finally {
+      if (locationSaveBtn) locationSaveBtn.disabled = false;
+    }
+  };
+
+  attachPlaceAutocomplete(locationInput, {
+    onPlace: (place) => {
+      if (place.name) saveGarageLocationName(place.name);
+    },
+  }).catch(() => {});
+
+  locationSaveBtn?.addEventListener("click", () => saveGarageLocationName());
+
+  photoEditBtn?.addEventListener("click", () => photoInput?.click());
+  photoInput?.addEventListener("change", async () => {
+    const file = photoInput.files?.[0];
+    photoInput.value = "";
+    const profile = getProfile?.();
+    if (!file || !profile?.id) return;
+
+    photoEditBtn.disabled = true;
+    setText("garage-photo-status", "Uploading photo…");
+    setError("");
+    try {
+      const url = await uploadUserImage(profile.id, "garage", file, {
+        role: profile.role,
+      });
+      const result = await authService.updateGarageProfilePhotos(profile.id, [url]);
+      if (!result.success) {
+        setError(result.error || "Could not update the garage photo.");
+        setText("garage-photo-status", "");
+        return;
+      }
+      setGaragePhotoPreview(url);
+      if (cachedGarage) {
+        cachedGarage = { ...cachedGarage, garagePhotos: result.garagePhotos || [url] };
+      }
+      setText("garage-photo-status", "Garage photo updated.");
+      await onProfileRefresh?.();
+    } catch (error) {
+      setError(error.message || "Could not update the garage photo.");
+      setText("garage-photo-status", "");
+    } finally {
+      photoEditBtn.disabled = false;
+    }
+  });
 
   copyBtn?.addEventListener("click", async () => {
     const code = document.getElementById("garage-invite-code")?.textContent?.trim();

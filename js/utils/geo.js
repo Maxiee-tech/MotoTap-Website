@@ -10,10 +10,29 @@ export function distanceMeters(lat1, lng1, lat2, lng2) {
   return earthRadiusM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+export function looksLikeCoordinates(value) {
+  return /^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(
+    String(value || "").trim()
+  );
+}
+
+/** Popular place drivers should see — never street address or lat/lng. */
+export function formatShopAreaLabel(profile = {}) {
+  return String(profile.locationName || "").trim();
+}
+
 export function formatDistanceMeters(meters) {
   if (!Number.isFinite(meters)) return "";
   if (meters < 1000) return `${Math.round(meters)} m away`;
   return `${(meters / 1000).toFixed(1)} km away`;
+}
+
+/** Driver-facing line: popular place and/or distance. */
+export function formatPlaceAndDistance(profile = {}, meters) {
+  const place = formatShopAreaLabel(profile);
+  const distance = formatDistanceMeters(meters);
+  if (place && distance) return `${place} · ${distance}`;
+  return place || distance || "";
 }
 
 /** Shared room ID — sorted UIDs so app and web use the same Firestore chat doc. */

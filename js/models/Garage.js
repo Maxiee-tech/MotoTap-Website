@@ -1,9 +1,10 @@
 /**
  * Garage org model — keep field names aligned with Android when porting:
  * garages/{id}, members/{uid}, garageInvites/{code}, users.garageId / garageRole,
- * jobs.garageId, garages.skills / servicePrices / workingHours.
+ * jobs.garageId, garages.skills / servicePrices / vehicleTypes / workingHours.
  */
 import { normalizeWorkingHours } from "../utils/workingHours.js";
+import { normalizeVehicleTypes } from "../utils/garageVehicleTypes.js";
 /** @typedef {'invited' | 'pending' | 'active' | 'removed'} GarageMemberStatus */
 /** @typedef {'PENDING' | 'APPROVED' | 'REJECTED'} GarageStatus */
 
@@ -18,6 +19,7 @@ import { normalizeWorkingHours } from "../utils/workingHours.js";
  * @property {GarageStatus} status
  * @property {string} inviteCode
  * @property {number} memberCount
+ * @property {string[]} vehicleTypes
  * @property {number} createdAtMillis
  * @property {number} updatedAtMillis
  */
@@ -83,6 +85,7 @@ export function normalizeGarage(data = {}) {
     id: String(data.id || "").trim(),
     name: String(data.name || "").trim().slice(0, 120),
     address: String(data.address || "").trim().slice(0, 300),
+    locationName: String(data.locationName || "").trim().slice(0, 120),
     latitude:
       typeof data.latitude === "number" && Number.isFinite(data.latitude)
         ? data.latitude
@@ -105,6 +108,7 @@ export function normalizeGarage(data = {}) {
       data.servicePrices && typeof data.servicePrices === "object" && !Array.isArray(data.servicePrices)
         ? data.servicePrices
         : {},
+    vehicleTypes: normalizeVehicleTypes(data.vehicleTypes),
     workingHours: normalizeWorkingHours(data.workingHours),
     createdAtMillis: Number(data.createdAtMillis) || 0,
     updatedAtMillis: Number(data.updatedAtMillis) || 0,

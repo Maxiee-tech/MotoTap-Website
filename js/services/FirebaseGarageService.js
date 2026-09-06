@@ -19,6 +19,7 @@ import {
   normalizeGarageMember,
   normalizeInviteCode,
 } from "../models/Garage.js";
+import { normalizeVehicleTypes } from "../utils/garageVehicleTypes.js";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 
@@ -112,6 +113,7 @@ export default class FirebaseGarageService {
     const garageData = {
       name,
       address: String(profile.address || "").trim().slice(0, 300),
+      locationName: String(profile.locationName || "").trim().slice(0, 120),
       latitude:
         typeof profile.latitude === "number" && Number.isFinite(profile.latitude)
           ? profile.latitude
@@ -129,6 +131,7 @@ export default class FirebaseGarageService {
       memberCount: 1,
       skills: [],
       servicePrices: {},
+      vehicleTypes: [],
       workingHours:
         profile.workingHours &&
         typeof profile.workingHours === "object" &&
@@ -269,6 +272,7 @@ export default class FirebaseGarageService {
         garageMemberStatus: GarageMemberStatus.PENDING,
         institutionName: garage.name,
         address: garage.address || "",
+        locationName: garage.locationName || "",
         latitude: garage.latitude,
         longitude: garage.longitude,
         garagePhotos: garage.garagePhotos || [],
@@ -400,7 +404,11 @@ export default class FirebaseGarageService {
    * Owner updates garage-wide skills and default service prices.
    * Mechanics keep personal overrides; discovery falls back to these defaults.
    */
-  async updateGarageCatalog(garageId, ownerId, { skills = [], servicePrices = {} } = {}) {
+  async updateGarageCatalog(
+    garageId,
+    ownerId,
+    { skills = [], servicePrices = {}, vehicleTypes = [] } = {}
+  ) {
     const garage = await this.getGarage(garageId);
     if (!garage) return { success: false, error: "Garage not found." };
     if (garage.ownerId !== ownerId) {
@@ -414,11 +422,13 @@ export default class FirebaseGarageService {
       servicePrices && typeof servicePrices === "object" && !Array.isArray(servicePrices)
         ? servicePrices
         : {};
+    const nextVehicleTypes = normalizeVehicleTypes(vehicleTypes);
 
     await withTimeout(
       updateDoc(this.garageRef(garageId), {
         skills: nextSkills,
         servicePrices: nextPrices,
+        vehicleTypes: nextVehicleTypes,
         updatedAtMillis: Date.now(),
       })
     );
@@ -429,8 +439,55 @@ export default class FirebaseGarageService {
         ...garage,
         skills: nextSkills,
         servicePrices: nextPrices,
+        vehicleTypes: nextVehicleTypes,
       },
     };
+  }
+
+  async updateGaragePhotos(garageId, ownerId, photos = []) {
+    const garage = await this.getGarage(garageId);
+    if (!garage) return { success: false, error: "Garage not found." };
+    if (garage.ownerId !== ownerId) {
+      return { success: false, error: "Only the garage owner can update the garage photo." };
+    }
+
+    const garagePhotos = Array.isArray(photos)
+      ? photos.map((url) => String(url || "").trim()).filter(Boolean).slice(0, 5)
+      : [];
+    if (!garagePhotos.length) {
+      return { success: false, error: "Choose a garage photo." };
+    }
+
+    await withTimeout(
+      updateDoc(this.garageRef(garageId), {
+        garagePhotos,
+        updatedAtMillis: Date.now(),
+      })
+    );
+
+    return { success: true, garage: { ...garage, garagePhotos } };
+  }
+
+  async updateGarageLocationName(garageId, ownerId, locationName) {
+    const garage = await this.getGarage(garageId);
+    if (!garage) return { success: false, error: "Garage not found." };
+    if (garage.ownerId !== ownerId) {
+      return { success: false, error: "Only the garage owner can update the location name." };
+    }
+
+    const name = String(locationName || "").trim().slice(0, 120);
+    if (!name) {
+      return { success: false, error: "Choose a popular place near you." };
+    }
+
+    await withTimeout(
+      updateDoc(this.garageRef(garageId), {
+        locationName: name,
+        updatedAtMillis: Date.now(),
+      })
+    );
+
+    return { success: true, garage: { ...garage, locationName: name } };
   }
 
   async allocateInviteCode(maxAttempts = 8) {

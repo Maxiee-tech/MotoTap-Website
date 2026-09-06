@@ -1,6 +1,7 @@
 import { auth, db } from "../firebase.js";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import FirebaseAuthService from "./services/FirebaseAuthService.js";
+import { uploadUserImage } from "./services/CloudinaryStorageService.js";
 import FirebaseJobService from "./services/FirebaseJobService.js";
 import FirebaseChatService from "./services/FirebaseChatService.js";
 import FirebaseServiceCatalogService from "./services/FirebaseServiceCatalogService.js";
@@ -23,6 +24,11 @@ import {
   toFormPriceEntry,
 } from "./utils/mechanicServicePrices.js";
 import { getActiveVehicle, vehicleDisplayName } from "./models/VehicleProfile.js";
+import { VEHICLE_CATEGORIES } from "./vehicleCatalogData.js";
+import {
+  garageServicesVehicle,
+  normalizeVehicleTypes,
+} from "./utils/garageVehicleTypes.js";
 import {
   createVehicleMakeModelSelects,
   readMakeModelFromContainer,
@@ -45,12 +51,14 @@ import {
 } from "./utils/partsDealerPrices.js";
 import {
   distanceMeters,
-  formatDistanceMeters,
   buildDriverMechanicConversationId,
   getAllConversationIdsForParticipants,
   getMechanicPosition,
   isBusinessRole,
   isMechanicRole,
+  isPartsDealerRole,
+  formatShopAreaLabel,
+  formatPlaceAndDistance,
   formatUserRoleLabel,
   mechanicOffersService,
   partsDealerOffersPart,
@@ -86,6 +94,7 @@ import {
 } from "./serviceCardLayout.js";
 import PasswordValidator from "./PasswordValidator.js";
 import { appendDriverJobReviewSection } from "./jobReviewUi.js";
+import { appendJobAdditionalServicesSection } from "./jobAdditionalServicesUi.js";
 import { renderProfilePage } from "./profileUi.js";
 import { paintDriverActiveVehicleCard, paintDriverActiveVehicleSkeleton } from "./activeVehicleUi.js";
 import {
@@ -555,6 +564,19 @@ function buildJobCard(
     card.appendChild(actions);
   }
 
+  appendJobAdditionalServicesSection(card, normalized, {
+    userId: currentUserProfile?.id || auth.currentUser?.uid || "",
+    authorName: currentUserProfile?.name || "",
+    isGarageOwner: Boolean(currentGarageContext.isOwner),
+    isGarageMember: Boolean(
+      currentGarageContext.garage?.id &&
+        (currentGarageContext.isOwner ||
+          String(currentUserProfile?.garageId || "") ===
+            String(currentGarageContext.garage.id))
+    ),
+    onAdd: (jobId, note) => jobService.addAdditionalServiceNote(jobId, note),
+  });
+
   if (role === "driver") {
     appendDriverJobReviewSection(card, normalized);
   }
@@ -672,9 +694,9 @@ function paintAvailableJobs(jobs) {
     return;
   }
 
-  const availableJobs = filterMechanicAvailableJobs(jobs, currentUserProfile).filter(
-    (job) => !dismissedJobIds.has(job.id)
-  );
+  const availableJobs = filterMechanicAvailableJobs(jobs, currentUserProfile, {
+    vehicleTypes: currentGarageContext.garage?.vehicleTypes,
+  }).filter((job) => !dismissedJobIds.has(job.id));
   jobsStatus.textContent = "";
 
   if (!availableJobs.length) {
@@ -1195,6 +1217,51 @@ function paintProfilePage(jobs = []) {
       }
       return result;
     },
+    onChangeGarageLocation: async (locationName) => {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        return { success: false, error: "You must be signed in to update the location name." };
+      }
+      const result = await authService.updateGarageLocationName(userId, locationName);
+      if (result.success) {
+        currentUserProfile = {
+          ...currentUserProfile,
+          locationName: result.locationName || locationName,
+        };
+        if (currentGarageContext.garage) {
+          currentGarageContext.garage = {
+            ...currentGarageContext.garage,
+            locationName: result.locationName || locationName,
+          };
+        }
+        paintProfilePage(lastProfileJobs);
+      }
+      return result;
+    },
+    onChangeGaragePhoto: async (file) => {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        return { success: false, error: "You must be signed in to update the garage photo." };
+      }
+      const url = await uploadUserImage(userId, "garage", file, {
+        role: currentUserProfile?.role,
+      });
+      const result = await authService.updateGarageProfilePhotos(userId, [url]);
+      if (result.success) {
+        currentUserProfile = {
+          ...currentUserProfile,
+          garagePhotos: result.garagePhotos || [url],
+        };
+        if (currentGarageContext.garage) {
+          currentGarageContext.garage = {
+            ...currentGarageContext.garage,
+            garagePhotos: result.garagePhotos || [url],
+          };
+        }
+        paintProfilePage(lastProfileJobs);
+      }
+      return result;
+    },
     onLogout: async () => {
       await authViewModel.logout(() => {
         showHomePage();
@@ -1562,6 +1629,7 @@ const messagesInboxList = document.getElementById("messages-inbox-list");
 const chatView = document.getElementById("chat-view");
 const chatBackBtn = document.getElementById("chat-back-btn");
 const chatHeaderTitle = document.getElementById("chat-header-title");
+const chatHeaderSubtitle = document.getElementById("chat-header-subtitle");
 const chatTypingIndicator = document.getElementById("chat-typing-indicator");
 const chatTypingLabel = chatTypingIndicator?.querySelector(".chat-typing-label");
 const chatMessagesEl = document.getElementById("chat-messages");
@@ -1601,6 +1669,7 @@ let chatInboxUnsubscribe = null;
 let roomTypingActive = false;
 let partnerInboxTypingActive = false;
 const chatPartnerNameCache = new Map();
+const chatPartnerGarageCache = new Map();
 let chatTypingDebounceTimer = null;
 let optimisticChatMessages = [];
 let serverChatMessages = [];
@@ -2030,6 +2099,27 @@ function pickPartnerDisplayName(...candidates) {
   return "";
 }
 
+async function resolvePartnerGarageName(profile, hintedName = "") {
+  const hinted = String(hintedName || "").trim();
+  const garageId = String(profile?.garageId || "").trim();
+  if (garageId && chatPartnerGarageCache.has(`g:${garageId}`)) {
+    return chatPartnerGarageCache.get(`g:${garageId}`);
+  }
+  if (garageId) {
+    try {
+      const garage = await garageService.getGarage(garageId);
+      const name = String(garage?.name || "").trim();
+      if (name) {
+        chatPartnerGarageCache.set(`g:${garageId}`, name);
+        return name;
+      }
+    } catch (error) {
+      console.warn("Chat garage lookup failed:", error);
+    }
+  }
+  return hinted || String(profile?.institutionName || "").trim();
+}
+
 async function resolveChatPartnerInfo(partnerId, context = {}) {
   const fallbackRole = context.fallbackRole || "driver";
   if (!partnerId) return { name: "User", role: fallbackRole };
@@ -2064,6 +2154,7 @@ async function resolveChatPartnerInfo(partnerId, context = {}) {
     role = isBusinessRole(currentUserProfile.role) ? "driver" : "mechanic";
   }
 
+  const finalRole = role || fallbackRole;
   const finalName = name || "User";
   if (finalName !== "User") {
     chatPartnerNameCache.set(partnerId, finalName);
@@ -2073,10 +2164,19 @@ async function resolveChatPartnerInfo(partnerId, context = {}) {
     profile?.profilePhotoUrl || profile?.photoUrl || ""
   ).trim();
 
+  let garageName = pickPartnerDisplayName(
+    context.garageName,
+    context.chatPartnerEntry?.partnerGarageName
+  );
+  if (isBusinessRole(finalRole) || isBusinessRole(profile?.role)) {
+    garageName = await resolvePartnerGarageName(profile, garageName);
+  }
+
   return {
     name: finalName,
-    role: role || fallbackRole,
+    role: finalRole,
     photoUrl,
+    garageName: garageName || "",
   };
 }
 
@@ -2084,13 +2184,47 @@ function formatChatRoleLabel(role) {
   return formatUserRoleLabel(role);
 }
 
-function formatChatHeaderTitle(partnerName, partnerRole) {
+function formatShopKindLabel(role) {
+  return isPartsDealerRole(role) ? "Shop" : "Garage";
+}
+
+function formatChatHeaderTitle(partnerName, partnerRole, garageName) {
   const name = pickPartnerDisplayName(partnerName) || "User";
+  const garage = pickPartnerDisplayName(garageName);
+  if (isBusinessRole(partnerRole) && garage) {
+    return garage;
+  }
   return `Chat · ${formatChatRoleLabel(partnerRole)} · ${name}`;
 }
 
-function formatInboxPartnerLabel(partnerName, partnerRole) {
+function formatChatHeaderSubtitle(partnerName, partnerRole, garageName) {
+  const name = pickPartnerDisplayName(partnerName);
+  const garage = pickPartnerDisplayName(garageName);
+  if (!isBusinessRole(partnerRole) || !garage) return "";
+  const roleLabel = formatChatRoleLabel(partnerRole);
+  return name && name !== garage ? `${roleLabel} · ${name}` : roleLabel;
+}
+
+function applyChatHeader(partnerName, partnerRole, garageName) {
+  if (chatHeaderTitle) {
+    chatHeaderTitle.textContent = formatChatHeaderTitle(
+      partnerName,
+      partnerRole,
+      garageName
+    );
+  }
+  if (!chatHeaderSubtitle) return;
+  const subtitle = formatChatHeaderSubtitle(partnerName, partnerRole, garageName);
+  chatHeaderSubtitle.textContent = subtitle;
+  chatHeaderSubtitle.classList.toggle("hidden", !subtitle);
+}
+
+function formatInboxPartnerLabel(partnerName, partnerRole, garageName) {
   const name = pickPartnerDisplayName(partnerName) || "User";
+  const garage = pickPartnerDisplayName(garageName);
+  if (isBusinessRole(partnerRole) && garage) {
+    return `${formatShopKindLabel(partnerRole)} · ${garage}`;
+  }
   return `${formatChatRoleLabel(partnerRole)} · ${name}`;
 }
 
@@ -2174,6 +2308,7 @@ async function renderMessagesInbox(entries) {
       const partnerInfo = await resolveChatPartnerInfo(partnerId, {
         partnerName: entry?.partnerName,
         participantNames: entry?.participantNames,
+        garageName: entry?.partnerGarageName,
         roomIds,
         chatPartnerEntry: entry,
       });
@@ -2181,7 +2316,13 @@ async function renderMessagesInbox(entries) {
       return {
         partnerId,
         partnerName: partnerInfo.name,
-        partnerLabel: formatInboxPartnerLabel(partnerInfo.name, partnerInfo.role),
+        partnerRole: partnerInfo.role,
+        partnerGarageName: partnerInfo.garageName || "",
+        partnerLabel: formatInboxPartnerLabel(
+          partnerInfo.name,
+          partnerInfo.role,
+          partnerInfo.garageName
+        ),
         partnerPhotoUrl: partnerInfo.photoUrl || "",
         preview,
         unread: isEntryUnread(entry, myId),
@@ -2228,7 +2369,10 @@ async function renderMessagesInbox(entries) {
     button.appendChild(avatar);
     button.appendChild(textWrap);
     button.addEventListener("click", () => {
-      openChatWithPartner(row.partnerId, row.partnerName);
+      openChatWithPartner(row.partnerId, row.partnerName, {
+        fallbackRole: row.partnerRole || "driver",
+        garageName: row.partnerGarageName || "",
+      });
     });
 
     const deleteBtn = document.createElement("button");
@@ -2553,6 +2697,12 @@ async function attachGaragePricesToEntries(entries) {
       mechanic: {
         ...entry.mechanic,
         garageServicePrices: garage?.servicePrices || {},
+        garageVehicleTypes: garage?.vehicleTypes || [],
+        garagePhotos: garage?.garagePhotos?.length
+          ? garage.garagePhotos
+          : entry.mechanic.garagePhotos,
+        locationName:
+          garage?.locationName || entry.mechanic.locationName || "",
         workingHours:
           (hasValidWorkingHours(garage?.workingHours) && garage.workingHours) ||
           entry.mechanic.workingHours ||
@@ -2748,12 +2898,18 @@ function retryDriverLocation() {
   applyDriverPositionToMap(selectedSubservice || "");
 }
 
-function applyDistanceLabel(el, dist, entry) {
+function applyDistanceLabel(el, dist, entry, placeName = "") {
   el.classList.remove("is-retry");
   el.onclick = null;
+  const place = String(placeName || "").trim();
 
   if (Number.isFinite(dist)) {
-    el.textContent = formatDistanceMeters(dist);
+    el.textContent = formatPlaceAndDistance({ locationName: place }, dist);
+    return;
+  }
+
+  if (place) {
+    el.textContent = place;
     return;
   }
 
@@ -2877,7 +3033,8 @@ function renderMechanicPanel(
     applyDistanceLabel(
       mechanicPanelDistance,
       distanceEntry.distanceMeters,
-      distanceEntry
+      distanceEntry,
+      formatShopAreaLabel(mechanic)
     );
   }
   if (mechanicPanelMeta) {
@@ -2889,17 +3046,7 @@ function renderMechanicPanel(
           ? `${count} specialists · booking ${specialist}`
           : `Garage specialist · ${specialist}`;
     } else {
-      const garageName = String(mechanic.institutionName || "").trim();
-      const area = mechanic.city || mechanic.location || mechanic.address || "";
-      if (garageName && area) {
-        mechanicPanelMeta.textContent = `${garageName} · ${area}`;
-      } else if (garageName) {
-        mechanicPanelMeta.textContent = garageName;
-      } else if (area) {
-        mechanicPanelMeta.textContent = `Area: ${area}`;
-      } else {
-        mechanicPanelMeta.textContent = "Location shared on map";
-      }
+      mechanicPanelMeta.textContent = String(mechanic.institutionName || "").trim();
     }
   }
   if (mechanicPanelHours) {
@@ -3288,9 +3435,20 @@ async function fetchMatchingMechanics(serviceName) {
       return;
     }
 
-    matchedMechanics = await attachGaragePricesToEntries(
+    const activeVehicle = getActiveVehicle(currentUserProfile);
+    const pricedEntries = await attachGaragePricesToEntries(
       buildMechanicEntries(matchingDocs)
     );
+    matchedMechanics = pricedEntries.filter((entry) =>
+      garageServicesVehicle(entry.mechanic?.garageVehicleTypes, activeVehicle)
+    );
+    if (!matchedMechanics.length) {
+      const vehicleLabel = activeVehicle ? vehicleDisplayName(activeVehicle) : "your vehicle";
+      showNoMechanicsOnMap(
+        `No mechanics currently service ${vehicleLabel} for "${serviceName}".`
+      );
+      return;
+    }
     const withCoords = matchedMechanics.filter((entry) => entry.position);
     if (!withCoords.length) {
       showNoMechanicsOnMap(
@@ -3637,7 +3795,11 @@ function handleServerChatMessages(messages) {
   markActiveChatAsRead(messages);
 }
 
-async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "driver" } = {}) {
+async function openChatWithPartner(
+  partnerId,
+  partnerName,
+  { fallbackRole = "driver", garageName = "" } = {}
+) {
   if (!auth.currentUser || !partnerId) {
     showLoginForm();
     return;
@@ -3652,6 +3814,7 @@ async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "dri
 
   const partnerInfo = await resolveChatPartnerInfo(partnerId, {
     partnerName: pickPartnerDisplayName(partnerName) || undefined,
+    garageName,
     roomIds: activeChatRoomIds,
     fallbackRole,
   });
@@ -3660,13 +3823,7 @@ async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "dri
   serverChatMessages = [];
   showMessagesPage();
   showChatView();
-
-  if (chatHeaderTitle) {
-    chatHeaderTitle.textContent = formatChatHeaderTitle(
-      partnerInfo.name,
-      partnerInfo.role
-    );
-  }
+  applyChatHeader(partnerInfo.name, partnerInfo.role, partnerInfo.garageName);
   if (chatTypingLabel) {
     chatTypingLabel.textContent = "";
   }
@@ -3690,7 +3847,10 @@ async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "dri
       {
         [auth.currentUser.uid]: myName,
         [partnerId]: partnerInfo.name,
-      }
+      },
+      partnerInfo.garageName
+        ? { [partnerId]: partnerInfo.garageName }
+        : {}
     );
   } catch (err) {
     if (chatMessagesEl) {
@@ -3732,9 +3892,10 @@ async function openChatWithPartner(partnerId, partnerName, { fallbackRole = "dri
   );
 }
 
-function openChatWithMechanic(mechanicId, mechanicName) {
+function openChatWithMechanic(mechanicId, mechanicName, garageName = "") {
   return openChatWithPartner(mechanicId, mechanicName || "Mechanic", {
     fallbackRole: "mechanic",
+    garageName,
   });
 }
 
@@ -4661,10 +4822,87 @@ function renderMechanicServiceSelection() {
   scheduleServiceCategoryCardBalance();
 }
 
+function syncGarageVehicleTypesSelectAll(root) {
+  const selectAll = root?.querySelector("#garage-vehicle-type-select-all");
+  if (!selectAll) return;
+  const boxes = [...root.querySelectorAll('input[name="garage-vehicle-type"]')];
+  const checkedCount = boxes.filter((box) => box.checked).length;
+  selectAll.checked = boxes.length > 0 && checkedCount === boxes.length;
+  selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+}
+
+function renderGarageVehicleTypes(garage) {
+  const root = document.getElementById("garage-vehicle-types");
+  if (!root) return;
+
+  root.innerHTML = "";
+  const selected = new Set(normalizeVehicleTypes(garage?.vehicleTypes));
+
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "garage-vehicle-types-select-all";
+  const selectAll = document.createElement("input");
+  selectAll.type = "checkbox";
+  selectAll.id = "garage-vehicle-type-select-all";
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Select All";
+  selectAllLabel.appendChild(selectAll);
+  selectAllLabel.appendChild(selectAllText);
+  root.appendChild(selectAllLabel);
+
+  const grid = document.createElement("div");
+  grid.className = "garage-vehicle-types-grid";
+
+  VEHICLE_CATEGORIES.forEach((category) => {
+    const label = document.createElement("label");
+    label.className = "garage-vehicle-type-option";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.name = "garage-vehicle-type";
+    checkbox.value = category.id;
+    checkbox.checked = selected.has(category.id);
+
+    const name = document.createElement("span");
+    name.textContent = category.name;
+
+    label.appendChild(checkbox);
+    label.appendChild(name);
+    grid.appendChild(label);
+  });
+
+  root.appendChild(grid);
+
+  selectAll.addEventListener("change", () => {
+    root.querySelectorAll('input[name="garage-vehicle-type"]').forEach((box) => {
+      box.checked = selectAll.checked;
+    });
+    selectAll.indeterminate = false;
+  });
+
+  root.addEventListener("change", (event) => {
+    if (event.target?.name === "garage-vehicle-type") {
+      syncGarageVehicleTypesSelectAll(root);
+    }
+  });
+
+  syncGarageVehicleTypesSelectAll(root);
+}
+
+function collectGarageVehicleTypes() {
+  const root = document.getElementById("garage-vehicle-types");
+  if (!root) return [];
+  return normalizeVehicleTypes(
+    [...root.querySelectorAll('input[name="garage-vehicle-type"]:checked')].map(
+      (box) => box.value
+    )
+  );
+}
+
 function renderGarageServiceSelection(garage) {
   const list = document.getElementById("garage-service-list");
   if (!list || !garage) return;
 
+  renderGarageVehicleTypes(garage);
   list.innerHTML = "";
   const existingSkills = garage.skills || [];
   const existingPrices = normalizeServicePrices(garage.servicePrices);
@@ -4674,6 +4912,7 @@ function renderGarageServiceSelection(garage) {
       autoSave: false,
     })
   );
+  scheduleServiceCategoryCardBalance();
 }
 
 async function handleSaveGaragePrices() {
@@ -4712,16 +4951,23 @@ async function handleSaveGaragePrices() {
   }
 
   try {
+    const vehicleTypes = collectGarageVehicleTypes();
     const result = await garageService.updateGarageCatalog(garage.id, auth.currentUser.uid, {
       skills: selectedSkills,
       servicePrices,
+      vehicleTypes,
     });
     if (!result.success) {
       throw new Error(result.error || "Failed to save garage services.");
     }
     currentGarageContext.garage = result.garage;
     if (statusEl) {
-      statusEl.textContent = `Saved ${selectedSkills.length} garage service(s).`;
+      const typeCount = vehicleTypes.length;
+      const typeLabel =
+        typeCount === 0
+          ? "all vehicle types"
+          : `${typeCount} vehicle type${typeCount === 1 ? "" : "s"}`;
+      statusEl.textContent = `Saved ${selectedSkills.length} garage service(s) and ${typeLabel}.`;
     }
   } catch (error) {
     if (errorEl) errorEl.textContent = error.message || "Unable to save garage services.";
@@ -5152,9 +5398,14 @@ mechanicChatBtn?.addEventListener("click", () => {
     bookError.textContent = "Select a mechanic on the map first.";
     return;
   }
+  const garageName =
+    selectedMapGroup?.type === "garage"
+      ? String(selectedMapGroup.label || "").trim()
+      : String(selectedMechanicEntry.mechanic?.institutionName || "").trim();
   openChatWithMechanic(
     selectedMechanicEntry.id,
-    selectedMechanicEntry.mechanic.name
+    selectedMechanicEntry.mechanic.name,
+    garageName
   );
 });
 

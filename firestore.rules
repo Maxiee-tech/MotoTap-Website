@@ -47,6 +47,7 @@ service cloud.firestore {
         && (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
         && (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('locationName' in data) || (data.locationName is string && data.locationName.size() <= 120))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('vehicles' in data) || (data.vehicles is list && data.vehicles.size() <= 20))
         && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
@@ -92,11 +93,13 @@ service cloud.firestore {
         && data.memberCount >= 0
         && data.memberCount <= 200
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('locationName' in data) || (data.locationName is string && data.locationName.size() <= 120))
         && (!('latitude' in data) || data.latitude == null || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
         && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('skills' in data) || (data.skills is list && data.skills.size() <= 50))
         && (!('servicePrices' in data) || (data.servicePrices is map && data.servicePrices.size() <= 200))
+        && (!('vehicleTypes' in data) || (data.vehicleTypes is list && data.vehicleTypes.size() <= 20))
         && (!('workingHours' in data) || (data.workingHours is map && data.workingHours.size() <= 10));
     }
 
@@ -189,6 +192,7 @@ service cloud.firestore {
         && (!('latitude' in data) || data.latitude == null || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
         && (!('longitude' in data) || data.longitude == null || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
         && (!('address' in data) || (data.address is string && data.address.size() <= 300))
+        && (!('locationName' in data) || (data.locationName is string && data.locationName.size() <= 120))
         && (!('garagePhotos' in data) || (data.garagePhotos is list && data.garagePhotos.size() <= 5))
         && (!('institutionName' in data) || (data.institutionName is string && data.institutionName.size() <= 120))
         && (!('garageId' in data) || (data.garageId is string && data.garageId.size() <= 128))
@@ -294,7 +298,10 @@ service cloud.firestore {
                 && request.resource.data.lastMessageText.size() <= 500))
             && (!('partnerName' in request.resource.data)
               || (request.resource.data.partnerName is string
-                && request.resource.data.partnerName.size() <= 120));
+                && request.resource.data.partnerName.size() <= 120))
+            && (!('partnerGarageName' in request.resource.data)
+              || (request.resource.data.partnerGarageName is string
+                && request.resource.data.partnerGarageName.size() <= 120));
         }
 
         allow read: if signedIn() && request.auth.uid == userId;
@@ -392,7 +399,10 @@ service cloud.firestore {
             && request.resource.data.vehicleModel.size() <= 80))
         && (!('garageId' in request.resource.data)
           || (request.resource.data.garageId is string
-            && request.resource.data.garageId.size() <= 128));
+            && request.resource.data.garageId.size() <= 128))
+        && (!('additionalServices' in request.resource.data)
+          || (request.resource.data.additionalServices is list
+            && request.resource.data.additionalServices.size() == 0));
 
       function isCompletedJob() {
         return resource.data.status in ['COMPLETED', 'PAID', 'CLOSED'];
@@ -445,6 +455,60 @@ service cloud.firestore {
       }
 
       // Owner may assign / reassign within their garage before work starts.
+      function canAuthorJobAdditionalNote() {
+        return isJobDriver()
+          || isJobMechanic()
+          || (('garageId' in resource.data)
+            && resource.data.garageId is string
+            && resource.data.garageId.size() > 0
+            && resource.data.garageId.size() <= 128
+            && (isGarageOwner(resource.data.garageId) || isGarageMember(resource.data.garageId)));
+      }
+
+      function validAdditionalServiceNote(note) {
+        return note.keys().hasOnly(['id', 'authorId', 'authorRole', 'authorName', 'text', 'createdAtMillis'])
+          && note.id is string
+          && note.id.size() > 0
+          && note.id.size() <= 64
+          && note.authorId == request.auth.uid
+          && note.authorRole in ['driver', 'mechanic', 'garage']
+          && note.authorName is string
+          && note.authorName.size() <= 120
+          && note.text is string
+          && note.text.size() > 0
+          && note.text.size() <= 500
+          && note.createdAtMillis is int;
+      }
+
+      function additionalNoteRoleMatchesAuthor(note) {
+        return (isJobDriver() && note.authorRole == 'driver')
+          || (isJobMechanic() && note.authorRole in ['mechanic', 'garage'])
+          || (('garageId' in resource.data)
+            && resource.data.garageId is string
+            && resource.data.garageId.size() > 0
+            && (isGarageOwner(resource.data.garageId) || isGarageMember(resource.data.garageId))
+            && note.authorRole == 'garage');
+      }
+
+      function isAdditionalServiceNoteUpdate() {
+        let previous = resource.data.get('additionalServices', []);
+        let next = request.resource.data.additionalServices;
+        return canAuthorJobAdditionalNote()
+          && jobImmutableCore()
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.mechanicId == resource.data.mechanicId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['additionalServices'])
+          && next is list
+          && next.size() > 0
+          && next.size() <= 30
+          && next.size() == previous.size() + 1
+          && next.hasAll(previous)
+          && resource.data.status in ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'PAID']
+          && validAdditionalServiceNote(next[next.size() - 1])
+          && additionalNoteRoleMatchesAuthor(next[next.size() - 1]);
+      }
+
       function isGarageOwnerReassignUpdate() {
         return signedIn()
           && ('garageId' in resource.data)
@@ -470,6 +534,7 @@ service cloud.firestore {
         || isParticipantStatusUpdate()
         || isMechanicAcceptUpdate()
         || isGarageOwnerReassignUpdate()
+        || isAdditionalServiceNoteUpdate()
       );
 
       allow delete: if isJobDriver()

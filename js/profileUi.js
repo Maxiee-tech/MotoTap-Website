@@ -1,5 +1,6 @@
 import { escapeHtml } from "./utils/html.js";
 import { normalizeUserRole, formatUserRoleLabel } from "./utils/geo.js";
+import { attachPlaceAutocomplete, refreshLandmarkChips } from "./utils/placePicker.js";
 import { getJobIssueType, sortJobsNewestFirst } from "./utils/jobSync.js";
 import { computeLoyalty } from "./utils/loyalty.js";
 import { renderDriverVehicleSection, bindVehicleProfileUi } from "./vehicleProfileUi.js";
@@ -89,13 +90,61 @@ function renderDriverExtras(profile, jobs = [], hubOptions = {}) {
   `;
 }
 
-function renderMechanicExtras(profile) {
+function canEditGaragePhoto(profile) {
+  const role = normalizeUserRole(profile?.role);
+  if (role === "parts_dealer") return true;
+  if (role !== "mechanic") return false;
+  return String(profile?.garageRole || "").toLowerCase() !== "mechanic";
+}
+
+function renderGaragePhotoBlock(profile, { canEdit = false } = {}) {
+  const photoUrl = String(profile?.garagePhotos?.[0] || "").trim();
+  const preview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="Garage profile photo" />`
+    : `<span class="material-symbols-outlined" aria-hidden="true">storefront</span>`;
+  const editMarkup = canEdit
+    ? `
+      <div>
+        <button type="button" class="profile-link-btn" data-profile-action="garage-photo">
+          ${photoUrl ? "Change garage photo" : "Add garage photo"}
+        </button>
+        <input type="file" id="profile-garage-photo-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden />
+        <p class="profile-muted" id="profile-garage-photo-status"></p>
+      </div>`
+    : "";
+
+  return `
+    <div class="profile-garage-photo">
+      <div class="profile-garage-photo-preview">${preview}</div>
+      ${editMarkup}
+    </div>
+  `;
+}
+
+function renderLocationNameBlock(profile, { canEdit = false } = {}) {
+  const current = String(profile?.locationName || "").trim();
+  if (!canEdit) {
+    return renderInfoCard("Location", current || "Not provided", "location_on");
+  }
+  return `
+    <div class="profile-location-editor">
+      <p class="profile-muted">Location name (drivers see this)</p>
+      <input type="text" id="profile-location-name-input" placeholder="Search or pick a popular place near you" maxlength="120" autocomplete="off" value="${escapeHtml(current)}" />
+      <div class="location-chips hidden" id="profile-location-landmarks"></div>
+      <button type="button" class="profile-link-btn" data-profile-action="location-save">Save location name</button>
+      <p class="profile-muted" id="profile-location-status"></p>
+    </div>
+  `;
+}
+
+function renderMechanicExtras(profile, { canEditGaragePhoto: canEdit } = {}) {
   return `
     <section class="profile-block">
       <h4 class="profile-block-title">Garage Details</h4>
+      ${renderGaragePhotoBlock(profile, { canEdit })}
       ${renderInfoCard("Institution", profile?.institutionName || "Not provided", "school")}
       ${renderInfoCard("Experience", profile?.experienceYears || "Not provided", "work_history")}
-      ${renderInfoCard("Address", profile?.address || "Not provided", "location_on")}
+      ${renderLocationNameBlock(profile, { canEdit })}
       ${renderInfoCard(
         "Rating",
         profile?.reviewCount
@@ -107,13 +156,14 @@ function renderMechanicExtras(profile) {
   `;
 }
 
-function renderPartsDealerExtras(profile) {
+function renderPartsDealerExtras(profile, { canEditGaragePhoto: canEdit } = {}) {
   return `
     <section class="profile-block">
       <h4 class="profile-block-title">Shop Details</h4>
+      ${renderGaragePhotoBlock(profile, { canEdit })}
       ${renderInfoCard("Shop Name", profile?.institutionName || "Not provided", "storefront")}
       ${renderInfoCard("Years in Business", profile?.experienceYears || "Not provided", "work_history")}
-      ${renderInfoCard("Address", profile?.address || "Not provided", "location_on")}
+      ${renderLocationNameBlock(profile, { canEdit })}
       ${renderInfoCard(
         "Rating",
         profile?.reviewCount
@@ -126,9 +176,10 @@ function renderPartsDealerExtras(profile) {
 }
 
 function renderProfileExtras(profile, jobs, role, hubOptions) {
+  const photoOptions = { canEditGaragePhoto: canEditGaragePhoto(profile) };
   if (role === "driver") return renderDriverExtras(profile, jobs, hubOptions);
-  if (role === "parts_dealer") return renderPartsDealerExtras(profile);
-  return renderMechanicExtras(profile);
+  if (role === "parts_dealer") return renderPartsDealerExtras(profile, photoOptions);
+  return renderMechanicExtras(profile, photoOptions);
 }
 
 /**
@@ -145,6 +196,8 @@ export function renderProfilePage(
     onLogout,
     onDeleteAccount,
     onSaveVehicles,
+    onChangeGaragePhoto,
+    onChangeGarageLocation,
     onRedeemReward,
     activeHubTab = "overview",
     loyaltyNotice = null,
@@ -266,6 +319,75 @@ export function renderProfilePage(
     }
     if (deleteError) deleteError.classList.add("hidden");
     await onDeleteAccount?.(password);
+  });
+
+  const garagePhotoBtn = container.querySelector('[data-profile-action="garage-photo"]');
+  const garagePhotoInput = container.querySelector("#profile-garage-photo-input");
+  const garagePhotoStatus = container.querySelector("#profile-garage-photo-status");
+  garagePhotoBtn?.addEventListener("click", () => garagePhotoInput?.click());
+  const locationInput = container.querySelector("#profile-location-name-input");
+  const locationStatus = container.querySelector("#profile-location-status");
+  const locationSaveBtn = container.querySelector('[data-profile-action="location-save"]');
+  const locationChips = container.querySelector("#profile-location-landmarks");
+  const saveLocationName = async (name) => {
+    if (typeof onChangeGarageLocation !== "function") return;
+    const value = String(name || locationInput?.value || "").trim();
+    if (locationInput) locationInput.value = value;
+    if (locationStatus) locationStatus.textContent = "Saving location name…";
+    if (locationSaveBtn) locationSaveBtn.disabled = true;
+    try {
+      const result = await onChangeGarageLocation(value);
+      if (locationStatus) {
+        locationStatus.textContent = result?.success
+          ? "Location name updated."
+          : result?.error || "Could not update the location name.";
+      }
+    } catch (error) {
+      if (locationStatus) {
+        locationStatus.textContent = error.message || "Could not update the location name.";
+      }
+    } finally {
+      if (locationSaveBtn) locationSaveBtn.disabled = false;
+    }
+  };
+  locationSaveBtn?.addEventListener("click", () => saveLocationName());
+  if (locationInput) {
+    attachPlaceAutocomplete(locationInput, {
+      onPlace: (place) => {
+        if (place.name) locationInput.value = place.name;
+        saveLocationName(place.name);
+      },
+    }).catch(() => {});
+    const lat = Number(profile?.latitude);
+    const lng = Number(profile?.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      refreshLandmarkChips(locationChips, lat, lng, (name) => {
+        locationInput.value = name;
+        saveLocationName(name);
+      }).catch(() => {});
+    }
+  }
+
+  garagePhotoInput?.addEventListener("change", async () => {
+    const file = garagePhotoInput.files?.[0];
+    garagePhotoInput.value = "";
+    if (!file || typeof onChangeGaragePhoto !== "function") return;
+    if (garagePhotoStatus) garagePhotoStatus.textContent = "Uploading photo…";
+    garagePhotoBtn.disabled = true;
+    try {
+      const result = await onChangeGaragePhoto(file);
+      if (garagePhotoStatus) {
+        garagePhotoStatus.textContent = result?.success
+          ? "Garage photo updated."
+          : result?.error || "Could not update the garage photo.";
+      }
+    } catch (error) {
+      if (garagePhotoStatus) {
+        garagePhotoStatus.textContent = error.message || "Could not update the garage photo.";
+      }
+    } finally {
+      garagePhotoBtn.disabled = false;
+    }
   });
 
   if (isDriver) {

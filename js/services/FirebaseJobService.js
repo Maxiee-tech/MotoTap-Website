@@ -5,6 +5,7 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  arrayUnion,
   query,
   where,
   orderBy,
@@ -271,6 +272,29 @@ export default class FirebaseJobService extends JobRepository {
     const docRef = doc(this.firestore, "jobRequests", jobId);
     await updateDoc(docRef, updates);
     return { success: true };
+  }
+
+  async addAdditionalServiceNote(jobId, note) {
+    const id = String(jobId || "").trim();
+    const text = String(note?.text || "").trim();
+    if (!id || !text) {
+      throw new Error("Missing job or additional service details.");
+    }
+    try {
+      await updateDoc(doc(this.firestore, "jobs", id), {
+        additionalServices: arrayUnion({
+          id: String(note.id || "").trim(),
+          authorId: String(note.authorId || "").trim(),
+          authorRole: String(note.authorRole || "").trim(),
+          authorName: String(note.authorName || "").trim().slice(0, 120),
+          text: text.slice(0, 500),
+          createdAtMillis: Number(note.createdAtMillis) || Date.now(),
+        }),
+      });
+    } catch (error) {
+      console.error("FirebaseJobService.addAdditionalServiceNote error:", error);
+      throw new Error("Failed to add additional service details.");
+    }
   }
 
   async updateJobStatus(jobId, status) {

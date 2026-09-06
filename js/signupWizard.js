@@ -1,5 +1,9 @@
 import { uploadUserImage } from "./services/CloudinaryStorageService.js";
 import { loadGoogleMapsScript, waitForMapLayout } from "./googleMapsLoader.js";
+import {
+  attachPlaceAutocomplete,
+  refreshLandmarkChips,
+} from "./utils/placePicker.js";
 import { isProfileOnboardingComplete } from "./models/UserProfile.js";
 import { isBusinessRole, normalizeUserRole } from "./utils/geo.js";
 import PasswordValidator from "./PasswordValidator.js";
@@ -44,12 +48,27 @@ const ADDRESS_INPUT_BY_ROLE = {
   parts_dealer: "signup-parts-shop-address",
 };
 
+const LOCATION_NAME_INPUT_BY_ROLE = {
+  mechanic: "signup-garage-location-name",
+  parts_dealer: "signup-parts-shop-location-name",
+};
+
+const COORDS_HINT_BY_ROLE = {
+  mechanic: "signup-garage-coords",
+  parts_dealer: "signup-parts-shop-coords",
+};
+
+const LANDMARKS_BY_ROLE = {
+  mechanic: "signup-garage-landmarks",
+  parts_dealer: "signup-parts-shop-landmarks",
+};
+
 let wizardState = {
   step: 1,
   role: "driver",
   garageMode: "own",
   verifiedInvite: null,
-  location: { latitude: null, longitude: null, address: "" },
+  location: { latitude: null, longitude: null, address: "", locationName: "" },
 };
 
 let locationMap = null;
@@ -92,6 +111,33 @@ function updateStepIndicators(activeStep) {
 
 function getAddressInputId(role = wizardState.role) {
   return ADDRESS_INPUT_BY_ROLE[normalizeUserRole(role)] || ADDRESS_INPUT_BY_ROLE.mechanic;
+}
+
+function getLocationNameInputId(role = wizardState.role) {
+  return (
+    LOCATION_NAME_INPUT_BY_ROLE[normalizeUserRole(role)] ||
+    LOCATION_NAME_INPUT_BY_ROLE.mechanic
+  );
+}
+
+function getCoordsHintId(role = wizardState.role) {
+  return COORDS_HINT_BY_ROLE[normalizeUserRole(role)] || COORDS_HINT_BY_ROLE.mechanic;
+}
+
+function getLandmarksId(role = wizardState.role) {
+  return LANDMARKS_BY_ROLE[normalizeUserRole(role)] || LANDMARKS_BY_ROLE.mechanic;
+}
+
+function formatPinnedCoords(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return "No pin yet — tap the map";
+  }
+  return `Pinned coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+}
+
+function syncLocationNameFromInput(role = wizardState.role) {
+  const input = document.getElementById(getLocationNameInputId(role));
+  wizardState.location.locationName = String(input?.value || "").trim();
 }
 
 function initSignupVehiclePicker() {
@@ -291,7 +337,7 @@ async function reverseGeocode(lat, lng) {
       if (status === "OK" && results?.[0]?.formatted_address) {
         resolve(results[0].formatted_address);
       } else {
-        resolve(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        resolve("");
       }
     });
   });
@@ -300,6 +346,8 @@ async function reverseGeocode(lat, lng) {
 async function setBusinessPin(lat, lng, { reverseLookup = true, role = wizardState.role } = {}) {
   wizardState.location.latitude = lat;
   wizardState.location.longitude = lng;
+  const coordsHint = document.getElementById(getCoordsHintId(role));
+  if (coordsHint) coordsHint.textContent = formatPinnedCoords(lat, lng);
   if (locationMarker) {
     locationMarker.setPosition({ lat, lng });
   } else if (locationMap) {
@@ -318,6 +366,16 @@ async function setBusinessPin(lat, lng, { reverseLookup = true, role = wizardSta
     const addressInput = document.getElementById(getAddressInputId(role));
     if (addressInput) addressInput.value = wizardState.location.address;
   }
+  await refreshLandmarkChips(
+    document.getElementById(getLandmarksId(role)),
+    lat,
+    lng,
+    (name) => {
+      const input = document.getElementById(getLocationNameInputId(role));
+      if (input) input.value = name;
+      wizardState.location.locationName = name;
+    }
+  );
 }
 
 async function initBusinessLocationMap(role = wizardState.role) {
@@ -342,6 +400,7 @@ async function initBusinessLocationMap(role = wizardState.role) {
       locationMap.addListener("click", async (event) => {
         await setBusinessPin(event.latLng.lat(), event.latLng.lng());
       });
+      bindSignupLocationNameField(normalized);
       google.maps.event.addListenerOnce(locationMap, "idle", () => {
         google.maps.event.trigger(locationMap, "resize");
       });
@@ -368,10 +427,31 @@ async function initBusinessLocationMap(role = wizardState.role) {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
+    bindSignupLocationNameField(normalized);
   } catch (error) {
     setWizardError("Unable to load the map. Check your connection and try again.");
     console.error("signup location map error:", error);
   }
+}
+
+async function bindSignupLocationNameField(role = wizardState.role) {
+  const input = document.getElementById(getLocationNameInputId(role));
+  if (!input) return;
+  await attachPlaceAutocomplete(input, {
+    onPlace: async (place) => {
+      if (place.name) {
+        input.value = place.name;
+        wizardState.location.locationName = place.name;
+      }
+      if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+        if (locationMap) locationMap.setCenter({ lat: place.lat, lng: place.lng });
+        await setBusinessPin(place.lat, place.lng, {
+          reverseLookup: true,
+          role,
+        });
+      }
+    },
+  });
 }
 
 export function showSignupWizard({ step = 1, role = "driver" } = {}) {
@@ -388,10 +468,21 @@ export function resumeSignupWizardFromProfile(profile) {
       latitude: profile.latitude,
       longitude: profile.longitude,
       address: profile.address || "",
+      locationName: profile.locationName || "",
     };
     const addressInputId = getAddressInputId(wizardState.role);
     const addressInput = document.getElementById(addressInputId);
     if (addressInput && profile.address) addressInput.value = profile.address;
+    const locationNameInput = document.getElementById(
+      getLocationNameInputId(wizardState.role)
+    );
+    if (locationNameInput && profile.locationName) {
+      locationNameInput.value = profile.locationName;
+    }
+    const coordsHint = document.getElementById(getCoordsHintId(wizardState.role));
+    if (coordsHint) {
+      coordsHint.textContent = formatPinnedCoords(profile.latitude, profile.longitude);
+    }
   }
   showWizardStep(step, wizardState.role);
   return true;
@@ -707,6 +798,13 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
     }
   });
 
+  document.getElementById("signup-garage-location-name")?.addEventListener("input", () => {
+    syncLocationNameFromInput("mechanic");
+  });
+  document.getElementById("signup-parts-shop-location-name")?.addEventListener("input", () => {
+    syncLocationNameFromInput("parts_dealer");
+  });
+
   step3MechanicBtn?.addEventListener("click", async (e) => {
     e.preventDefault();
     setWizardError("");
@@ -744,6 +842,9 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       latitude: wizardState.location.latitude,
       longitude: wizardState.location.longitude,
       address: wizardState.location.address,
+      locationName:
+        document.getElementById("signup-garage-location-name")?.value ||
+        wizardState.location.locationName,
       inviteVerified: Boolean(wizardState.verifiedInvite?.inviteCode),
       workingHours: garageMode === "join" ? undefined : workingHours,
     });
@@ -772,6 +873,9 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
         address: wizardState.location.address,
+        locationName:
+          document.getElementById("signup-garage-location-name")?.value?.trim() ||
+          wizardState.location.locationName,
         workingHours,
       });
 
@@ -820,6 +924,9 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       latitude: wizardState.location.latitude,
       longitude: wizardState.location.longitude,
       address: wizardState.location.address,
+      locationName:
+        document.getElementById("signup-parts-shop-location-name")?.value ||
+        wizardState.location.locationName,
       workingHours,
     });
     if (validationError) {
@@ -844,6 +951,9 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         latitude: wizardState.location.latitude,
         longitude: wizardState.location.longitude,
         address: wizardState.location.address,
+        locationName:
+          document.getElementById("signup-parts-shop-location-name")?.value?.trim() ||
+          wizardState.location.locationName,
         workingHours,
       });
 

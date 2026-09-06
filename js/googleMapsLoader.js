@@ -35,6 +35,7 @@ async function bootstrapGoogleMapsLibraries() {
     await Promise.all([
       google.maps.importLibrary("maps"),
       google.maps.importLibrary("marker"),
+      google.maps.importLibrary("places"),
     ]);
   }
 

@@ -102,6 +102,7 @@ export function validateMechanicStep3({
   latitude,
   longitude,
   address,
+  locationName,
   inviteVerified = false,
   workingHours,
 }) {
@@ -126,7 +127,9 @@ export function validateMechanicStep3({
   if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
     return "Please pin your garage location on the map.";
   }
-  if (!String(address || "").trim()) return "Garage address is required.";
+  if (!String(locationName || "").trim()) {
+    return "Enter a location name drivers will recognize, such as a nearby landmark.";
+  }
   const hoursErr = validateWorkingHours(workingHours);
   if (hoursErr) return hoursErr;
   return "";
@@ -140,6 +143,7 @@ export function validatePartsDealerStep3({
   latitude,
   longitude,
   address,
+  locationName,
   workingHours,
 }) {
   if (!String(shopName || "").trim()) return "Shop name is required.";
@@ -151,7 +155,9 @@ export function validatePartsDealerStep3({
   if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
     return "Please pin your shop location on the map.";
   }
-  if (!String(address || "").trim()) return "Shop address is required.";
+  if (!String(locationName || "").trim()) {
+    return "Enter a location name drivers will recognize, such as a nearby landmark.";
+  }
   const hoursErr = validateWorkingHours(workingHours);
   if (hoursErr) return hoursErr;
   return "";

@@ -1,4 +1,6 @@
 import { mechanicOffersService } from "./geo.js";
+import { garageServicesVehicle } from "./garageVehicleTypes.js";
+import { normalizeAdditionalServices } from "./jobAdditionalServices.js";
 
 /** Same open-job statuses as Android FirestoreJobRepository.observeOpenJobs */
 export const OPEN_JOB_STATUSES = ["REQUESTED", "MATCHING", "ASSIGNED"];
@@ -33,6 +35,7 @@ export function normalizeJob(raw) {
     vehicleMake: raw?.vehicleMake || "",
     vehicleModel: raw?.vehicleModel || "",
     garageId: raw?.garageId || "",
+    additionalServices: normalizeAdditionalServices(raw?.additionalServices),
     createdAtMillis,
   };
 }
@@ -46,9 +49,10 @@ export function normalizeJobList(docs) {
 }
 
 /** Android MechanicDashboardViewModel newRequests + direct web bookings */
-export function filterMechanicAvailableJobs(jobs, mechanicProfile) {
+export function filterMechanicAvailableJobs(jobs, mechanicProfile, { vehicleTypes } = {}) {
   const mechanicId = mechanicProfile?.id;
   const skills = mechanicProfile?.skills || [];
+  const garageVehicleTypes = vehicleTypes ?? mechanicProfile?.vehicleTypes;
 
   return normalizeJobList(jobs).filter((job) => {
     if (job.status !== "REQUESTED") return false;
@@ -58,6 +62,15 @@ export function filterMechanicAvailableJobs(jobs, mechanicProfile) {
     }
 
     if (job.mechanicId) {
+      return false;
+    }
+
+    if (
+      !garageServicesVehicle(garageVehicleTypes, {
+        make: job.vehicleMake,
+        model: job.vehicleModel,
+      })
+    ) {
       return false;
     }
 
