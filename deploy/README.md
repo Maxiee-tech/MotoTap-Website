@@ -1,23 +1,32 @@
-# Deploy MotoTap behind snipeit's existing Caddy
+# Deploy MotoTap behind the host-wide caddy-docker-proxy
 
-Simple approach: reuse the Caddy already running in `~/snipeit`. Add a
-`mototap.co.ke` site block to its Caddyfile and attach the MotoTap container
-to snipeit's docker network so Caddy can reach it by name.
+The server runs one Caddy for everything (`/root/caddy`,
+`lucaslorentz/caddy-docker-proxy`). It reads `caddy.*` labels from every
+running container and generates its config automatically -- there is no
+Caddyfile to edit or sync anymore. Publishing or redeploying a site is just
+`docker compose up -d` on that app's own compose file.
 
 ```
 internet :80/:443
       |
-  snipeit Caddy  (~/snipeit, owns 80/443, auto-HTTPS)
-      |  snipeit_default network (no host ports)
-      +-- app          -> assets.priyav.dev
-      +-- mototap-web  -> mototap.co.ke
+  caddy-docker-proxy  (/root/caddy, owns 80/443, auto-HTTPS, reads labels)
+      |  shared `caddy` network (external)
+      +-- snipeit app      -> assets.priyav.dev   (labels in ~/snipeit/compose)
+      +-- mototap-web      -> mototap.co.ke       (labels in this repo)
+      +-- mototap www      -> www.mototap.co.ke   (301 redirect, idle container)
 ```
+
+Header ownership: the app's image sets `X-Content-Type-Options`,
+`X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` (see the root
+`Caddyfile`, baked into the image). The host proxy adds `Strict-Transport-
+Security`. Do not duplicate headers across the two layers -- caddy-docker-
+proxy header labels **append**, so doubling is the symptom if you do.
 
 ## Prerequisite: DNS
 
-`mototap.co.ke` must resolve to the server's public IP **before** first
-request — Caddy issues the cert on first hit. Server is IPv6-only, so add an
-**AAAA** record pointing at the server's IPv6 address.
+`mototap.co.ke` (and `www.`) must resolve to the server **before** first
+request -- Caddy issues certs automatically. The server is dual-stack; add
+both an **A** record (IPv4) and an **AAAA** record (IPv6).
 
 ## Steps on the server
 
@@ -25,32 +34,27 @@ request — Caddy issues the cert on first hit. Server is IPv6-only, so add an
 # 1. Clone (or pull) MotoTap.
 cd ~ && git clone <repo> mototap   # or: cd ~/mototap && git pull
 
-# 2. snipeit must be up (it owns the network + Caddy).
-cd ~/snipeit && docker compose ps
+# 2. The host-wide proxy must be up (it creates the shared `caddy` network).
+cd ~/caddy && docker compose ps
 
-# 3. Replace ~/snipeit/Caddyfile with deploy/snipeit/Caddyfile
-#    (original assets block + new mototap.co.ke block), then reload Caddy:
-cp ~/mototap/deploy/snipeit/Caddyfile ~/snipeit/Caddyfile
-cd ~/snipeit && docker compose up -d caddy   # or: docker compose restart caddy
+# 3. Create .env (from .env.example) with VITE_GOOGLE_MAPS_API_KEY etc.
+cd ~/mototap && cp .env.example .env && $EDITOR .env
 
-# 4. Build + start mototap (joins snipeit_default, no host ports).
-cd ~/mototap && docker compose up -d --build
+# 4. Build + start (joins the `caddy` network, publishes via labels).
+docker compose up -d --build
 
 # 5. Verify.
-docker network inspect snipeit_default --format '{{range .Containers}}{{.Name}} {{end}}'
-#   -> should list both `app` (or snipeit-app) and `mototap-web`
 curl -sI https://mototap.co.ke | head
+curl -sI https://www.mototap.co.ke | head    # expect 301 -> apex
 ```
 
 ## Notes
 
-- Container name is `mototap-web`; Caddy reaches it via `reverse_proxy
-  mototap-web:80` over docker DNS on the shared network.
-- If snipeit's network is named something other than `snipeit_default`, check
-  with `docker network ls` and update `networks:` in
-  `~/mototap/docker-compose.yml` to match.
-- No host ports on mototap — only Caddy talks to it. To redeploy after a code
-  change (required for `mototap.co.ke` to match Firebase Hosting):
+- No host ports on mototap -- only caddy-docker-proxy talks to it, over the
+  shared `caddy` network. Check membership with
+  `docker network inspect caddy`.
+- To redeploy after a code change (required for `mototap.co.ke` to match
+  Firebase Hosting): use `deploy/deploy.sh` (rsync + rebuild), or manually:
   ```sh
   cd ~/mototap && git pull origin main && docker compose up -d --build
   ```
