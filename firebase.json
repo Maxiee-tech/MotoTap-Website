@@ -98,6 +98,30 @@
         "destination": "/auth/action.html"
       },
       {
+        "source": "/privacy-policy",
+        "destination": "/privacy-policy.html"
+      },
+      {
+        "source": "/privacy-policy/",
+        "destination": "/privacy-policy.html"
+      },
+      {
+        "source": "/delete-account",
+        "destination": "/delete-account.html"
+      },
+      {
+        "source": "/delete-account/",
+        "destination": "/delete-account.html"
+      },
+      {
+        "source": "/terms",
+        "destination": "/terms.html"
+      },
+      {
+        "source": "/terms/",
+        "destination": "/terms.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

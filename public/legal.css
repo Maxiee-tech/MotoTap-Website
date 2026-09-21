@@ -1,0 +1,153 @@
+:root {
+  --mt-red: #c00000;
+  --mt-black: #1a1a1a;
+  --mt-gray-100: #f5f5f5;
+  --mt-gray-200: #e8e8e8;
+  --mt-gray-600: #555;
+  --mt-gray-700: #444;
+  --mt-white: #fff;
+  --mt-font: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--mt-font);
+  color: var(--mt-black);
+  background: var(--mt-gray-100);
+  line-height: 1.55;
+}
+
+.legal-bar {
+  background: #111;
+  color: var(--mt-white);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.legal-bar a {
+  color: var(--mt-white);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.legal-bar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.85rem;
+}
+
+.legal-bar nav a {
+  font-weight: 600;
+  color: #ddd;
+}
+
+.legal-bar nav a:hover,
+.legal-wrap a:hover {
+  color: var(--mt-red);
+}
+
+.legal-wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.legal-wrap h1 {
+  font-size: 1.75rem;
+  margin: 0 0 8px;
+}
+
+.updated {
+  color: var(--mt-gray-600);
+  font-size: 0.9rem;
+  margin: 0 0 24px;
+}
+
+.legal-wrap h2 {
+  font-size: 1.15rem;
+  margin: 28px 0 10px;
+}
+
+.legal-wrap p,
+.legal-wrap li {
+  color: var(--mt-gray-700);
+}
+
+.legal-wrap ul {
+  padding-left: 1.2rem;
+}
+
+.legal-wrap a {
+  color: var(--mt-red);
+}
+
+.legal-card {
+  background: var(--mt-white);
+  border: 1px solid var(--mt-gray-200);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0 24px;
+}
+
+.legal-card label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin: 12px 0 6px;
+}
+
+.legal-card input,
+.legal-card textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.legal-card textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.legal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  display: inline-block;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--mt-red);
+  color: var(--mt-white);
+}
+
+.btn-secondary {
+  background: #111;
+  color: var(--mt-white);
+}
+
+.note {
+  font-size: 0.9rem;
+  color: var(--mt-gray-600);
+}

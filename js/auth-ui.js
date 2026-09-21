@@ -1525,6 +1525,7 @@ const menuUserAvatar = document.getElementById("menu-user-avatar");
 const menuContactsBtn = document.getElementById("menu-contacts-btn");
 const menuAboutBtn = document.getElementById("menu-about-btn");
 const menuTermsBtn = document.getElementById("menu-terms-btn");
+const menuPrivacyBtn = document.getElementById("menu-privacy-btn");
 const menuProfileLinkBtn = document.getElementById("menu-profile-link-btn");
 const menuSettingsBtn = document.getElementById("menu-settings-btn");
 const menuLogoutBtn = document.getElementById("menu-logout-btn");
@@ -5351,7 +5352,12 @@ document.getElementById("menu-welcome-btn")?.addEventListener("click", () => {
 menuContactsBtn?.addEventListener("click", showContactsFromMenu);
 
 menuAboutBtn?.addEventListener("click", showAboutFromMenu);
-menuTermsBtn?.addEventListener("click", showTermsFromMenu);
+menuTermsBtn?.addEventListener("click", () => {
+  window.location.href = "/terms";
+});
+menuPrivacyBtn?.addEventListener("click", () => {
+  window.location.href = "/privacy-policy";
+});
 
 menuProfileLinkBtn?.addEventListener("click", showProfilePage);
 

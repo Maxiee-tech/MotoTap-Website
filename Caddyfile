@@ -18,7 +18,7 @@
 	header @icons Cache-Control "public, max-age=86400"
 
 	# HTML shell (bare / and /index.html) must not be cached
-	@html path / /index.html
+	@html path / /index.html /privacy-policy /privacy-policy.html /delete-account /delete-account.html /terms /terms.html
 	header @html Cache-Control "no-cache"
 
 	header {

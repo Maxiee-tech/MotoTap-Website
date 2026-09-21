@@ -4744,6 +4744,36 @@
       gap: 8px 16px;
     }
 
+    .page-footer-legal {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 16px;
+      margin: 16px 0 0;
+    }
+
+    .page-footer-legal a {
+      color: #ccc;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .page-footer-legal a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .signup-legal {
+      margin: 12px 0 16px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.45;
+    }
+
+    .signup-legal a {
+      color: #c00000;
+    }
+
     .page-footer-copyright {
       margin: 20px 0 0;
       padding-top: 16px;
@@ -5049,6 +5079,10 @@
         </a>
       </div>
       <div class="page-footer-contact">
+        <a href="mailto:support@mototap.co.ke">
+          <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">mail</span>
+          <span>support@mototap.co.ke</span>
+        </a>
         <a href="mailto:themechlabcompany@gmail.com">
           <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">mail</span>
           <span>themechlabcompany@gmail.com</span>
@@ -5064,6 +5098,11 @@
           </a>
         </div>
       </div>
+      <nav class="page-footer-legal" aria-label="Legal">
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms">Terms</a>
+        <a href="/delete-account">Delete account</a>
+      </nav>
       <p class="page-footer-copyright">Copyright © 2026 MotoTap Autosystems. All rights reserved.</p>
     </footer>
   </template>
@@ -5144,6 +5183,7 @@
       <button type="button" id="menu-welcome-btn">Welcome</button>
       <button type="button" id="menu-about-btn">About</button>
       <button type="button" id="menu-terms-btn">Terms &amp; Conditions</button>
+      <button type="button" id="menu-privacy-btn">Privacy Policy</button>
       <button type="button" id="menu-contacts-btn">Contacts</button>
       <button type="button" id="menu-settings-btn">Settings</button>
       <button type="button" id="menu-logout-btn">Log Out</button>
@@ -5464,11 +5504,12 @@
 
         <h4>8. Privacy</h4>
         <p>
-          We collect and process personal information to operate the Platform, including
-          account details, location data used for matching, and communications. We take
-          reasonable measures to protect your information and do not sell it. By using
-          the Platform you consent to such processing for the purposes of providing the
-          service.
+          We collect and process personal information as described in our
+          <a href="/privacy-policy">Privacy Policy</a>, including account details,
+          location data used for matching, and communications. We take reasonable
+          measures to protect your information and do not sell it. You may delete your
+          account from the app, the website menu, or
+          <a href="/delete-account">https://mototap.co.ke/delete-account</a>.
         </p>
 
         <h4>9. Disclaimers</h4>
@@ -5511,7 +5552,10 @@
 
         <h4>14. Contact Us</h4>
         <p>
-          If you have questions about these Terms, contact MotoTap Autosystems at
+          If you have questions about these Terms, contact MotoTap Autosystems
+          (Nairobi, Kenya) at
+          <a href="mailto:support@mototap.co.ke">support@mototap.co.ke</a>
+          or
           <a href="mailto:themechlabcompany@gmail.com">themechlabcompany@gmail.com</a>
           or call 0758677968 / 0101452886.
         </p>
@@ -5709,6 +5753,13 @@
             <p class="signup-field-hint" id="signup-invite-hint">Ask your garage owner for the invite code. Verify it before continuing.</p>
             <p class="signup-invite-verified" id="signup-invite-verified" hidden></p>
           </div>
+          <p class="signup-legal">
+            By continuing, you agree to our
+            <a href="/terms">Terms</a> and
+            <a href="/privacy-policy">Privacy Policy</a>.
+            You can delete your account at any time from Profile or
+            <a href="/delete-account">mototap.co.ke/delete-account</a>.
+          </p>
           <button class="btn-primary" id="signup-step1-btn" type="button">Continue</button>
           <div class="divider">OR</div>
           <button class="btn-secondary" id="to-login" type="button">Have an Account? Sign In</button>

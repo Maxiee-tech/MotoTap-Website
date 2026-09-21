@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delete Account — MotoTap Autosystems</title>
+    <meta
+      name="description"
+      content="Delete your MotoTap account and personal data from the app, website, or by email."
+    />
+    <link rel="canonical" href="https://mototap.co.ke/delete-account" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/legal.css" />
+  </head>
+  <body>
+    <header class="legal-bar">
+      <a href="/">MOTO TAP</a>
+      <nav>
+        <a href="/terms">Terms</a>
+        <a href="/privacy-policy">Privacy</a>
+        <a href="/delete-account">Delete account</a>
+      </nav>
+    </header>
+    <main class="legal-wrap">
+      <h1>Delete your MotoTap account</h1>
+      <p class="updated">No login is required to send a deletion request from this page.</p>
+
+      <p>
+        You can permanently delete your MotoTap Autosystems account and the personal data
+        we hold for that account. This cannot be undone.
+      </p>
+
+      <h2>Option 1 — Delete inside the app or website</h2>
+      <ol>
+        <li>Sign in to the MotoTap Android app or <a href="/">mototap.co.ke</a>.</li>
+        <li>Open <strong>Profile</strong> (app) or the menu → <strong>Delete Account</strong> (website).</li>
+        <li>Enter your current password and confirm.</li>
+      </ol>
+      <p>
+        <a class="btn btn-secondary" href="/">Go to MotoTap</a>
+      </p>
+
+      <h2>Option 2 — Request deletion by email</h2>
+      <p>
+        If you cannot sign in, send a request from the email address on your account.
+        We will verify the request and delete the account.
+      </p>
+      <div class="legal-card">
+        <p>
+          <strong>MotoTap Autosystems</strong><br />
+          Email:
+          <a href="mailto:support@mototap.co.ke">support@mototap.co.ke</a><br />
+          Also: <a href="mailto:themechlabcompany@gmail.com">themechlabcompany@gmail.com</a><br />
+          Phone: 0758 677 968 / 0101 452 886<br />
+          Nairobi, Kenya
+        </p>
+        <label for="account-email">Account email</label>
+        <input id="account-email" type="email" autocomplete="email" placeholder="you@example.com" />
+        <label for="full-name">Full name (optional)</label>
+        <input id="full-name" type="text" autocomplete="name" placeholder="Your name" />
+        <label for="details">Anything we should know (optional)</label>
+        <textarea id="details" placeholder="E.g. I can no longer sign in."></textarea>
+        <div class="legal-actions">
+          <button class="btn btn-primary" type="button" id="send-request">
+            Email deletion request
+          </button>
+        </div>
+        <p class="note" id="form-status" hidden></p>
+      </div>
+
+      <h2>What we delete</h2>
+      <p>
+        We remove or de-identify your profile, photos we store for the account, and
+        access credentials. Some job or payment records may be kept for a limited time
+        where required for fraud prevention or Kenyan law. See our
+        <a href="/privacy-policy">Privacy Policy</a>.
+      </p>
+    </main>
+    <script>
+      document.getElementById("send-request").addEventListener("click", function () {
+        var email = document.getElementById("account-email").value.trim();
+        var name = document.getElementById("full-name").value.trim();
+        var details = document.getElementById("details").value.trim();
+        var status = document.getElementById("form-status");
+        if (!email) {
+          status.hidden = false;
+          status.textContent = "Enter the email address on your MotoTap account.";
+          return;
+        }
+        var body =
+          "Please delete my MotoTap account and associated personal data.\n\n" +
+          "Account email: " +
+          email +
+          "\n" +
+          (name ? "Name: " + name + "\n" : "") +
+          (details ? "Details: " + details + "\n" : "");
+        var href =
+          "mailto:support@mototap.co.ke?subject=" +
+          encodeURIComponent("Account deletion request") +
+          "&body=" +
+          encodeURIComponent(body);
+        status.hidden = false;
+        status.textContent = "Opening your email app. If nothing opens, write to support@mototap.co.ke.";
+        window.location.href = href;
+      });
+    </script>
+  </body>
+</html>
