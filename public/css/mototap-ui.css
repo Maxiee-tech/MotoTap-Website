@@ -77,6 +77,8 @@ body.mt-brand :focus-visible {
   display: flex;
   flex-direction: column;
   line-height: 1.05;
+  margin-left: 0;
+  flex-shrink: 0;
 }
 
 .navbar-brand-sub {

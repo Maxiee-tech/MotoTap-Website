@@ -401,7 +401,7 @@
       align-items: center;
       padding: calc(10px + env(safe-area-inset-top, 0px))
         max(var(--nav-pad-x), env(safe-area-inset-right, 0)) 10px
-        max(var(--nav-pad-x), env(safe-area-inset-left, 0));
+        max(6px, env(safe-area-inset-left, 0));
       gap: 8px;
       z-index: 100;
     }
@@ -420,8 +420,9 @@
     }
 
     .navbar-logo-img {
-      width: clamp(132px, 36vw, 176px);
+      width: clamp(120px, 28vw, 168px);
       height: auto;
+      max-width: none;
       border-radius: 0;
       object-fit: contain;
       display: block;
@@ -439,16 +440,17 @@
       flex: 0 0 auto;
       width: fit-content;
       min-height: var(--nav-height);
-      padding-left: 10px;
+      padding-left: 0;
     }
 
     /* Logo + wordmark stay together; never stretch across the bar */
     .navbar-brand-lockup {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 16px;
       width: fit-content;
       flex-shrink: 0;
+      padding-left: 0;
     }
 
     .fixed-navbar .navbar-brand {
@@ -2037,6 +2039,8 @@
 
       .navbar-brand-lockup {
         margin-top: 2px;
+        gap: 14px;
+        padding-left: 0;
       }
 
       .navbar-center {
@@ -2095,7 +2099,7 @@
 
     @media (max-width: 340px) {
       .navbar-brand-lockup {
-        gap: 4px;
+        gap: 12px;
       }
 
       .fixed-navbar .navbar-brand {
@@ -2279,8 +2283,8 @@
     }
 
     .fixed-navbar .navbar-logo-btn {
-      width: clamp(44px, 11vw, 52px);
-      height: clamp(44px, 11vw, 52px);
+      width: auto;
+      height: auto;
       min-width: 0;
       padding: 0;
       border: none;
@@ -2288,6 +2292,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      overflow: visible;
     }
 
     @media (max-width: 575px) {
@@ -5220,9 +5225,10 @@
     <div class="navbar-left">
       <div class="navbar-brand-lockup">
         <button type="button" class="navbar-logo-btn" id="menu-toggle" aria-label="Open menu">
-          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="176" height="65" />
+          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="168" height="62" />
         </button>
         <div class="navbar-brand-text">
+          <div class="navbar-brand">MOTO TAP</div>
           <div class="navbar-brand-sub">AUTOSYSTEMS</div>
         </div>
       </div>
