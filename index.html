@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta name="mototap-build" content="brand-mt-2026-09-26" />
+  <meta name="mototap-build" content="brand-wordmark-2026-09-26" />
   <title>MotoTap Autosystems</title>
   <meta name="application-name" content="MotoTap Autosystems" />
   <meta name="apple-mobile-web-app-title" content="MotoTap Autosystems" />
@@ -19,25 +19,25 @@
     rel="icon"
     type="image/png"
     sizes="48x48"
-    href="https://mototap.co.ke/images/logo/google-favicon-48.png?v=20260926"
+    href="https://mototap.co.ke/images/logo/brand-20260926-google-48.png?v=wordmark1"
   />
   <link
     rel="icon"
     type="image/png"
     sizes="96x96"
-    href="https://mototap.co.ke/images/logo/google-favicon-96.png?v=20260926"
+    href="https://mototap.co.ke/images/logo/brand-20260926-google-96.png?v=wordmark1"
   />
   <link
     rel="icon"
     type="image/png"
     sizes="48x48"
-    href="https://mototap.co.ke/favicon-48x48.png?v=20260926"
+    href="https://mototap.co.ke/favicon-48x48.png?v=wordmark1"
   />
-  <link rel="icon" href="https://mototap.co.ke/favicon.ico?v=20260926" sizes="48x48" />
+  <link rel="icon" href="https://mototap.co.ke/favicon.ico?v=wordmark1" sizes="48x48" />
   <link
     rel="apple-touch-icon"
     sizes="180x180"
-    href="https://mototap.co.ke/apple-touch-icon.png?v=20260926"
+    href="https://mototap.co.ke/apple-touch-icon.png?v=wordmark1"
   />
   <link rel="manifest" href="https://mototap.co.ke/site.webmanifest" />
   <meta name="theme-color" content="#c8102e" />
@@ -51,7 +51,7 @@
     content="On-demand auto services, mobile mechanics, road assistance, and parts."
   />
   <meta property="og:url" content="https://mototap.co.ke/" />
-  <meta property="og:image" content="https://mototap.co.ke/images/logo/mototap-search-512.png?v=20260926" />
+  <meta property="og:image" content="https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
@@ -62,7 +62,7 @@
     name="twitter:description"
     content="On-demand auto services, mobile mechanics, road assistance, and parts."
   />
-  <meta name="twitter:image" content="https://mototap.co.ke/images/logo/mototap-search-512.png?v=20260926" />
+  <meta name="twitter:image" content="https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1" />
 
   <!-- Site name (primary signal for Google/Brave search) + Organization -->
   <script type="application/ld+json">
@@ -83,11 +83,11 @@
       "url": "https://mototap.co.ke/",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://mototap.co.ke/images/logo/mototap-search-512.png?v=20260926",
+        "url": "https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1",
         "width": 512,
         "height": 512
       },
-      "image": "https://mototap.co.ke/images/logo/mototap-search-512.png?v=20260926",
+      "image": "https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1",
       "sameAs": [
         "https://www.instagram.com/mototap_autosystems",
         "https://x.com/mototap01",
@@ -290,13 +290,27 @@
       font-size: clamp(0.75rem, 2.5vw, 1.125rem);
     }
 
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .welcome-logo {
-      width: clamp(88px, 22vw, 128px);
+      width: min(420px, 86vw);
       height: auto;
-      border-radius: 22%;
+      border-radius: 0;
       margin: 0 auto 18px;
       display: block;
-      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+      background: #fff;
+      padding: 10px 14px;
+      box-shadow: none;
     }
 
     .welcome-content h1 {
@@ -406,11 +420,12 @@
     }
 
     .navbar-logo-img {
-      width: clamp(44px, 11vw, 52px);
-      height: clamp(44px, 11vw, 52px);
-      border-radius: 22%;
+      width: clamp(132px, 36vw, 176px);
+      height: auto;
+      border-radius: 0;
       object-fit: contain;
       display: block;
+      background: #fff;
       transition: transform 0.2s ease;
     }
 
@@ -5173,11 +5188,11 @@
         class="welcome-logo"
         src="/images/logo/mototap-logo.png"
         alt="MotoTap"
-        width="128"
-        height="128"
+        width="420"
+        height="155"
       />
       <span>Welcome to</span>
-      <h1 class="brand-title">MOTO TAP</h1>
+      <h1 class="brand-title visually-hidden">MotoTap</h1>
       <p class="brand-slogan">TAP IT · FIX IT · GO!</p>
       <p class="brand-tagline">Connecting drivers with trusted mechanics — roadside help, maintenance, and upgrades across Kenya.</p>
       <div class="welcome-features" aria-label="Key features">
@@ -5205,10 +5220,9 @@
     <div class="navbar-left">
       <div class="navbar-brand-lockup">
         <button type="button" class="navbar-logo-btn" id="menu-toggle" aria-label="Open menu">
-          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="52" height="52" />
+          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="176" height="65" />
         </button>
         <div class="navbar-brand-text">
-          <div class="navbar-brand">MOTO TAP</div>
           <div class="navbar-brand-sub">AUTOSYSTEMS</div>
         </div>
       </div>
