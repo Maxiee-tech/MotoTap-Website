@@ -39,6 +39,10 @@ import {
   getCachedGarage,
   renderGarageTeamPanel,
 } from "./utils/garageTeamUi.js";
+import {
+  showInAppNotification,
+  unlockNotificationAudio,
+} from "./utils/inAppNotify.js";
 import { GarageMemberRole } from "./models/Garage.js";
 import {
   groupMechanicEntriesForMap,
@@ -698,6 +702,7 @@ function paintAvailableJobs(jobs) {
     vehicleTypes: currentGarageContext.garage?.vehicleTypes,
   }).filter((job) => !dismissedJobIds.has(job.id));
   jobsStatus.textContent = "";
+  maybeAlertAvailableJobs(availableJobs);
 
   if (!availableJobs.length) {
     showNoCurrentJobsAvailable();
@@ -837,6 +842,19 @@ function updateGarageJobAlert(jobs) {
     return;
   }
 
+  const freshGarageJobs = unseen.filter((id) => !notifiedGarageJobIds.has(id));
+  freshGarageJobs.forEach((id) => notifiedGarageJobIds.add(id));
+  if (freshGarageJobs.length) {
+    showInAppNotification({
+      title: "New garage job",
+      body:
+        freshGarageJobs.length === 1
+          ? "You have a new job — tap to view it."
+          : `You have ${freshGarageJobs.length} new jobs — tap to view them.`,
+      onClick: focusGarageJobsFromAlert,
+    });
+  }
+
   alertEl.textContent =
     unseen.length === 1
       ? "YOU HAVE A NEW JOB — CLICK HERE TO VIEW IT"
@@ -881,6 +899,7 @@ function stopJobSync() {
   garageJobsUnsubscribe?.();
   garageJobsUnsubscribe = null;
   hideGarageJobAlert();
+  resetJobAlertState();
 }
 
 function startGarageJobsSync(garageId) {
@@ -1057,7 +1076,11 @@ function startJobSync() {
 
   requestHistoryUnsubscribe = jobService.subscribeDriverJobs(
     uid,
-    (jobs) => paintRequestHistory(filterDriverHistoryJobs(jobs), "driver"),
+    (jobs) => {
+      const history = filterDriverHistoryJobs(jobs);
+      maybeAlertDriverJobUpdates(history);
+      paintRequestHistory(history, "driver");
+    },
     () => {
       if (requestHistoryList) {
         requestHistoryList.innerHTML =
@@ -1959,6 +1982,116 @@ function stopChatInboxListener() {
 const MESSAGE_NAV_IDS = ["nav-messages", "nav-messages-2", "nav-messages-old"];
 let globalUnreadUnsubscribe = null;
 let latestChatPartners = [];
+let unreadAlertPrimed = false;
+const seenUnreadAlertKeys = new Set();
+let availableJobsAlertPrimed = false;
+const seenAvailableJobIds = new Set();
+let driverJobAlertPrimed = false;
+const seenDriverJobStatus = new Map();
+const notifiedGarageJobIds = new Set();
+
+function resetUnreadAlertState() {
+  unreadAlertPrimed = false;
+  seenUnreadAlertKeys.clear();
+}
+
+function resetJobAlertState() {
+  availableJobsAlertPrimed = false;
+  seenAvailableJobIds.clear();
+  driverJobAlertPrimed = false;
+  seenDriverJobStatus.clear();
+  notifiedGarageJobIds.clear();
+}
+
+function focusAvailableJobsFromAlert() {
+  const role = normalizeUserRole(currentUserProfile?.role);
+  const email = auth.currentUser?.email || currentUserProfile?.email || "";
+  if (role) showDashboard(role, email);
+  availableJobsList?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function maybeAlertNewMessages(entries) {
+  const myId = auth.currentUser?.uid;
+  if (!myId) return;
+  const unread = dedupeInboxByPartner(entries || []).filter((entry) => {
+    const partnerId = entry.partnerId || entry.id;
+    if (!partnerId || partnerId === activeChatPartnerId) return false;
+    return isEntryUnread(entry, myId);
+  });
+  if (!unreadAlertPrimed) {
+    unread.forEach((entry) => {
+      const partnerId = entry.partnerId || entry.id;
+      seenUnreadAlertKeys.add(`${partnerId}:${entry.lastMessageMillis || 0}`);
+    });
+    unreadAlertPrimed = true;
+    return;
+  }
+  unread.forEach((entry) => {
+    const partnerId = entry.partnerId || entry.id;
+    const key = `${partnerId}:${entry.lastMessageMillis || 0}`;
+    if (!seenUnreadAlertKeys.has(key)) {
+      seenUnreadAlertKeys.add(key);
+      const name =
+        pickPartnerDisplayName(entry.partnerName, entry.otherUserName) || "MotoTap";
+      const preview = String(entry.lastMessageText || "").trim();
+      showInAppNotification({
+        title: "New message",
+        body: preview ? `${name} · ${preview.slice(0, 80)}` : name,
+        onClick: () => showMessagesPage(),
+      });
+    }
+  });
+}
+
+function maybeAlertAvailableJobs(jobs) {
+  if (!availableJobsAlertPrimed) {
+    jobs.forEach((job) => {
+      if (job?.id) seenAvailableJobIds.add(job.id);
+    });
+    availableJobsAlertPrimed = true;
+    return;
+  }
+  jobs.forEach((job) => {
+    if (!job?.id || seenAvailableJobIds.has(job.id)) return;
+    seenAvailableJobIds.add(job.id);
+    showInAppNotification({
+      title: "New service request",
+      body: getJobIssueType(job) || "A driver requested a service nearby.",
+      onClick: focusAvailableJobsFromAlert,
+    });
+  });
+}
+
+function maybeAlertDriverJobUpdates(jobs) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  if (!driverJobAlertPrimed) {
+    list.forEach((job) => {
+      if (job?.id) seenDriverJobStatus.set(job.id, job.status);
+    });
+    driverJobAlertPrimed = true;
+    return;
+  }
+  list.forEach((job) => {
+    if (!job?.id) return;
+    const prev = seenDriverJobStatus.get(job.id);
+    seenDriverJobStatus.set(job.id, job.status);
+    if (!prev || prev === job.status) return;
+    if (job.status === "ASSIGNED" || job.status === "IN_PROGRESS") {
+      showInAppNotification({
+        title: "Job update",
+        body:
+          job.status === "ASSIGNED"
+            ? `${getJobIssueType(job) || "Your request"} was accepted.`
+            : `${getJobIssueType(job) || "Your request"} is in progress.`,
+        onClick: () => {
+          const role = normalizeUserRole(currentUserProfile?.role);
+          const email = auth.currentUser?.email || currentUserProfile?.email || "";
+          if (role) showDashboard(role, email);
+        },
+      });
+    }
+  });
+}
 
 function unreadStorageKey(userId) {
   return `mototap_unread_read_${userId}`;
@@ -2055,6 +2188,7 @@ function startGlobalUnreadListener() {
     (entries) => {
       latestChatPartners = entries || [];
       refreshMessagesBadge();
+      maybeAlertNewMessages(latestChatPartners);
     },
     (err) => console.error("Unread badge listener error:", err)
   );
@@ -2067,6 +2201,7 @@ function stopGlobalUnreadListener() {
   }
   latestChatPartners = [];
   updateMessagesBadge(0);
+  resetUnreadAlertState();
 }
 
 function getChatPartnerId(room, myId) {
@@ -5644,3 +5779,5 @@ updateNavAuthButton();
 setupServiceCardResizeListener();
 scheduleServiceCategoryCardBalance();
 syncCatalogToFirestoreInBackground();
+document.addEventListener("pointerdown", unlockNotificationAudio, { passive: true });
+document.addEventListener("keydown", unlockNotificationAudio);

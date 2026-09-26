@@ -279,6 +279,15 @@
       font-size: clamp(0.75rem, 2.5vw, 1.125rem);
     }
 
+    .welcome-logo {
+      width: clamp(88px, 22vw, 128px);
+      height: auto;
+      border-radius: 22%;
+      margin: 0 auto 18px;
+      display: block;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+    }
+
     .welcome-content h1 {
       font-size: clamp(2.25rem, 8vw, 5.5rem);
       line-height: 1;
@@ -388,8 +397,8 @@
     .navbar-logo-img {
       width: clamp(44px, 11vw, 52px);
       height: clamp(44px, 11vw, 52px);
-      border-radius: 50%;
-      object-fit: cover;
+      border-radius: 22%;
+      object-fit: contain;
       display: block;
       transition: transform 0.2s ease;
     }
@@ -5015,6 +5024,45 @@
       align-items: center !important;
       justify-content: center !important;
     }
+
+    .in-app-notify {
+      position: fixed;
+      top: calc(var(--header-offset, 68px) + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10050;
+      width: min(420px, calc(100% - 24px));
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 14px 16px;
+      border: 0;
+      border-radius: 12px;
+      background: #1a1a1a;
+      color: #fff;
+      text-align: left;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .in-app-notify.hidden {
+      display: none;
+    }
+
+    .in-app-notify-title {
+      color: #e11d2a;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .in-app-notify-body {
+      color: #fff;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
   </style>
   <link rel="stylesheet" href="/css/mototap-ui.css?v=20260625v3" />
 </head>
@@ -5110,6 +5158,13 @@
   <!-- Welcome page (splash — separate from HOME / services) -->
   <div class="welcome-screen" id="welcome-screen">
     <div class="welcome-content">
+      <img
+        class="welcome-logo"
+        src="/images/logo/mototap-logo.png"
+        alt="MotoTap"
+        width="128"
+        height="128"
+      />
       <span>Welcome to</span>
       <h1 class="brand-title">MOTO TAP</h1>
       <p class="brand-slogan">TAP IT · FIX IT · GO!</p>
@@ -5139,7 +5194,7 @@
     <div class="navbar-left">
       <div class="navbar-brand-lockup">
         <button type="button" class="navbar-logo-btn" id="menu-toggle" aria-label="Open menu">
-          <img class="navbar-logo-img" src="/images/logo/mototap-logo.jpg" alt="" width="52" height="52" />
+          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="52" height="52" />
         </button>
         <div class="navbar-brand-text">
           <div class="navbar-brand">MOTO TAP</div>

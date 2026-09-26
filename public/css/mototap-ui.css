@@ -128,7 +128,7 @@ body.mt-brand .navbar-center button.is-nav-active {
 }
 
 body.mt-brand .navbar-logo-img {
-  box-shadow: 0 0 0 2px var(--mt-red), var(--mt-shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 body.mt-brand .home-menu-btn {
