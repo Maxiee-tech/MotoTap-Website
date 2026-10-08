@@ -9,6 +9,8 @@ import { isBusinessRole, normalizeUserRole } from "./geo.js";
 function isLegacyAccount(profile) {
   if (!profile) return false;
   if (profile.onboardingComplete === true) return false;
+  // Incomplete / in-progress signups are never "legacy complete".
+  if (profile.onboardingComplete === false) return false;
   const step = Number(profile.onboardingStep);
   if (Number.isFinite(step) && step >= 1) return false;
   return true;

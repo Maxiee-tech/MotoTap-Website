@@ -55,19 +55,24 @@ class AuthViewModel {
     this.uiState = "loading";
     this.notifyStateChange();
 
-    const result = await this.authRepository.signUp(
-      this.email,
-      this.password,
-      this.name,
-      this.role,
-      this.phoneNumber
-    );
-    if (result.success) {
-      this.uiState = "success";
-      this.successRole = this.role;
-    } else {
+    try {
+      const result = await this.authRepository.signUp(
+        this.email,
+        this.password,
+        this.name,
+        this.role,
+        this.phoneNumber
+      );
+      if (result.success) {
+        this.uiState = "success";
+        this.successRole = this.role;
+      } else {
+        this.uiState = "error";
+        this.errorMessage = result.error || "Unable to create account.";
+      }
+    } catch (error) {
       this.uiState = "error";
-      this.errorMessage = result.error;
+      this.errorMessage = error?.message || "Unable to create account.";
     }
     this.notifyStateChange();
   }

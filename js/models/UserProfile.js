@@ -34,6 +34,9 @@ export function toFirestoreRole(role) {
 export function isProfileOnboardingComplete(profile) {
   if (!profile) return false;
   if (profile.onboardingComplete === true) return true;
+  // Explicit false means the wizard is still in progress (including temporary
+  // stubs created before the Firestore profile document exists).
+  if (profile.onboardingComplete === false) return false;
 
   // In-progress signups always carry a numeric onboardingStep (>= 1); send them
   // back to the wizard to finish. Legacy accounts predating onboarding have no
