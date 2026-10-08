@@ -71,9 +71,20 @@ let wizardState = {
   location: { latitude: null, longitude: null, address: "", locationName: "" },
 };
 
+/** True while the multi-step signup wizard owns the auth session transition. */
+let signupFlowActive = false;
+
 let locationMap = null;
 let locationMarker = null;
 let locationGeocoder = null;
+
+export function isSignupFlowActive() {
+  return signupFlowActive;
+}
+
+export function setSignupFlowActive(active) {
+  signupFlowActive = Boolean(active);
+}
 
 export function getSignupResumeStep(profile) {
   if (!profile || isProfileOnboardingComplete(profile)) return null;
@@ -222,9 +233,27 @@ function mountWorkingHoursEditor(containerId, existing = null) {
   return editor;
 }
 
+function ensureSignupSectionVisible() {
+  const signupSection = document.getElementById("signup-section");
+  if (!signupSection) return;
+  document.body.classList.add("auth-screen-active");
+  // If an auth-state handler navigated away mid-signup, bring the wizard back.
+  document.getElementById("landing-section")?.classList.remove("active");
+  document.getElementById("login-section")?.classList.remove("active");
+  document.getElementById("dashboard-section")?.classList.remove("active");
+  document.getElementById("email-verification-section")?.classList.remove("active");
+  signupSection.classList.add("active");
+  const mainNavbar = document.getElementById("main-navbar");
+  if (mainNavbar) {
+    mainNavbar.hidden = true;
+    mainNavbar.style.display = "none";
+  }
+}
+
 function showWizardStep(step, role) {
   wizardState.step = step;
   wizardState.role = normalizeUserRole(role || wizardState.role);
+  ensureSignupSectionVisible();
 
   document.querySelectorAll(".signup-wizard-step").forEach((panel) => {
     panel.classList.remove("active");
@@ -455,6 +484,7 @@ async function bindSignupLocationNameField(role = wizardState.role) {
 }
 
 export function showSignupWizard({ step = 1, role = "driver" } = {}) {
+  signupFlowActive = true;
   wizardState.role = normalizeUserRole(role);
   showWizardStep(step, wizardState.role);
 }
@@ -462,6 +492,7 @@ export function showSignupWizard({ step = 1, role = "driver" } = {}) {
 export function resumeSignupWizardFromProfile(profile) {
   const step = getSignupResumeStep(profile);
   if (!step) return false;
+  signupFlowActive = true;
   wizardState.role = normalizeUserRole(profile.role);
   if (profile.latitude != null && profile.longitude != null) {
     wizardState.location = {
@@ -556,24 +587,23 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
       wizardState.garageMode = "own";
     }
 
+    signupFlowActive = true;
     setWizardLoading(true, "signup-step1-btn", "Continue");
-    await authViewModel.signUp();
+    try {
+      await authViewModel.signUp();
 
-    if (authViewModel.uiState === "error") {
-      setWizardLoading(false, "signup-step1-btn", "Continue");
-      setWizardError(authViewModel.errorMessage);
-      return;
-    }
+      if (authViewModel.uiState === "error") {
+        setWizardError(authViewModel.errorMessage);
+        return;
+      }
 
-    // Re-verify after auth so the invite still resolves for the signed-in user.
-    if (wizardState.role === "mechanic" && wizardState.garageMode === "join") {
-      try {
+      // Re-verify after auth so the invite still resolves for the signed-in user.
+      if (wizardState.role === "mechanic" && wizardState.garageMode === "join") {
         const lookup = await authService.garageService.lookupInvite(
           wizardState.verifiedInvite.inviteCode
         );
         if (!lookup?.garage) {
           clearVerifiedInvite();
-          setWizardLoading(false, "signup-step1-btn", "Continue");
           setWizardError("Invalid or expired garage invite code.");
           return;
         }
@@ -582,15 +612,14 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
           garageId: lookup.garage.id,
           garageName: lookup.garage.name || "Garage",
         };
-      } catch (error) {
-        setWizardLoading(false, "signup-step1-btn", "Continue");
-        setWizardError(error.message || "Could not verify invite code.");
-        return;
       }
-    }
 
-    setWizardLoading(false, "signup-step1-btn", "Continue");
-    showWizardStep(2, wizardState.role);
+      showWizardStep(2, wizardState.role);
+    } catch (error) {
+      setWizardError(error.message || "Unable to create account. Please try again.");
+    } finally {
+      setWizardLoading(false, "signup-step1-btn", "Continue");
+    }
   });
 
   step2BackBtn?.addEventListener("click", (e) => {
@@ -717,6 +746,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         setWizardError(result.error);
         return;
       }
+      signupFlowActive = false;
       onComplete?.();
     } catch (error) {
       setWizardError(error.message || "Unable to finish sign up.");
@@ -883,6 +913,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         setWizardError(result.error);
         return;
       }
+      signupFlowActive = false;
       onComplete?.();
     } catch (error) {
       setWizardError(error.message || "Unable to finish sign up.");
@@ -961,6 +992,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         setWizardError(result.error);
         return;
       }
+      signupFlowActive = false;
       onComplete?.();
     } catch (error) {
       setWizardError(error.message || "Unable to finish sign up.");
@@ -993,6 +1025,7 @@ export function initSignupWizard({ authService, authViewModel, onComplete, onPro
         setWizardError(result.error || "Unable to save working hours.");
         return;
       }
+      signupFlowActive = false;
       onComplete?.();
     } catch (error) {
       setWizardError(error.message || "Unable to save working hours.");

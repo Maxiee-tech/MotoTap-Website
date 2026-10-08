@@ -107,6 +107,8 @@ import {
   resumeSignupWizardFromProfile,
   showWorkingHoursUpdateStep,
   isProfileOnboardingComplete,
+  isSignupFlowActive,
+  setSignupFlowActive,
 } from "./signupWizard.js";
 import { needsWorkingHoursUpdate } from "./models/UserProfile.js";
 import { getOpenClosedStatus, hasValidWorkingHours } from "./utils/workingHours.js";
@@ -1907,6 +1909,14 @@ function enforceWorkingHoursGate() {
 
 async function proceedAfterAuthenticatedSession() {
   if (!auth.currentUser) return;
+
+  // While the signup wizard is actively creating the account / advancing steps,
+  // ignore auth-state "session ready" navigation so it cannot hide the wizard
+  // behind the home page mid-flow.
+  if (isSignupFlowActive() && signupSection.classList.contains("active")) {
+    await loadUserProfile(auth.currentUser);
+    return;
+  }
 
   await loadUserProfile(auth.currentUser);
 
@@ -5174,12 +5184,18 @@ async function loadUserProfile(user) {
 
   currentUserProfile = await authService.getUserProfile(user.uid);
   if (!currentUserProfile) {
+    // Auth can resolve before the Firestore profile write finishes during signup.
+    // Mark the stub incomplete so we never treat a brand-new account as a legacy
+    // completed profile and yank the user out of the wizard.
     currentUserProfile = {
       id: user.uid,
-      name: user.email || "",
+      name: user.displayName || user.email || "",
+      email: user.email || "",
       role: "driver",
       skills: [],
       isAdmin: false,
+      onboardingStep: 1,
+      onboardingComplete: false,
     };
   }
 
@@ -5476,6 +5492,7 @@ loginBackBtn?.addEventListener("click", (e) => {
 
 signupBackBtn?.addEventListener("click", (e) => {
   e.preventDefault();
+  setSignupFlowActive(false);
   showHomePage();
 });
 
@@ -5711,11 +5728,16 @@ onAuthStateChanged(auth, async (user) => {
       // welcome screen until the user taps "Get Started".
       initialAuthHandled = true;
       await loadUserProfile(auth.currentUser);
+    } else if (isSignupFlowActive() && signupSection.classList.contains("active")) {
+      // Signup step 1 just created the Auth user. Keep the wizard in control;
+      // do not navigate to home / email-verification mid-flow.
+      await loadUserProfile(auth.currentUser);
     } else {
       await proceedAfterAuthenticatedSession();
     }
   } else {
     initialAuthHandled = true;
+    setSignupFlowActive(false);
     if (wasLoggedIn) {
       currentUserProfile = null;
       clearPendingServiceSelection();
@@ -5737,6 +5759,7 @@ initSignupWizard({
     }
   },
   onComplete: async () => {
+    setSignupFlowActive(false);
     if (auth.currentUser) {
       await loadUserProfile(auth.currentUser);
     }

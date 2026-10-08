@@ -50,6 +50,15 @@ export async function fetchNearbyLandmarks(lat, lng, { limit = 3, radius = 900 }
   }
 
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish([]), 8000);
+
     const service = new google.maps.places.PlacesService(document.createElement("div"));
     service.nearbySearch(
       {
@@ -59,7 +68,7 @@ export async function fetchNearbyLandmarks(lat, lng, { limit = 3, radius = 900 }
       },
       (results, status) => {
         if (status !== "OK" || !Array.isArray(results)) {
-          resolve([]);
+          finish([]);
           return;
         }
         const names = [];
@@ -69,7 +78,7 @@ export async function fetchNearbyLandmarks(lat, lng, { limit = 3, radius = 900 }
           names.push(name);
           if (names.length >= limit) break;
         }
-        resolve(names);
+        finish(names);
       }
     );
   });
