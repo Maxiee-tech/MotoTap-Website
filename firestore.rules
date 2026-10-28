@@ -318,11 +318,9 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{userId} {
-      allow read: if signedIn()
-        && (isOwner(userId)
-          || isAdminUser()
-          || resource.data.status == 'APPROVED'
-          || isChatPartnerOf(userId));
+      allow read: if resource.data.status == 'APPROVED'
+        || (signedIn()
+          && (isOwner(userId) || isAdminUser() || isChatPartnerOf(userId)));
       allow create: if isOwner(userId)
         && request.resource.data.userId == userId
         && ownerPublicProfileCreate(request.resource.data);

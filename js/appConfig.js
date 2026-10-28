@@ -66,3 +66,8 @@ export function getCloudinaryPresetForCategory(category) {
 }
 
 export const MAX_CHAT_MESSAGE_LENGTH = 200;
+
+/** Tawk.to embed, e.g. https://embed.tawk.to/PROPERTY_ID/WIDGET_ID */
+export function getTawkEmbedSrc() {
+  return readEnv("VITE_TAWK_EMBED_SRC");
+}

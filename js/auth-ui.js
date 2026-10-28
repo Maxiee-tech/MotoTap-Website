@@ -113,10 +113,12 @@ import {
 import { needsWorkingHoursUpdate } from "./models/UserProfile.js";
 import { getOpenClosedStatus, hasValidWorkingHours } from "./utils/workingHours.js";
 import { computeLoyalty } from "./utils/loyalty.js";
-import { MAX_CHAT_MESSAGE_LENGTH } from "./appConfig.js";
+import { MAX_CHAT_MESSAGE_LENGTH, getTawkEmbedSrc } from "./appConfig.js";
 import { escapeHtml } from "./utils/html.js";
 import { PUBLIC_PROFILES_COLLECTION } from "./utils/publicProfile.js";
 import { accountRequiresEmailVerification } from "./utils/emailVerification.js";
+import { DIRECTORY_TOWNS, toWhatsAppHref } from "./directoryData.js";
+import { parseRoute, setPageSeo, siteNavigate } from "./siteRouter.js";
 import { onAuthStateChanged } from "firebase/auth";
 
 const landingSection = document.getElementById("landing-section");
@@ -312,8 +314,8 @@ function showMapMatchNotification(message, { autoDismissMs = 0 } = {}) {
   }
 }
 
-function showMechanicMapPage(category, serviceName) {
-  if (enforceDriverEmailVerificationGate()) return;
+function showMechanicMapPage(category, serviceName, { skipHistory = false } = {}) {
+  if (auth.currentUser && enforceDriverEmailVerificationGate()) return;
 
   driverMapDiscoveryMode = "mechanics";
   hideWelcomeScreen();
@@ -337,10 +339,19 @@ function showMechanicMapPage(category, serviceName) {
 
   beginDriverPositionLookup();
   fetchMatchingMechanics(serviceName);
+  if (!skipHistory) {
+    const slug = category?.id || "service";
+    siteNavigate(`/services/${slug}?need=${encodeURIComponent(serviceName)}`);
+    setPageSeo({
+      title: `${serviceName} mechanics in Kenya`,
+      description: `Find ${serviceName} mechanics and garages on MotoTap. Call without creating an account.`,
+      canonicalPath: `/services/${slug}`,
+    });
+  }
 }
 
-function showPartsDealerMapPage(category, partName) {
-  if (enforceDriverEmailVerificationGate()) return;
+function showPartsDealerMapPage(category, partName, { skipHistory = false } = {}) {
+  if (auth.currentUser && enforceDriverEmailVerificationGate()) return;
 
   driverMapDiscoveryMode = "parts_dealers";
   hideWelcomeScreen();
@@ -366,6 +377,15 @@ function showPartsDealerMapPage(category, partName) {
 
   beginDriverPositionLookup();
   fetchMatchingPartsDealers(partName);
+  if (!skipHistory) {
+    const slug = category?.id || "parts";
+    siteNavigate(`/services/${slug}?need=${encodeURIComponent(partName)}&mode=parts`);
+    setPageSeo({
+      title: `${partName} parts dealers in Kenya`,
+      description: `Find ${partName} parts dealers on MotoTap. Call without creating an account.`,
+      canonicalPath: `/services/${slug}`,
+    });
+  }
 }
 
 function triggerMapResize() {
@@ -1133,23 +1153,7 @@ function showContactsFromMenu() {
 }
 
 function showAboutFromMenu() {
-  closeMenu();
-  hideWelcomeScreen();
-  hideAllSections();
-  aboutSection?.classList.add("active");
-  setHomeMenuVisible(true);
-  updateNavActiveState(null);
-
-  if (auth.currentUser) {
-    const role = normalizeUserRole(currentUserProfile?.role);
-    updateMenuProfile(role, auth.currentUser.email || "");
-  } else {
-    updateMenuProfile("Guest", "Not signed in");
-  }
-
-  window.requestAnimationFrame(() => {
-    aboutSection?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  window.location.href = "/about";
 }
 
 function showTermsFromMenu() {
@@ -1417,7 +1421,7 @@ function showBusinessDashboard(role) {
   }
 }
 
-function showHomePage() {
+function showHomePage(options = {}) {
   if (
     auth.currentUser &&
     currentUserProfile &&
@@ -1468,6 +1472,16 @@ function showHomePage() {
   }
   scheduleServiceCategoryCardBalance();
   updateNavActiveState("home");
+  if (!options.skipHistory) {
+    siteNavigate("/");
+  }
+  setPageSeo({
+    title: "Find a mechanic near you",
+    description:
+      "Search vetted mechanics, garages, and parts dealers across Kenya. Call without creating an account.",
+    canonicalPath: "/",
+  });
+  void loadDirectoryResults();
 }
 
 menuToggle?.addEventListener("click", toggleMenu);
@@ -2998,17 +3012,16 @@ function smoothCenterMap(position, zoom = MAP_DRIVER_ZOOM) {
 }
 
 function updateAdminContactButtons(mechanic) {
-  const isAdmin = currentUserProfile?.isAdmin === true;
   const phone = mechanic?.phoneNumber || mechanic?.phone || "";
   if (mechanicCallBtn) {
-    mechanicCallBtn.classList.toggle("hidden", !isAdmin || !phone);
-    if (isAdmin && phone) {
+    mechanicCallBtn.classList.toggle("hidden", !phone);
+    if (phone) {
       mechanicCallBtn.href = `tel:${phone}`;
     }
   }
   if (mechanicSmsBtn) {
-    mechanicSmsBtn.classList.toggle("hidden", !isAdmin || !phone);
-    if (isAdmin && phone) {
+    mechanicSmsBtn.classList.toggle("hidden", !phone);
+    if (phone) {
       mechanicSmsBtn.href = `sms:${phone}`;
     }
   }
@@ -4064,7 +4077,8 @@ async function handleBookNow() {
     return;
   }
   if (!auth.currentUser) {
-    bookError.textContent = "You must be signed in to book.";
+    setPendingServiceSelection(selectedCategory, selectedSubservice);
+    showLoginForm();
     return;
   }
 
@@ -4182,11 +4196,6 @@ function appendPartsGroups(body, category, { guest = false } = {}) {
         tag.classList.add("selected");
       }
       tag.addEventListener("click", () => {
-        if (!auth.currentUser) {
-          setPendingServiceSelection(category, partName, "parts_dealers");
-          showLoginForm();
-          return;
-        }
         showPartsDealerMapPage(category, partName);
       });
       groupCard.appendChild(tag);
@@ -4376,11 +4385,6 @@ function appendServiceGroups(body, category, { guest = false } = {}) {
         tag.classList.add("selected");
       }
       tag.addEventListener("click", () => {
-        if (!auth.currentUser) {
-          setPendingServiceSelection(category, serviceName);
-          showLoginForm();
-          return;
-        }
         showMechanicMapPage(category, serviceName);
       });
       groupCard.appendChild(tag);
@@ -5556,6 +5560,19 @@ mechanicChatBtn?.addEventListener("click", () => {
     bookError.textContent = "Select a mechanic on the map first.";
     return;
   }
+  const phone =
+    selectedMechanicEntry.mechanic?.phoneNumber ||
+    selectedMechanicEntry.mechanic?.phone ||
+    "";
+  if (!auth.currentUser) {
+    const wa = toWhatsAppHref(phone);
+    if (wa) {
+      window.open(wa, "_blank", "noopener");
+      return;
+    }
+    showLoginForm();
+    return;
+  }
   const garageName =
     selectedMapGroup?.type === "garage"
       ? String(selectedMapGroup.label || "").trim()
@@ -5724,10 +5741,11 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     wasLoggedIn = true;
     if (!initialAuthHandled) {
-      // Existing session on first page load: prepare state but keep the
-      // welcome screen until the user taps "Get Started".
       initialAuthHandled = true;
       await loadUserProfile(auth.currentUser);
+      if (!(isSignupFlowActive() && signupSection.classList.contains("active"))) {
+        applySiteRoute();
+      }
     } else if (isSignupFlowActive() && signupSection.classList.contains("active")) {
       // Signup step 1 just created the Auth user. Keep the wizard in control;
       // do not navigate to home / email-verification mid-flow.
@@ -5743,9 +5761,9 @@ onAuthStateChanged(auth, async (user) => {
       clearPendingServiceSelection();
       stopJobSync();
       stopGlobalUnreadListener();
-      showHomePage();
       wasLoggedIn = false;
     }
+    applySiteRoute();
   }
   updateNavAuthButton();
 });
@@ -5796,11 +5814,208 @@ function mountPageFooters() {
   });
 }
 
+function fillDirectoryFilters() {
+  const serviceSelect = document.getElementById("directory-service");
+  const townSelect = document.getElementById("directory-town");
+  if (serviceSelect && !serviceSelect.dataset.filled) {
+    serviceSelect.innerHTML = `<option value="">All services</option>${SERVICE_CATEGORIES.map(
+      (category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`,
+    ).join("")}`;
+    serviceSelect.dataset.filled = "1";
+  }
+  if (townSelect && !townSelect.dataset.filled) {
+    townSelect.insertAdjacentHTML(
+      "beforeend",
+      DIRECTORY_TOWNS.map(
+        (town) => `<option value="${town.slug}">${escapeHtml(town.name)}</option>`,
+      ).join(""),
+    );
+    townSelect.dataset.filled = "1";
+  }
+}
+
+async function loadDirectoryResults() {
+  const root = document.getElementById("directory-results");
+  if (!root) return;
+  const serviceId = document.getElementById("directory-service")?.value || "";
+  const town = document.getElementById("directory-town")?.value || "";
+  const comeToMe = document.getElementById("directory-come-to-me")?.checked === true;
+  root.innerHTML = "<p>Loading nearby providers…</p>";
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, PUBLIC_PROFILES_COLLECTION),
+        where("role", "in", ["mechanic", "MECHANIC"]),
+        where("status", "==", "APPROVED"),
+      ),
+    );
+    const category = SERVICE_CATEGORIES.find((item) => item.id === serviceId);
+    const serviceNames = category
+      ? category.groups.flatMap((group) => group.items)
+      : [];
+    const townName = DIRECTORY_TOWNS.find((item) => item.slug === town)?.name || "";
+    const cards = snapshot.docs
+      .map((docItem) => ({ id: docItem.id, ...docItem.data() }))
+      .filter((profile) => {
+        if (comeToMe && !mechanicOffersService(profile, "Mobile mechanic") && !mechanicOffersService(profile, "Roadside")) {
+          const skills = `${(profile.availableServices || []).join(" ")} ${(profile.skills || []).join(" ")}`.toLowerCase();
+          if (!skills.includes("mobile") && profile.institutionName) {
+            /* still include garages that travel; keep listed */
+          }
+        }
+        if (serviceNames.length && !serviceNames.some((name) => mechanicOffersService(profile, name))) {
+          return false;
+        }
+        if (townName) {
+          const area = `${profile.locationName || ""} ${profile.address || ""}`.toLowerCase();
+          if (!area.includes(townName.toLowerCase())) return false;
+        }
+        return true;
+      })
+      .slice(0, 8);
+    if (!cards.length) {
+      root.innerHTML = "<p>No listings match those filters yet. Pick a service below to search the map.</p>";
+      return;
+    }
+    root.innerHTML = cards
+      .map((profile) => {
+        const phone = profile.phone || profile.phoneNumber || "";
+        const photo = profile.profilePhotoUrl || profile.garagePhotos?.[0] || "";
+        const area = formatShopAreaLabel(profile) || profile.locationName || "Kenya";
+        const rating = Number(profile.rating) || 0;
+        const hours = getOpenClosedStatus(profile.workingHours);
+        const wa = toWhatsAppHref(phone);
+        return `<article class="directory-card">
+          ${photo ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(profile.name || "Provider")}" />` : `<div class="directory-card-photo"></div>`}
+          <div>
+            <h3>${escapeHtml(profile.institutionName || profile.name || "Provider")}</h3>
+            <p>${escapeHtml(area)}${rating ? ` · ${rating.toFixed(1)}★` : ""}${hours?.label ? ` · ${escapeHtml(hours.label)}` : ""}</p>
+          </div>
+          <div class="directory-card-actions">
+            ${phone ? `<a class="is-primary" href="tel:${escapeHtml(phone)}">Call</a>` : ""}
+            ${wa ? `<a href="${escapeHtml(wa)}" target="_blank" rel="noopener">Chat</a>` : ""}
+          </div>
+        </article>`;
+      })
+      .join("");
+  } catch (error) {
+    root.innerHTML = `<p>Unable to load listings yet. Browse services below.</p>`;
+    console.error(error);
+  }
+}
+
+function applySiteRoute() {
+  hideWelcomeScreen();
+  const route = parseRoute();
+  if (route.name === "about") {
+    window.location.href = "/about";
+    return;
+  }
+  if (route.name === "login") {
+    showLoginForm();
+    return;
+  }
+  if (route.name === "signup") {
+    showSignupForm();
+    return;
+  }
+  if (route.name === "contacts") {
+    showHomePage({ skipHistory: true });
+    scrollToHomeContactsFooter();
+    return;
+  }
+  if (route.name === "service") {
+    const category = SERVICE_CATEGORIES.find((item) => item.id === route.slug)
+      || PARTS_CATEGORIES.find((item) => item.id === route.slug);
+    const need = route.params?.need || category?.name || "";
+    if (category && route.params?.mode === "parts") {
+      showPartsDealerMapPage(category, need || category.name, { skipHistory: true });
+      return;
+    }
+    if (category) {
+      const serviceName = need || category.groups?.[0]?.items?.[0] || category.name;
+      showMechanicMapPage(category, serviceName, { skipHistory: true });
+      setPageSeo({
+        title: `${category.name} in Kenya`,
+        description: `Find ${category.name.toLowerCase()} nearby on MotoTap.`,
+        canonicalPath: `/services/${category.id}`,
+      });
+      return;
+    }
+  }
+  if (route.name === "town") {
+    const town = DIRECTORY_TOWNS.find((item) => item.slug === route.town);
+    const category = SERVICE_CATEGORIES.find((item) => item.id === route.service);
+    fillDirectoryFilters();
+    const serviceSelect = document.getElementById("directory-service");
+    const townSelect = document.getElementById("directory-town");
+    if (serviceSelect && route.service) serviceSelect.value = route.service;
+    if (townSelect && route.town) townSelect.value = route.town;
+    if (category) {
+      const serviceName = category.groups?.[0]?.items?.[0] || category.name;
+      showMechanicMapPage(category, serviceName, { skipHistory: true });
+    } else {
+      showHomePage({ skipHistory: true });
+    }
+    setPageSeo({
+      title: town ? `Mechanics in ${town.name}` : "Mechanics in Kenya",
+      description: `Find mechanics${town ? ` in ${town.name}` : " across Kenya"} on MotoTap.`,
+      canonicalPath: `/mechanics/${route.town || "kenya"}`,
+    });
+    return;
+  }
+  showHomePage({ skipHistory: true });
+}
+
+function mountTawkChat() {
+  const src = getTawkEmbedSrc();
+  if (!src || document.getElementById("tawk-embed-script")) return;
+  window.Tawk_API = window.Tawk_API || {};
+  window.Tawk_LoadStart = new Date();
+  const script = document.createElement("script");
+  script.id = "tawk-embed-script";
+  script.async = true;
+  script.src = src;
+  script.charset = "UTF-8";
+  script.setAttribute("crossorigin", "*");
+  document.body.appendChild(script);
+}
+
 mountPageFooters();
+fillDirectoryFilters();
 renderCatalogFromLocal();
 updateNavAuthButton();
 setupServiceCardResizeListener();
 scheduleServiceCategoryCardBalance();
 syncCatalogToFirestoreInBackground();
+mountTawkChat();
+window.addEventListener("popstate", () => applySiteRoute());
+document.getElementById("directory-filters")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const serviceId = document.getElementById("directory-service")?.value || "";
+  const town = document.getElementById("directory-town")?.value || "";
+  const comeToMe = document.getElementById("directory-come-to-me")?.checked === true;
+  const resolvedService = comeToMe && !serviceId ? "mobile-mechanic" : serviceId;
+  if (town && resolvedService) {
+    siteNavigate(`/mechanics/${town}?service=${encodeURIComponent(resolvedService)}`);
+    return;
+  }
+  if (resolvedService) {
+    const category = SERVICE_CATEGORIES.find((item) => item.id === resolvedService);
+    if (category) {
+      showMechanicMapPage(category, category.groups?.[0]?.items?.[0] || category.name);
+      return;
+    }
+  }
+  if (town) {
+    siteNavigate(`/mechanics/${town}`);
+    return;
+  }
+  void loadDirectoryResults();
+});
+hideWelcomeScreen();
+if (!auth.currentUser) {
+  applySiteRoute();
+}
 document.addEventListener("pointerdown", unlockNotificationAudio, { passive: true });
 document.addEventListener("keydown", unlockNotificationAudio);

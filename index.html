@@ -114,6 +114,10 @@
     }
 
     :root {
+      --mt-red: #e11d2e;
+      --mt-ink: #111111;
+      --mt-muted: #6b7280;
+      --mt-screen: #f4f5f7;
       --nav-height: 56px;
       --nav-stack: 0px;
       --nav-pad-x: 12px;
@@ -2309,13 +2313,148 @@
     }
 
     .btn-primary {
-      background: #0066cc;
+      background: var(--mt-red, #e11d2e);
       color: white;
       margin-bottom: 12px;
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #0052a3;
+      background: #c8102e;
+    }
+
+    .directory-hero {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 16px 16px;
+      margin: 8px 0 16px;
+      box-shadow: 0 8px 24px rgba(17, 17, 17, 0.06);
+    }
+
+    .directory-hero h1 {
+      font-size: 1.45rem;
+      line-height: 1.25;
+      color: var(--mt-ink, #111);
+      margin-bottom: 6px;
+    }
+
+    .directory-hero > p {
+      color: var(--mt-muted, #6b7280);
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+    }
+
+    .directory-filters {
+      display: grid;
+      gap: 10px;
+    }
+
+    .directory-filters label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--mt-muted, #6b7280);
+    }
+
+    .directory-filters select,
+    .directory-filters input[type="text"] {
+      min-height: 48px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 0 12px;
+      font: inherit;
+      color: var(--mt-ink, #111);
+      background: #fff;
+    }
+
+    .directory-toggle {
+      flex-direction: row !important;
+      align-items: center;
+      min-height: 48px;
+      gap: 10px !important;
+      color: var(--mt-ink, #111) !important;
+      font-size: 0.95rem !important;
+      font-weight: 600 !important;
+    }
+
+    .directory-filters .btn-primary {
+      min-height: 48px;
+      margin: 4px 0 0;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 800;
+    }
+
+    .directory-results {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .directory-card {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 12px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 6px 16px rgba(17, 17, 17, 0.05);
+    }
+
+    .directory-card img,
+    .directory-card-photo {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #f3f4f6;
+    }
+
+    .directory-card h3 {
+      font-size: 1rem;
+      margin-bottom: 2px;
+    }
+
+    .directory-card p {
+      color: var(--mt-muted, #6b7280);
+      font-size: 0.82rem;
+    }
+
+    .directory-card-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 8px;
+    }
+
+    .directory-card-actions a,
+    .directory-card-actions button {
+      flex: 1;
+      min-height: 44px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: var(--mt-ink, #111);
+    }
+
+    .directory-card-actions .is-primary {
+      background: var(--mt-red, #e11d2e);
+      color: #fff;
+      border-color: var(--mt-red, #e11d2e);
+    }
+
+    @media (min-width: 700px) {
+      .directory-filters {
+        grid-template-columns: 1.4fr 1fr auto auto;
+        align-items: end;
+      }
     }
 
     .btn-primary:disabled {
@@ -5303,6 +5442,28 @@
 
     <!-- HOME: service catalog (guests) & new request flow (signed-in drivers) -->
     <div id="landing-section" class="form-section">
+      <section class="directory-hero" id="directory-hero">
+        <h1>Find a mechanic near you</h1>
+        <p>Search vetted garages, mobile mechanics, and parts dealers across Kenya. No account needed to call.</p>
+        <form class="directory-filters" id="directory-filters">
+          <label>
+            What do you need?
+            <select id="directory-service" name="service"></select>
+          </label>
+          <label>
+            Where?
+            <select id="directory-town" name="town">
+              <option value="">All Kenya</option>
+            </select>
+          </label>
+          <label class="directory-toggle">
+            <input type="checkbox" id="directory-come-to-me" name="mobile" />
+            Come to me
+          </label>
+          <button type="submit" class="btn-primary">Show results</button>
+        </form>
+      </section>
+      <div class="directory-results" id="directory-results" aria-live="polite"></div>
       <div class="app-download-banner" id="android-apk-download">
         <p>Get the full Moto Tap experience on your Android phone.</p>
         <a
@@ -6198,6 +6359,13 @@
     <div id="map-hint" class="map-hint hidden" aria-hidden="true"></div>
   </div>
 
+  <noscript>
+    <div class="legal-wrap" style="padding:24px">
+      <h1>Find a mechanic in Kenya</h1>
+      <p>MotoTap lists vetted mechanics, garages, and parts dealers. Enable JavaScript for live map results, or browse by service and town:</p>
+      <p><a href="/about">About</a> · <a href="/terms">Terms</a> · <a href="/privacy-policy">Privacy</a></p>
+    </div>
+  </noscript>
   <script type="module" src="/js/auth-ui.js"></script>
 </body>
 </html>

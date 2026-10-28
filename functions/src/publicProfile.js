@@ -72,6 +72,7 @@ function buildPublicProfileData(userId, data = {}) {
   }
 
   if (isBusinessRole(role)) {
+    profile.phone = String(data.phone || data.phoneNumber || "").trim().slice(0, 32);
     profile.latitude =
       typeof data.latitude === "number" && Number.isFinite(data.latitude) ? data.latitude : null;
     profile.longitude =

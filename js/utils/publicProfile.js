@@ -64,6 +64,7 @@ export function buildPublicProfileData(profile = {}, { forCreate = false } = {})
   }
 
   if (isBusinessRole(profile.role)) {
+    data.phone = String(profile.phone || profile.phoneNumber || "").trim().slice(0, 32);
     data.latitude =
       typeof profile.latitude === "number" && Number.isFinite(profile.latitude)
         ? profile.latitude
