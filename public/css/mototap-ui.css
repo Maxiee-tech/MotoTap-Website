@@ -1187,12 +1187,23 @@ body.mt-brand #android-apk-download {
   box-shadow: var(--mt-shadow-card) !important;
 }
 
-body.mt-brand .app-download-banner p {
+body.mt-brand .app-download-banner p,
+body.mt-brand .app-download-location h3 {
+  color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .app-download-location h3 {
+  color: var(--mt-black) !important;
+}
+
+body.mt-brand .app-download-location-lead {
   color: var(--mt-gray-700) !important;
 }
 
 body.mt-brand .app-download-store-link,
-body.mt-brand .app-download-store-link strong {
+body.mt-brand .app-download-store-link strong,
+body.mt-brand .app-download-location-address,
+body.mt-brand .app-download-location-maps {
   color: var(--mt-red) !important;
   font-weight: 700;
 }

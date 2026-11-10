@@ -6033,7 +6033,7 @@ function fillDirectoryFilters() {
   const serviceSelect = document.getElementById("directory-service");
   const townSelect = document.getElementById("directory-town");
   if (serviceSelect && !serviceSelect.dataset.filled) {
-    serviceSelect.innerHTML = `<option value="">All services</option>${SERVICE_CATEGORIES.map(
+    serviceSelect.innerHTML = `<option value="">None</option>${SERVICE_CATEGORIES.map(
       (category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`,
     ).join("")}`;
     serviceSelect.dataset.filled = "1";
@@ -6055,6 +6055,10 @@ async function loadDirectoryResults() {
   const serviceId = document.getElementById("directory-service")?.value || "";
   const town = document.getElementById("directory-town")?.value || "";
   const comeToMe = document.getElementById("directory-come-to-me")?.checked === true;
+  if (!serviceId) {
+    root.innerHTML = "";
+    return;
+  }
   root.innerHTML = "<p>Loading nearby providers…</p>";
   try {
     const snapshot = await getDocs(
@@ -6205,6 +6209,9 @@ scheduleServiceCategoryCardBalance();
 syncCatalogToFirestoreInBackground();
 mountTawkChat();
 window.addEventListener("popstate", () => applySiteRoute());
+document.getElementById("directory-service")?.addEventListener("change", () => {
+  void loadDirectoryResults();
+});
 document.getElementById("directory-filters")?.addEventListener("submit", (event) => {
   event.preventDefault();
   const serviceId = document.getElementById("directory-service")?.value || "";

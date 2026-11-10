@@ -799,12 +799,20 @@
 
     .app-download-banner,
     #android-apk-download {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 24px;
       margin-bottom: 24px;
       padding: 20px;
       border-radius: 20px;
       background: rgba(255, 75, 75, 0.12);
       border: 1px solid rgba(255, 75, 75, 0.35);
       text-align: center;
+    }
+
+    .app-download-qr-col {
+      flex: 0 0 auto;
     }
 
     .app-download-qr {
@@ -821,6 +829,68 @@
       font-size: 0.9375rem;
       color: #ddd;
       line-height: 1.5;
+    }
+
+    .app-download-location {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+
+    .app-download-location h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .app-download-location-lead {
+      margin: 6px 0 0 !important;
+      color: #bbb !important;
+    }
+
+    .app-download-location-address {
+      display: inline-block;
+      margin-top: 8px;
+      color: #ffb3b3;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .app-download-map {
+      display: block;
+      width: 100%;
+      height: 220px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 16px;
+    }
+
+    .app-download-location-maps {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 10px;
+      color: #ffb3b3;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .app-download-location-maps .material-symbols-outlined {
+      font-size: 18px;
+    }
+
+    @media (min-width: 768px) {
+      .app-download-banner,
+      #android-apk-download {
+        flex-direction: row;
+        align-items: center;
+        gap: 32px;
+      }
+
+      .app-download-qr-col {
+        flex: 0 0 280px;
+      }
     }
 
     .app-download-store-link,
@@ -4194,6 +4264,34 @@
       gap: 16px;
     }
 
+    @media (min-width: 992px) {
+      .nearby-providers-list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+      }
+
+      .nearby-providers-empty {
+        grid-column: 1 / -1;
+      }
+
+      .nearby-provider-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .nearby-provider-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .nearby-provider-footer {
+        margin-top: auto;
+      }
+    }
+
     .nearby-provider-card {
       border: 1px solid #f0f0f2;
       border-radius: 18px;
@@ -5688,22 +5786,50 @@
       </div>
 
       <div class="app-download-banner" id="android-apk-download">
-        <img
-          class="app-download-qr"
-          src="/images/mototap-apk-qr.svg"
-          alt="QR code to download the MotoTap APK"
-          width="200"
-          height="200"
-        />
-        <p>
-          Scan to download apk or click
+        <div class="app-download-qr-col">
+          <img
+            class="app-download-qr"
+            src="/images/mototap-apk-qr.svg"
+            alt="QR code to download the MotoTap APK"
+            width="200"
+            height="200"
+          />
+          <p>
+            Scan to download apk or click
+            <a
+              class="app-download-store-link"
+              href="https://play.google.com/store/apps/details?id=ke.co.mototap"
+              target="_blank"
+              rel="noopener noreferrer"
+            ><strong>HERE</strong></a>
+          </p>
+        </div>
+        <div class="app-download-location">
+          <h3>Location</h3>
+          <p class="app-download-location-lead">Where our office is located.</p>
           <a
-            class="app-download-store-link"
-            href="https://play.google.com/store/apps/details?id=ke.co.mototap"
+            class="app-download-location-address"
+            href="https://www.google.com/maps/search/?api=1&amp;query=-1.264376580170016,36.80267270222807"
             target="_blank"
             rel="noopener noreferrer"
-          ><strong>HERE</strong></a>
-        </p>
+          >The Mall, Westlands</a>
+          <iframe
+            class="app-download-map"
+            title="MotoTap Autosystems at The Mall, Westlands"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d260.83752933780715!2d36.80267270222807!3d-1.264376580170016!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f17401ef1b0db%3A0xcc0b439a0875f500!2sThe%20Mall%2C%20Westlands!5e0!3m2!1sen!2ske!4v1792493778236!5m2!1sen!2ske"
+          ></iframe>
+          <a
+            class="app-download-location-maps"
+            href="https://www.google.com/maps/search/?api=1&amp;query=-1.264376580170016,36.80267270222807"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
+            Open in Google Maps
+          </a>
+        </div>
       </div>
     </div>
 
