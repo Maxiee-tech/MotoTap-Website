@@ -63,6 +63,7 @@ import {
   isPartsDealerRole,
   formatShopAreaLabel,
   formatPlaceAndDistance,
+  formatDistanceMeters,
   formatUserRoleLabel,
   mechanicOffersService,
   partsDealerOffersPart,
@@ -93,6 +94,7 @@ import {
 } from "./partsCatalogData.js";
 import {
   createServiceCategoryCardShell,
+  getCatalogCardPhotoUrl,
   scheduleServiceCategoryCardBalance,
   setupServiceCardResizeListener,
 } from "./serviceCardLayout.js";
@@ -100,7 +102,6 @@ import PasswordValidator from "./PasswordValidator.js";
 import { appendDriverJobReviewSection } from "./jobReviewUi.js";
 import { appendJobAdditionalServicesSection } from "./jobAdditionalServicesUi.js";
 import { renderProfilePage } from "./profileUi.js";
-import { paintDriverActiveVehicleCard, paintDriverActiveVehicleSkeleton } from "./activeVehicleUi.js";
 import {
   initSignupWizard,
   showSignupWizard,
@@ -128,7 +129,6 @@ const forgotPasswordSection = document.getElementById("forgot-password-section")
 const emailVerificationSection = document.getElementById("email-verification-section");
 const dashboardSection = document.getElementById("dashboard");
 const driverDashboard = document.getElementById("driver-dashboard");
-const driverActiveVehicleRoot = document.getElementById("driver-active-vehicle-root");
 const mechanicDashboard = document.getElementById("mechanic-dashboard");
 const partsDealerDashboard = document.getElementById("parts-dealer-dashboard");
 const messagesSection = document.getElementById("messages-section");
@@ -149,7 +149,6 @@ const mainNavbar = document.getElementById("main-navbar");
 const menuPanel = document.getElementById("menu-panel");
 const menuOverlay = document.getElementById("menu-overlay");
 const menuToggle = document.getElementById("menu-toggle");
-const homeMenuBtn = document.getElementById("home-menu-btn");
 const logoButton = document.getElementById("logo-button");
 
 function closeMenu() {
@@ -197,11 +196,8 @@ function hideWelcomeScreen() {
   if (menuPanel) menuPanel.style.display = "";
 }
 
-function setHomeMenuVisible(visible) {
-  if (!homeMenuBtn) return;
-  homeMenuBtn.classList.toggle("is-visible", visible);
-  homeMenuBtn.setAttribute("aria-hidden", visible ? "false" : "true");
-  document.body.classList.toggle("home-menu-active", visible);
+function setHomeMenuVisible() {
+  document.body.classList.remove("home-menu-active");
 }
 
 function setMechanicMapPageLayout(active) {
@@ -235,7 +231,7 @@ function hideAllSections() {
   aboutSection?.classList.remove("active");
   termsSection?.classList.remove("active");
   profileSection?.classList.remove("active");
-  mechanicMapSection?.classList.remove("active");
+  mechanicMapSection?.classList.remove("active", "is-provider-list");
   driverDashboard.classList.remove("active");
   mechanicDashboard.classList.remove("active");
   partsDealerDashboard?.classList.remove("active");
@@ -326,7 +322,7 @@ function showMechanicMapPage(category, serviceName, { skipHistory = false } = {}
 
   setSelectedService(category, serviceName);
   if (mechanicMapServiceTitle) {
-    mechanicMapServiceTitle.textContent = `MECHANICS: ${serviceName.toUpperCase()}`;
+    mechanicMapServiceTitle.textContent = serviceName;
   }
   if (mechanicPanelService) {
     mechanicPanelService.textContent = `Service: ${serviceName}`;
@@ -335,10 +331,10 @@ function showMechanicMapPage(category, serviceName, { skipHistory = false } = {}
 
   renderServiceCategories();
   showMapNotification("");
-  driverPostServices?.classList.remove("hidden");
+  setProviderDiscoveryMode("list");
 
   beginDriverPositionLookup();
-  fetchMatchingMechanics(serviceName);
+  void loadAndShowNearbyProviders(serviceName);
   if (!skipHistory) {
     const slug = category?.id || "service";
     siteNavigate(`/services/${slug}?need=${encodeURIComponent(serviceName)}`);
@@ -1140,7 +1136,6 @@ function showContactsFromMenu() {
     } else {
       setLandingGuestViewVisible(false);
       driverDashboard.classList.add("active");
-      paintDriverHomeActiveVehicle();
     }
   } else {
     setLandingGuestViewVisible(true);
@@ -1242,7 +1237,6 @@ function paintProfilePage(jobs = []) {
           vehicles: result.vehicles || vehicles,
         };
         paintProfilePage(lastProfileJobs);
-        paintDriverHomeActiveVehicle();
       }
       return result;
     },
@@ -1309,26 +1303,6 @@ function paintProfilePage(jobs = []) {
         }
       }
     },
-  });
-}
-
-function paintDriverHomeActiveVehicle() {
-  if (!driverActiveVehicleRoot) return;
-
-  const role = normalizeUserRole(currentUserProfile?.role);
-  if (role !== "driver" || !auth.currentUser) {
-    driverActiveVehicleRoot.innerHTML = "";
-    return;
-  }
-
-  if (!currentUserProfile) {
-    paintDriverActiveVehicleSkeleton(driverActiveVehicleRoot);
-    return;
-  }
-
-  paintDriverActiveVehicleCard(driverActiveVehicleRoot, {
-    profile: currentUserProfile,
-    onNavigateToVehicles: () => showProfilePage({ focusVehicles: true }),
   });
 }
 
@@ -1455,13 +1429,8 @@ function showHomePage(options = {}) {
       driverDashboard.classList.add("active");
       setHomeMenuVisible(true);
       setDriverMarketplaceMode(driverMarketplaceMode);
-      paintDriverHomeActiveVehicle();
       if (!currentUserProfile) {
-        void loadUserProfile(auth.currentUser).then(() => {
-          if (driverDashboard.classList.contains("active")) {
-            paintDriverHomeActiveVehicle();
-          }
-        });
+        void loadUserProfile(auth.currentUser);
       }
     }
   } else {
@@ -1485,8 +1454,6 @@ function showHomePage(options = {}) {
 }
 
 menuToggle?.addEventListener("click", toggleMenu);
-
-homeMenuBtn?.addEventListener("click", toggleMenu);
 
 menuOverlay.addEventListener("click", closeMenu);
 
@@ -1611,6 +1578,11 @@ const driverPostServices = document.getElementById("driver-post-services");
 const mapNotificationEl = document.getElementById("map-notification");
 const mechanicMapBackBtn = document.getElementById("mechanic-map-back-btn");
 const mechanicMapServiceTitle = document.getElementById("mechanic-map-service-title");
+const nearbyProvidersPlace = document.getElementById("nearby-providers-place");
+const nearbyProvidersCount = document.getElementById("nearby-providers-count");
+const nearbyProvidersSort = document.getElementById("nearby-providers-sort");
+const nearbyProvidersList = document.getElementById("nearby-providers-list");
+const viewInMapBtn = document.getElementById("view-in-map-btn");
 
 const MAP_EMPTY_NOTIFICATION = "No mechanics found for this service on map";
 function getMapLoadErrorMessage() {
@@ -1734,6 +1706,9 @@ let partsCategories = PARTS_CATEGORIES;
 let driverMarketplaceMode = "mechanics";
 let guestMarketplaceMode = "mechanics";
 let driverMapDiscoveryMode = "mechanics";
+let providerSort = "nearest";
+let providerListToken = 0;
+let providerListLoading = false;
 let selectedCategory = null;
 let selectedSubservice = null;
 let pendingServiceSelection = null;
@@ -3558,79 +3533,301 @@ function showNoMechanicsOnMap(message = MAP_EMPTY_NOTIFICATION) {
   fixGoogleMapContainerFill();
 }
 
-async function fetchMatchingMechanics(serviceName) {
-  hideDriverMechanicPanel();
+function setProviderDiscoveryMode(mode) {
+  const listMode = mode === "list";
+  mechanicMapSection?.classList.toggle("is-provider-list", listMode);
+  if (listMode) {
+    driverPostServices?.classList.add("hidden");
+    driverPostServices?.classList.remove("map-active");
+    hideDriverMechanicPanel();
+    if (mechanicMapServiceTitle && selectedSubservice) {
+      mechanicMapServiceTitle.textContent = selectedSubservice;
+    }
+  } else if (mechanicMapServiceTitle && selectedSubservice) {
+    const prefix = driverMapDiscoveryMode === "parts_dealers" ? "PARTS DEALERS" : "MECHANICS";
+    mechanicMapServiceTitle.textContent = `${prefix}: ${selectedSubservice.toUpperCase()}`;
+    driverPostServices?.classList.remove("hidden");
+  }
+}
+
+function clearMapOverlays() {
+  clearMarkers();
+  if (driverMarker) {
+    driverMarker.setMap(null);
+    driverMarker = null;
+  }
+}
+
+function providerPrice(entry) {
+  const vehicle = getActiveVehicle(currentUserProfile);
+  const price = selectedSubservice
+    ? getMechanicServicePrice(entry.mechanic, selectedSubservice, vehicle)
+    : null;
+  return price != null && price > 0 ? price : null;
+}
+
+function sortedProviderEntries(entries) {
+  const copy = [...entries];
+  if (providerSort === "price") {
+    copy.sort((a, b) => (providerPrice(a) ?? Number.MAX_SAFE_INTEGER) - (providerPrice(b) ?? Number.MAX_SAFE_INTEGER));
+    return copy;
+  }
+  if (providerSort === "rating") {
+    copy.sort((a, b) => {
+      const ratingDiff = (Number(b.mechanic?.rating) || 0) - (Number(a.mechanic?.rating) || 0);
+      if (ratingDiff) return ratingDiff;
+      return (Number(b.mechanic?.reviewCount) || 0) - (Number(a.mechanic?.reviewCount) || 0);
+    });
+    return copy;
+  }
+  return sortMechanicsByDistance(copy);
+}
+
+function applyDriverDistance(entries, driverPos) {
+  if (!driverPos) return entries;
+  entries.forEach((entry) => {
+    if (!entry.position) return;
+    entry.distanceMeters = distanceMeters(
+      driverPos.lat,
+      driverPos.lng,
+      entry.position.lat,
+      entry.position.lng
+    );
+  });
+  return entries;
+}
+
+function renderNearbyProviderSort() {
+  if (!nearbyProvidersSort) return;
+  const options = [
+    ["nearest", "Nearest"],
+    ["price", "Lowest Price"],
+    ["rating", "Highest Rated"],
+  ];
+  nearbyProvidersSort.innerHTML = "";
+  options.forEach(([id, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "nearby-sort-chip";
+    if (providerSort === id) button.classList.add("is-selected");
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      providerSort = id;
+      renderNearbyProviders(selectedSubservice);
+    });
+    nearbyProvidersSort.appendChild(button);
+  });
+}
+
+function renderNearbyProviders(serviceName) {
+  if (!nearbyProvidersList) return;
+  renderNearbyProviderSort();
+  const entries = sortedProviderEntries(matchedMechanics);
+  if (nearbyProvidersPlace) {
+    nearbyProvidersPlace.textContent = driverLocationStatus === "ready" ? "Near you" : "Kenya";
+  }
+  if (nearbyProvidersCount) {
+    const count = entries.length;
+    nearbyProvidersCount.textContent = `${count} provider${count === 1 ? "" : "s"}`;
+  }
+  if (viewInMapBtn) viewInMapBtn.hidden = countIsEmpty(entries);
+
+  nearbyProvidersList.innerHTML = "";
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "nearby-providers-empty";
+    empty.textContent = serviceName
+      ? `No providers found for “${serviceName}” nearby.`
+      : "No providers found for this service nearby.";
+    nearbyProvidersList.appendChild(empty);
+    return;
+  }
+
+  entries.forEach((entry) => {
+    nearbyProvidersList.appendChild(createNearbyProviderCard(entry));
+  });
+}
+
+function countIsEmpty(entries) {
+  return !entries.length;
+}
+
+function createNearbyProviderCard(entry) {
+  const mechanic = entry.mechanic || {};
+  const photoUrl = (mechanic.garagePhotos || []).find((url) => String(url || "").trim())
+    || String(mechanic.profilePhotoUrl || "").trim();
+  const name = String(mechanic.institutionName || mechanic.name || "Garage").trim() || "Garage";
+  const area = formatShopAreaLabel(mechanic);
+  const distanceLabel = formatDistanceMeters(entry.distanceMeters);
+  const placeLine = distanceLabel && area
+    ? `${distanceLabel} • ${area}`
+    : distanceLabel || area || "Location shared";
+  const reviewCount = Number(mechanic.reviewCount) || 0;
+  const rating = Number(mechanic.rating) || 0;
+  const ratingLine = reviewCount > 0 ? `${rating.toFixed(1)} (${reviewCount} reviews)` : "New";
+  const price = providerPrice(entry);
+  const perKm = isTowingService(selectedSubservice);
+  const priceLine = price != null
+    ? `From KSh ${formatKsh(price)}${perKm ? "/km" : ""}`
+    : "Price on request";
+  const verified = String(mechanic.status || "").toUpperCase() === "APPROVED"
+    || String(mechanic.status || "").toUpperCase() === "VERIFIED";
+
+  const card = document.createElement("article");
+  card.className = "nearby-provider-card";
+
+  if (photoUrl) {
+    const photo = document.createElement("img");
+    photo.className = "nearby-provider-photo";
+    photo.src = photoUrl;
+    photo.alt = "";
+    card.appendChild(photo);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "nearby-provider-photo-fallback";
+    fallback.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">storefront</span>';
+    card.appendChild(fallback);
+  }
+
+  const body = document.createElement("div");
+  body.className = "nearby-provider-body";
+  const top = document.createElement("div");
+  top.className = "nearby-provider-top";
+  const copy = document.createElement("div");
+  copy.className = "nearby-provider-copy";
+  const title = document.createElement("h3");
+  title.textContent = name;
+  const ratingEl = document.createElement("p");
+  ratingEl.className = "nearby-provider-rating";
+  ratingEl.textContent = `★ ${ratingLine}`;
+  const place = document.createElement("p");
+  place.className = "nearby-provider-place";
+  place.textContent = placeLine;
+  copy.append(title, ratingEl, place);
+  top.appendChild(copy);
+  if (verified) {
+    const badge = document.createElement("span");
+    badge.className = "nearby-provider-verified";
+    badge.textContent = "Verified";
+    top.appendChild(badge);
+  }
+  const footer = document.createElement("div");
+  footer.className = "nearby-provider-footer";
+  const priceEl = document.createElement("p");
+  priceEl.className = "nearby-provider-price";
+  priceEl.textContent = priceLine;
+  const viewBtn = document.createElement("button");
+  viewBtn.type = "button";
+  viewBtn.className = "nearby-provider-view";
+  viewBtn.textContent = "View";
+  viewBtn.addEventListener("click", () => {
+    selectMechanicEntry(entry, { zoomDetail: false });
+  });
+  footer.append(priceEl, viewBtn);
+  body.append(top, footer);
+  card.appendChild(body);
+  return card;
+}
+
+function renderNearbyProvidersLoading() {
+  if (!nearbyProvidersList) return;
+  nearbyProvidersList.innerHTML = "";
+  const loading = document.createElement("p");
+  loading.className = "nearby-providers-empty";
+  loading.textContent = "Finding mechanics for your service…";
+  nearbyProvidersList.appendChild(loading);
+  if (nearbyProvidersCount) nearbyProvidersCount.textContent = "";
+  if (viewInMapBtn) viewInMapBtn.hidden = true;
+}
+
+async function queryMatchingMechanics(serviceName) {
+  const snapshot = await getDocs(
+    query(
+      collection(db, PUBLIC_PROFILES_COLLECTION),
+      where("role", "in", ["mechanic", "MECHANIC"]),
+      where("status", "==", "APPROVED")
+    )
+  );
+  const matchingDocs = snapshot.docs.filter((docItem) => {
+    const profile = docItem.data();
+    return isMechanicRole(profile.role) && mechanicOffersService(profile, serviceName);
+  });
+  if (!matchingDocs.length) return [];
+
+  const activeVehicle = getActiveVehicle(currentUserProfile);
+  const pricedEntries = await attachGaragePricesToEntries(buildMechanicEntries(matchingDocs));
+  const vehicleMatched = pricedEntries.filter((entry) =>
+    garageServicesVehicle(entry.mechanic?.garageVehicleTypes, activeVehicle)
+  );
+  return vehicleMatched.length ? vehicleMatched : pricedEntries;
+}
+
+async function loadAndShowNearbyProviders(serviceName) {
+  const token = ++providerListToken;
+  providerSort = "nearest";
+  providerListLoading = true;
+  matchedMechanics = [];
+  renderNearbyProvidersLoading();
+  try {
+    const entries = await queryMatchingMechanics(serviceName);
+    if (token !== providerListToken) return;
+    matchedMechanics = entries;
+    providerListLoading = false;
+    renderNearbyProviders(serviceName);
+    const driverPos = await (activeDriverPositionRequest || Promise.resolve(null));
+    if (token !== providerListToken || !driverPos) return;
+    driverPosition = driverPos;
+    driverLocationStatus = "ready";
+    applyDriverDistance(matchedMechanics, driverPos);
+    if (mechanicMapSection?.classList.contains("is-provider-list")) {
+      renderNearbyProviders(serviceName);
+    }
+  } catch (error) {
+    if (token !== providerListToken) return;
+    if (nearbyProvidersList) {
+      nearbyProvidersList.innerHTML = "";
+      const failed = document.createElement("p");
+      failed.className = "nearby-providers-empty";
+      failed.textContent = `Unable to load mechanics: ${error.message}`;
+      nearbyProvidersList.appendChild(failed);
+    }
+  } finally {
+    if (token === providerListToken) providerListLoading = false;
+  }
+}
+
+async function showProvidersOnMap(serviceName) {
+  setProviderDiscoveryMode("map");
   showMapNotification("");
-  driverPostServices?.classList.remove("hidden");
-  showMapMatchNotification("Finding mechanics for your service…");
   bookStatus.textContent = "";
   bookError.textContent = "";
-  clearMechanicMapState({ keepMapVisible: true });
+  clearMapOverlays();
+  selectedMapGroup = null;
 
-  if (openInMapsBtn) openInMapsBtn.style.display = "none";
-  if (mapHint) mapHint.style.display = "none";
-
-  try {
-    const [snapshot, map] = await Promise.all([
-      getDocs(
-        query(
-          collection(db, PUBLIC_PROFILES_COLLECTION),
-          where("role", "in", ["mechanic", "MECHANIC"]),
-          where("status", "==", "APPROVED")
-        )
-      ),
-      ensureGoogleMap(),
-    ]);
-
-    const matchingDocs = snapshot.docs.filter((docItem) => {
-      const profile = docItem.data();
-      return isMechanicRole(profile.role) && mechanicOffersService(profile, serviceName);
-    });
-
-    if (!matchingDocs.length) {
-      showNoMechanicsOnMap(
-        `No mechanics currently offer "${serviceName}".`
-      );
-      return;
-    }
-
-    const activeVehicle = getActiveVehicle(currentUserProfile);
-    const pricedEntries = await attachGaragePricesToEntries(
-      buildMechanicEntries(matchingDocs)
-    );
-    matchedMechanics = pricedEntries.filter((entry) =>
-      garageServicesVehicle(entry.mechanic?.garageVehicleTypes, activeVehicle)
-    );
-    if (!matchedMechanics.length) {
-      const vehicleLabel = activeVehicle ? vehicleDisplayName(activeVehicle) : "your vehicle";
-      showNoMechanicsOnMap(
-        `No mechanics currently service ${vehicleLabel} for "${serviceName}".`
-      );
-      return;
-    }
-    const withCoords = matchedMechanics.filter((entry) => entry.position);
-    if (!withCoords.length) {
-      showNoMechanicsOnMap(
-        `Mechanics offer "${serviceName}" but none have a map location yet. Open the Android app as a mechanic, enable location, and stay online so coordinates sync to Firestore.`
-      );
-      return;
-    }
-
-    driverPostServices?.classList.add("map-active");
-    if (mapHint) mapHint.style.display = "block";
-    if (!map) return;
-
-    const mapGroups = groupMechanicEntriesForMap(withCoords);
-    placeMapGroups(mapGroups, {
-      serviceLabel: serviceName,
-      color: "#ff0000",
-    });
-
-    fixGoogleMapContainerFill();
-    applyDriverPositionToMap(serviceName);
-  } catch (error) {
-    showMapMatchNotification(`Unable to load mechanics: ${error.message}`);
+  if (!matchedMechanics.length) {
+    showNoMechanicsOnMap(`No mechanics currently offer "${serviceName}".`);
+    return;
   }
+
+  const withCoords = matchedMechanics.filter((entry) => entry.position);
+  if (!withCoords.length) {
+    showNoMechanicsOnMap(
+      `Mechanics offer "${serviceName}" but none have a map location yet. Open the Android app as a mechanic, enable location, and stay online so coordinates sync to Firestore.`
+    );
+    return;
+  }
+
+  driverPostServices?.classList.add("map-active");
+  const map = await ensureGoogleMap();
+  if (!map) return;
+
+  const mapGroups = groupMechanicEntriesForMap(sortMechanicsByDistance(withCoords));
+  placeMapGroups(mapGroups, {
+    serviceLabel: serviceName,
+    color: "#ff0000",
+  });
+  fixGoogleMapContainerFill();
+  applyDriverPositionToMap(serviceName);
 }
 
 async function fetchMatchingPartsDealers(partName) {
@@ -4206,7 +4403,9 @@ function appendPartsGroups(body, category, { guest = false } = {}) {
 }
 
 function buildPartsCategoryCard(category, { guest = false } = {}) {
-  const { card, body } = createServiceCategoryCardShell(category);
+  const { card, body } = createServiceCategoryCardShell(category, {
+    photoUrl: getCatalogCardPhotoUrl(category, "parts"),
+  });
   const icon = card.querySelector(".service-category-icon");
   if (icon) icon.textContent = getPartsCategoryIcon(category.id);
   appendPartsGroups(body, category, { guest });
@@ -4395,7 +4594,9 @@ function appendServiceGroups(body, category, { guest = false } = {}) {
 }
 
 function buildServiceCategoryCard(category, { guest = false } = {}) {
-  const { card, body } = createServiceCategoryCardShell(category);
+  const { card, body } = createServiceCategoryCardShell(category, {
+    photoUrl: getCatalogCardPhotoUrl(category, "services"),
+  });
   appendServiceGroups(body, category, { guest });
   return card;
 }
@@ -5208,7 +5409,6 @@ async function loadUserProfile(user) {
   startJobSync();
   startGlobalUnreadListener();
   syncCatalogToFirestoreInBackground();
-  paintDriverHomeActiveVehicle();
 
   if (normalizeUserRole(currentUserProfile?.role) === "mechanic") {
     void renderGarageTeamPanel({
@@ -5587,9 +5787,24 @@ mechanicChatBtn?.addEventListener("click", () => {
 mechanicBookBtn?.addEventListener("click", handleBookNow);
 
 mechanicMapBackBtn?.addEventListener("click", () => {
+  const viewingMechanicMap =
+    driverMapDiscoveryMode === "mechanics" &&
+    mechanicMapSection?.classList.contains("active") &&
+    !mechanicMapSection.classList.contains("is-provider-list");
+  if (viewingMechanicMap) {
+    showMapNotification("");
+    setProviderDiscoveryMode("list");
+    renderNearbyProviders(selectedSubservice);
+    return;
+  }
   showMapNotification("");
   setDriverMarketplaceMode(driverMapDiscoveryMode === "parts_dealers" ? "parts_dealers" : "mechanics");
   showHomePage();
+});
+
+viewInMapBtn?.addEventListener("click", () => {
+  if (providerListLoading || !selectedSubservice) return;
+  void showProvidersOnMap(selectedSubservice);
 });
 
 chatBackBtn?.addEventListener("click", () => {

@@ -1025,6 +1025,20 @@ body.mt-brand #parts-dealer-parts-list .service-category-card[data-category-id="
   box-shadow: var(--mt-shadow-service-card-hover) !important;
 }
 
+body.mt-brand .service-category-card.service-category-card--photo,
+body.mt-brand .service-category-card.service-category-card--photo:hover,
+body.mt-brand #guest-service-category-list .service-category-card.service-category-card--photo[data-category-id],
+body.mt-brand #service-category-list .service-category-card.service-category-card--photo[data-category-id],
+body.mt-brand #guest-parts-category-list .service-category-card.service-category-card--photo[data-category-id],
+body.mt-brand #parts-category-list .service-category-card.service-category-card--photo[data-category-id],
+body.mt-brand #guest-service-category-list .service-category-card.service-category-card--photo[data-category-id]:hover,
+body.mt-brand #service-category-list .service-category-card.service-category-card--photo[data-category-id]:hover,
+body.mt-brand #guest-parts-category-list .service-category-card.service-category-card--photo[data-category-id]:hover,
+body.mt-brand #parts-category-list .service-category-card.service-category-card--photo[data-category-id]:hover {
+  background: var(--mt-white) !important;
+  background-image: none !important;
+}
+
 body.mt-brand .service-category-icon {
   background: rgba(192, 0, 0, 0.08) !important;
   border-color: rgba(192, 0, 0, 0.15) !important;
@@ -1175,6 +1189,12 @@ body.mt-brand #android-apk-download {
 
 body.mt-brand .app-download-banner p {
   color: var(--mt-gray-700) !important;
+}
+
+body.mt-brand .app-download-store-link,
+body.mt-brand .app-download-store-link strong {
+  color: var(--mt-red) !important;
+  font-weight: 700;
 }
 
 /* ── Job reviews (post-completion on REQUESTS) ── */
@@ -2012,175 +2032,6 @@ body.mt-brand:not(.welcome-active) .profile-info-card {
 .profile-link-btn:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 8px rgba(192, 0, 0, 0.25);
-}
-
-/* Driver homepage — active vehicle card */
-#driver-active-vehicle-root {
-  margin-bottom: 20px;
-  width: 100%;
-  min-height: 72px;
-}
-
-.driver-active-vehicle-card--skeleton {
-  pointer-events: none;
-}
-
-.driver-active-vehicle-skeleton-line {
-  display: block;
-  height: 10px;
-  border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.16) 50%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
-  background-size: 200% 100%;
-  animation: driver-active-vehicle-shimmer 1.2s ease-in-out infinite;
-}
-
-.driver-active-vehicle-skeleton-line--label {
-  width: 42%;
-  max-width: 160px;
-  height: 9px;
-  margin-bottom: 6px;
-}
-
-.driver-active-vehicle-skeleton-line--title {
-  width: 72%;
-  max-width: 260px;
-  height: 12px;
-  margin-bottom: 6px;
-}
-
-.driver-active-vehicle-skeleton-line--stats {
-  width: 58%;
-  max-width: 220px;
-  height: 10px;
-}
-
-.driver-active-vehicle-skeleton-edit {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  justify-self: end;
-}
-
-@keyframes driver-active-vehicle-shimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
-.driver-active-vehicle-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: 8px;
-  align-items: center;
-  width: 100%;
-  padding: 10px 8px 10px 16px;
-  border-radius: 12px;
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.driver-active-vehicle-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-width: 0;
-}
-
-.driver-active-vehicle-icon {
-  margin-top: 2px;
-}
-
-.driver-active-vehicle-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.driver-active-vehicle-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #e31e24;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.driver-active-vehicle-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.driver-active-vehicle-stats {
-  margin: 0;
-  font-size: 12px;
-  color: #9ca3af;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-body.mt-brand .driver-active-vehicle-card {
-  background: #1a1a1a !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-body.mt-brand .driver-active-vehicle-label {
-  color: #e31e24 !important;
-  -webkit-text-fill-color: #e31e24 !important;
-}
-
-body.mt-brand .driver-active-vehicle-title {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  font-size: 18px !important;
-  font-weight: 700 !important;
-}
-
-body.mt-brand .driver-active-vehicle-stats {
-  color: #9ca3af !important;
-  -webkit-text-fill-color: #9ca3af !important;
-  font-size: 12px !important;
-}
-
-.driver-active-vehicle-edit {
-  justify-self: end;
-  align-self: center;
-  border: none;
-  background: transparent;
-  color: #d1d5db;
-  cursor: pointer;
-  padding: 4px 2px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
-}
-
-.driver-active-vehicle-edit:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.driver-active-vehicle-edit .material-symbols-outlined {
-  font-size: 22px;
 }
 
 .profile-vehicle-card {

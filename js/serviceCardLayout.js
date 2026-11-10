@@ -2,12 +2,41 @@ import { getServiceCategoryIcon } from "./serviceCatalogData.js";
 
 export const SERVICE_CARD_REFERENCE_ID = "ac-services";
 
+const PARTS_CARD_PHOTOS = {
+  "engine-drivetrain": "/images/parts/engine_&_drivetrain.jpg",
+  brakes: "/images/parts/brakes_&_suspension.jpg",
+  electrical: "/images/parts/electrical_&_electronics.jpg",
+  "filters-fluids": "/images/parts/filters_&_fluids.jpg",
+  "body-exterior": "/images/parts/body_&_exterior.jpg",
+  "tyres-wheels": "/images/parts/tyres_&_wheels.jpg",
+  "vehicle-electronics-security": "/images/parts/electrical_&_electronics.jpg",
+};
+
 let resizeListenerBound = false;
 
-export function createServiceCategoryCardShell(category) {
+export function getCatalogCardPhotoUrl(category, catalog = "services") {
+  if (!category?.id) return "";
+  if (catalog === "parts") return PARTS_CARD_PHOTOS[category.id] || "";
+  if (category.id === "vehicle-electronics-security") {
+    return "/images/services/auto-electrical-services.jpg";
+  }
+  return `/images/services/${category.id}.jpg`;
+}
+
+export function createServiceCategoryCardShell(category, { photoUrl = "" } = {}) {
   const card = document.createElement("div");
   card.className = "service-category-card";
   card.dataset.categoryId = category.id;
+
+  if (photoUrl) {
+    card.classList.add("service-category-card--photo");
+    const photo = document.createElement("img");
+    photo.className = "service-category-photo";
+    photo.src = photoUrl;
+    photo.alt = "";
+    photo.setAttribute("aria-hidden", "true");
+    card.appendChild(photo);
+  }
 
   const header = document.createElement("div");
   header.className = "service-category-card-header";
@@ -98,13 +127,22 @@ function updateOverflowState(card, referenceBodyHeight) {
   seeMore.classList.toggle("is-visible", overflows);
 }
 
+function expandsFullyOnSmallScreen(list) {
+  if (!window.matchMedia("(max-width: 767px)").matches) return false;
+  return (
+    list.classList.contains("mechanic-service-list") ||
+    list.id === "garage-service-list" ||
+    list.id === "parts-dealer-parts-list"
+  );
+}
+
 function balanceListCards(list) {
   const cards = getDirectCards(list);
   if (!cards.length || !isCatalogListVisible(list)) return;
 
   cards.forEach(resetCardSizing);
 
-  if (window.matchMedia("(max-width: 767px)").matches) {
+  if (expandsFullyOnSmallScreen(list)) {
     return;
   }
 

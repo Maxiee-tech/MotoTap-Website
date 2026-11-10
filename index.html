@@ -807,24 +807,27 @@
       text-align: center;
     }
 
+    .app-download-qr {
+      display: block;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+    }
+
     .app-download-banner p {
-      margin: 0 0 14px;
+      margin: 16px 0 0;
       font-size: 0.9375rem;
       color: #ddd;
       line-height: 1.5;
     }
 
-    .app-download-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: auto;
-      min-width: 180px;
-      padding: 12px 24px;
-      margin-bottom: 0;
-      text-decoration: none;
+    .app-download-store-link,
+    .app-download-store-link strong {
       font-weight: 700;
-      font-size: 0.9375rem;
+      color: #ffb3b3;
+      text-decoration: underline;
     }
 
     .job-review-section {
@@ -993,7 +996,9 @@
     }
 
     #landing-section.active #android-apk-download {
-      margin-top: 0;
+      order: 9;
+      margin-top: 24px;
+      margin-bottom: 0;
       scroll-margin-top: var(--header-offset);
     }
 
@@ -2038,7 +2043,7 @@
         min-height: 0;
         padding-left: 0;
         padding-top: 4px;
-        padding-right: 92px;
+        padding-right: 0;
       }
 
       .navbar-brand-lockup {
@@ -3597,6 +3602,33 @@
         url("/images/parts/electrical_&_electronics.jpg");
     }
 
+    .service-category-card--photo,
+    .service-category-card--photo:hover {
+      background: #fff !important;
+      background-image: none !important;
+      padding: 10px 10px 14px !important;
+      overflow: hidden;
+    }
+
+    .service-category-photo {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      height: auto;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 12px;
+      background: #f3f4f6;
+    }
+
+    .service-category-card--photo .service-category-icon {
+      display: none;
+    }
+
+    .service-category-card--photo .service-category-card-header {
+      margin: 12px 4px 8px;
+    }
+
     .service-card-body {
       display: flex;
       flex-direction: column;
@@ -4059,6 +4091,203 @@
       text-align: center;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+
+    #mechanic-map-section.active.is-provider-list {
+      background: #fff;
+      overflow: hidden;
+    }
+
+    #mechanic-map-section.active.is-provider-list .mechanic-map-stage {
+      display: none;
+    }
+
+    #mechanic-map-section.is-provider-list:has(.driver-mechanic-panel:not(.hidden)) .nearby-providers {
+      padding-bottom: 280px;
+    }
+
+    #mechanic-map-section.active:not(.is-provider-list) .nearby-providers {
+      display: none;
+    }
+
+    .nearby-providers {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: #fff;
+      color: #111;
+      padding: 20px 20px 32px;
+    }
+
+    .nearby-providers-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .nearby-providers-head h2 {
+      margin: 0;
+      font-size: 1.625rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #111;
+    }
+
+    .nearby-view-map {
+      width: auto;
+      flex-shrink: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #c00000;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .nearby-providers-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .nearby-providers-meta p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.8125rem;
+    }
+
+    .nearby-providers-sort {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 16px;
+    }
+
+    .nearby-sort-chip {
+      width: auto;
+      margin: 0;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 999px;
+      background: #f3f3f5;
+      color: #111;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nearby-sort-chip.is-selected {
+      background: #c00000;
+      color: #fff;
+    }
+
+    .nearby-providers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .nearby-provider-card {
+      border: 1px solid #f0f0f2;
+      border-radius: 18px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .nearby-provider-photo {
+      display: block;
+      width: 100%;
+      height: 168px;
+      object-fit: cover;
+      background: #ececef;
+    }
+
+    .nearby-provider-photo-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 168px;
+      background: linear-gradient(180deg, #2b2b30, #111);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .nearby-provider-photo-fallback .material-symbols-outlined {
+      font-size: 48px;
+    }
+
+    .nearby-provider-body {
+      padding: 16px;
+    }
+
+    .nearby-provider-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .nearby-provider-copy {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nearby-provider-copy h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .nearby-provider-rating,
+    .nearby-provider-place {
+      margin: 4px 0 0;
+      color: #6b7280;
+      font-size: 0.8125rem;
+    }
+
+    .nearby-provider-verified {
+      flex-shrink: 0;
+      color: #1b8a3e;
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+
+    .nearby-provider-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .nearby-provider-price {
+      margin: 0;
+      color: #111;
+      font-weight: 700;
+    }
+
+    .nearby-provider-view {
+      width: auto;
+      margin: 0;
+      padding: 10px 22px;
+      border: 0;
+      border-radius: 16px;
+      background: #c00000;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .nearby-providers-empty {
+      margin: 24px 0;
+      color: #6b7280;
     }
 
     #mechanic-map-section > #map-notification.map-notification-overlay {
@@ -5133,49 +5362,6 @@
       }
     }
 
-    /* Driver homepage — active vehicle card (inline fallback) */
-    .driver-active-vehicle-card {
-      display: grid !important;
-      grid-template-columns: minmax(0, 1fr) auto !important;
-      column-gap: 8px !important;
-      align-items: center !important;
-      width: 100% !important;
-      background: #1a1a1a !important;
-    }
-
-    .driver-active-vehicle-body {
-      display: flex !important;
-      align-items: flex-start !important;
-      gap: 14px !important;
-      min-width: 0 !important;
-    }
-
-    .driver-active-vehicle-copy {
-      min-width: 0 !important;
-    }
-
-    .driver-active-vehicle-label {
-      color: #e31e24 !important;
-      -webkit-text-fill-color: #e31e24 !important;
-      white-space: nowrap !important;
-    }
-
-    .driver-active-vehicle-title {
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      white-space: nowrap !important;
-    }
-
-    .driver-active-vehicle-stats {
-      color: #9ca3af !important;
-      -webkit-text-fill-color: #9ca3af !important;
-      white-space: nowrap !important;
-    }
-
-    .driver-active-vehicle-edit {
-      justify-self: end !important;
-    }
-
     .profile-vehicle-dialog-title {
       color: #ffffff !important;
       -webkit-text-fill-color: #ffffff !important;
@@ -5380,16 +5566,6 @@
     </div>
   </nav>
 
-  <button
-    type="button"
-    id="home-menu-btn"
-    class="home-menu-btn"
-    aria-label="Open menu"
-    aria-hidden="true"
-  >
-    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
-  </button>
-
   <!-- Menu overlay -->
   <div class="menu-overlay" id="menu-overlay"></div>
 
@@ -5464,16 +5640,6 @@
         </form>
       </section>
       <div class="directory-results" id="directory-results" aria-live="polite"></div>
-      <div class="app-download-banner" id="android-apk-download">
-        <p>Get the full Moto Tap experience on your Android phone.</p>
-        <a
-          href="https://restless-math-2997.maxmasha0.workers.dev/apk/MotoTap.apk"
-          class="btn-primary app-download-btn"
-          download
-        >
-          Download APK
-        </a>
-      </div>
 
       <div id="landing-guest-view">
         <div class="driver-marketplace-toggle" id="guest-marketplace-toggle" role="tablist" aria-label="Browse mechanics or parts dealers">
@@ -5499,8 +5665,6 @@
       </div>
 
       <div id="driver-dashboard" class="dashboard-panel">
-        <div id="driver-active-vehicle-root"></div>
-
         <div class="driver-marketplace-toggle" id="driver-marketplace-toggle" role="tablist" aria-label="Browse mechanics or parts dealers">
           <button type="button" id="driver-mode-mechanics" class="driver-marketplace-toggle-btn is-active" role="tab" aria-selected="true">MECHANICS</button>
           <button type="button" id="driver-mode-parts-dealers" class="driver-marketplace-toggle-btn" role="tab" aria-selected="false">PARTS DEALERS</button>
@@ -5521,6 +5685,25 @@
           </div>
           <div class="service-category-list" id="parts-category-list"></div>
         </div>
+      </div>
+
+      <div class="app-download-banner" id="android-apk-download">
+        <img
+          class="app-download-qr"
+          src="/images/mototap-apk-qr.svg"
+          alt="QR code to download the MotoTap APK"
+          width="200"
+          height="200"
+        />
+        <p>
+          Scan to download apk or click
+          <a
+            class="app-download-store-link"
+            href="https://play.google.com/store/apps/details?id=ke.co.mototap"
+            target="_blank"
+            rel="noopener noreferrer"
+          ><strong>HERE</strong></a>
+        </p>
       </div>
     </div>
 
@@ -6309,10 +6492,23 @@
       <h3 id="mechanic-map-service-title" class="mechanic-map-service-title">Mechanic Locations</h3>
     </div>
     <div id="map-notification" class="map-notification map-notification-overlay hidden" role="alert"></div>
+    <div id="nearby-providers" class="nearby-providers">
+      <div class="nearby-providers-head">
+        <h2>Nearby providers</h2>
+        <button type="button" id="view-in-map-btn" class="nearby-view-map">View in map</button>
+      </div>
+      <div class="nearby-providers-meta">
+        <p id="nearby-providers-place">Kenya</p>
+        <p id="nearby-providers-count"></p>
+      </div>
+      <div id="nearby-providers-sort" class="nearby-providers-sort" role="group" aria-label="Sort providers"></div>
+      <div id="nearby-providers-list" class="nearby-providers-list"></div>
+    </div>
     <div class="mechanic-map-stage" id="driver-post-services">
       <div id="map"></div>
       <div class="map-match-status" id="match-status"></div>
-      <div id="driver-mechanic-panel" class="driver-mechanic-panel mechanic-map-float-panel hidden" aria-live="polite">
+    </div>
+    <div id="driver-mechanic-panel" class="driver-mechanic-panel mechanic-map-float-panel hidden" aria-live="polite">
         <div class="mechanic-float-panel-layout">
           <div class="mechanic-float-panel-info">
             <span id="closest-badge" class="closest-badge hidden">CLOSEST TO YOU</span>
@@ -6351,7 +6547,6 @@
             <a href="#" class="btn-secondary mechanic-contact-btn hidden" id="mechanic-sms-btn">SMS</a>
           </div>
         </div>
-      </div>
     </div>
     <input type="hidden" id="selected-category" />
     <input type="hidden" id="selected-subservice" />
