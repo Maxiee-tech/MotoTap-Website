@@ -242,7 +242,7 @@ function hideAllSections() {
 }
 
 const NAV_ACTIVE_MAP = {
-  home: ["nav-home", "nav-home-2", "nav-home-old"],
+  home: ["nav-home", "nav-home-old"],
   requests: ["nav-requests", "nav-requests-2", "nav-requests-old"],
   messages: ["nav-messages", "nav-messages-2", "nav-messages-old"],
   auth: ["nav-signup", "nav-signup-2", "nav-signup-old"],
@@ -1492,10 +1492,13 @@ function updateNavAuthButton() {
   const label = signedIn ? "LOG OUT" : "SIGN IN";
   NAV_AUTH_BUTTON_IDS.forEach((id) => {
     const btn = document.getElementById(id);
-    if (btn) {
-      btn.textContent = label;
-      btn.classList.toggle("nav-auth-logout", signedIn);
-    }
+    if (!btn) return;
+    const labelEl = btn.querySelector(".nav-item-label");
+    const iconEl = btn.querySelector("[data-nav-auth-icon]");
+    if (labelEl) labelEl.textContent = label;
+    else btn.textContent = label;
+    if (iconEl) iconEl.textContent = signedIn ? "logout" : "login";
+    btn.classList.toggle("nav-auth-logout", signedIn);
   });
 }
 
@@ -1513,6 +1516,44 @@ async function handleNavAuthClick() {
 bindNavClick("nav-signup", handleNavAuthClick);
 bindNavClick("nav-signup-2", handleNavAuthClick);
 bindNavClick("nav-signup-old", handleNavAuthClick);
+
+function setupNavbarDropdowns() {
+  const menus = [...document.querySelectorAll("#main-navbar .nav-dropdown")];
+  if (!menus.length) return;
+
+  const closeMenus = (except) => {
+    menus.forEach((menu) => {
+      if (menu === except) return;
+      menu.classList.remove("is-open");
+      menu.querySelector(".nav-menu-btn")?.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  menus.forEach((menu) => {
+    const toggle = menu.querySelector(".nav-menu-btn");
+    toggle?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const open = !menu.classList.contains("is-open");
+      closeMenus();
+      menus.forEach((other) => {
+        other.querySelector(".nav-menu-btn")?.classList.remove("is-nav-active");
+      });
+      menu.classList.toggle("is-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+    menu.querySelector(".nav-dropdown-panel")?.addEventListener("click", () => {
+      closeMenus();
+    });
+  });
+
+  document.addEventListener("click", () => closeMenus());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenus();
+  });
+}
+
+setupNavbarDropdowns();
 
 logoButton?.addEventListener("click", () => {
   showWelcomeScreen();

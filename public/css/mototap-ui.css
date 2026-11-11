@@ -106,7 +106,7 @@ body.mt-brand .fixed-navbar {
   backdrop-filter: none !important;
 }
 
-body.mt-brand .navbar-center button {
+body.mt-brand .navbar-center .nav-menu-btn {
   background: var(--mt-gray-100) !important;
   color: var(--mt-black) !important;
   border: 1px solid var(--mt-gray-200) !important;
@@ -116,17 +116,41 @@ body.mt-brand .navbar-center button {
   font-size: clamp(0.625rem, 2vw, 0.8125rem) !important;
 }
 
-body.mt-brand .navbar-center button:hover {
-  background: var(--mt-gray-200) !important;
-  border-color: var(--mt-gray-300) !important;
+body.mt-brand .navbar-center .nav-menu-btn:hover {
+  background-color: #c56a14 !important;
+  color: #ffffff !important;
+  border-color: #c56a14 !important;
   transform: translateY(-1px);
 }
 
-body.mt-brand .navbar-center button.is-nav-active {
-  background: var(--mt-blue) !important;
+body.mt-brand .navbar-center .nav-dropdown.is-open > .nav-menu-btn,
+body.mt-brand .navbar-center .nav-dropdown.is-open > .nav-menu-btn:hover {
+  background-color: var(--mt-blue) !important;
   color: var(--mt-white) !important;
   border-color: var(--mt-blue) !important;
   box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25) !important;
+}
+
+body.mt-brand .nav-dropdown-panel {
+  background: var(--mt-white) !important;
+  border-color: var(--mt-gray-200) !important;
+}
+
+body.mt-brand .nav-dropdown-panel button,
+body.mt-brand .nav-dropdown-panel a {
+  background: transparent !important;
+  color: var(--mt-black) !important;
+  border: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+body.mt-brand .nav-dropdown-panel button:hover,
+body.mt-brand .nav-dropdown-panel a:hover {
+  background: var(--mt-gray-100) !important;
+  color: var(--mt-black) !important;
 }
 
 body.mt-brand .navbar-logo-img {

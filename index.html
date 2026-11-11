@@ -483,9 +483,13 @@
       padding-bottom: 0;
     }
 
-    .navbar-center button {
+    .navbar-center .nav-menu-btn {
       width: auto;
       flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       background: rgba(255, 255, 255, 0.05);
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -499,9 +503,87 @@
       min-height: 40px;
     }
 
-    .navbar-center button:hover {
+    .navbar-center .nav-menu-btn .material-symbols-outlined {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .navbar-center .nav-menu-caret {
+      font-size: 18px;
+      margin-left: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-dropdown.is-open .nav-menu-caret {
+      transform: rotate(180deg);
+    }
+
+    .navbar-center .nav-menu-btn:hover {
       background: rgba(255, 255, 255, 0.14);
       transform: translateY(-1px);
+    }
+
+    .nav-dropdown {
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .nav-dropdown-panel {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 188px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+      z-index: 130;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-dropdown.is-open .nav-dropdown-panel {
+      display: flex;
+    }
+
+    .nav-dropdown-panel button,
+    .nav-dropdown-panel a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #111;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      letter-spacing: 0;
+      text-transform: none;
+      text-decoration: none;
+      min-height: 40px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .nav-dropdown-panel .material-symbols-outlined,
+    .nav-dropdown-panel .nav-item-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .nav-dropdown-panel button:hover,
+    .nav-dropdown-panel a:hover {
+      background: #f3f4f6;
     }
 
     .nav-unread-badge {
@@ -2133,9 +2215,13 @@
         padding-bottom: 2px;
       }
 
-      .navbar-center button {
+      .navbar-center > .nav-dropdown {
         flex: 1 1 calc(50% - 3px);
         min-width: calc(50% - 3px);
+      }
+
+      .navbar-center .nav-menu-btn {
+        width: 100%;
         box-sizing: border-box;
         padding: 9px 8px;
         font-size: 0.6875rem;
@@ -2170,7 +2256,7 @@
         font-size: 1.25rem;
       }
 
-      .navbar-center button {
+      .navbar-center .nav-menu-btn {
         font-size: 0.65rem;
         padding: 8px 6px;
       }
@@ -2189,7 +2275,7 @@
         gap: 4px;
       }
 
-      .navbar-center button {
+      .navbar-center .nav-menu-btn {
         min-height: 36px;
         font-size: 0.625rem;
       }
@@ -2218,7 +2304,7 @@
         gap: 12px;
       }
 
-      .fixed-navbar .navbar-center button {
+      .fixed-navbar .navbar-center .nav-menu-btn {
         padding: 12px 24px;
         font-size: 0.9375rem;
         min-width: max-content;
@@ -2352,7 +2438,7 @@
     }
 
     .fixed-navbar .navbar-logo-btn,
-    .fixed-navbar .navbar-center button,
+    .fixed-navbar .navbar-center .nav-menu-btn,
     .home-menu-btn {
       width: auto;
       flex: 0 0 auto;
@@ -2378,11 +2464,11 @@
       .fixed-navbar .navbar-logo-btn {
         min-height: 0;
       }
-      button:not(.navbar-center button) {
+      button:not(.navbar-center .nav-menu-btn):not(.nav-dropdown-panel button) {
         min-height: 44px;
       }
 
-      .navbar-center button {
+      .navbar-center .nav-menu-btn {
         min-height: 36px;
       }
     }
@@ -5518,7 +5604,7 @@
       line-height: 1.35;
     }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20260625v3" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20261111hover3" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
@@ -5657,10 +5743,52 @@
       </div>
     </div>
     <div class="navbar-center">
-      <button type="button" id="nav-home-2">HOME</button>
-      <button type="button" id="nav-requests-2">REQUESTS</button>
-      <button type="button" id="nav-messages-2">MESSAGES</button>
-      <button type="button" id="nav-signup-2">SIGN IN</button>
+      <div class="nav-dropdown" id="nav-account-menu">
+        <button type="button" class="nav-menu-btn" id="nav-account-btn" aria-haspopup="true" aria-expanded="false">
+          <span class="material-symbols-outlined" aria-hidden="true">person</span>
+          Account
+          <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <button type="button" id="nav-requests-2" role="menuitem">
+            <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
+            Requests
+          </button>
+          <button type="button" id="nav-messages-2" role="menuitem">
+            <span class="material-symbols-outlined" aria-hidden="true">chat</span>
+            Messages
+          </button>
+          <button type="button" id="nav-signup-2" role="menuitem">
+            <span class="material-symbols-outlined" data-nav-auth-icon aria-hidden="true">login</span>
+            <span class="nav-item-label">Sign In</span>
+          </button>
+        </div>
+      </div>
+      <div class="nav-dropdown" id="nav-help-menu">
+        <button type="button" class="nav-menu-btn" id="nav-help-btn" aria-haspopup="true" aria-expanded="false">
+          <span class="material-symbols-outlined" aria-hidden="true">help</span>
+          Help
+          <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a id="nav-help-call" role="menuitem" href="tel:+254758677968">
+            <span class="material-symbols-outlined" aria-hidden="true">call</span>
+            Call
+          </a>
+          <a
+            id="nav-help-whatsapp"
+            role="menuitem"
+            href="https://wa.me/+254758677968?text=Hello%20MotoTap%2C%20I%20need%20help"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg class="nav-item-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M20.5 3.5A11 11 0 0 0 2.1 17.2L1 23l6-1.6A11 11 0 0 0 12 23a11 11 0 0 0 8.5-19.5zM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.5.9.9-3.4-.2-.3A9 9 0 1 1 12 21zm5-6.7c-.3-.1-1.6-.8-1.8-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.4.1-.6l.4-.5.2-.3a.5.5 0 0 0 0-.5c0-.1-.6-1.4-.8-1.9s-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.8 11.8 0 0 0 4.5 4 15 15 0 0 0 1.5.6 3.6 3.6 0 0 0 1.7.1 2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3z"/>
+            </svg>
+            WhatsApp
+          </a>
+        </div>
+      </div>
     </div>
   </nav>
 
