@@ -157,6 +157,7 @@ function closeMenu() {
 }
 
 function toggleMenu() {
+  closeSiteHeaderMenu();
   menuPanel.classList.toggle("open");
   menuOverlay.classList.toggle("open");
 }
@@ -253,9 +254,22 @@ function updateNavActiveState(section) {
   allIds.forEach((id) => {
     document.getElementById(id)?.classList.remove("is-nav-active");
   });
-  if (!section) return;
-  (NAV_ACTIVE_MAP[section] || []).forEach((id) => {
-    document.getElementById(id)?.classList.add("is-nav-active");
+  if (section) {
+    (NAV_ACTIVE_MAP[section] || []).forEach((id) => {
+      document.getElementById(id)?.classList.add("is-nav-active");
+    });
+  }
+  syncSiteHeaderHome();
+}
+
+function syncSiteHeaderHome() {
+  const onHome =
+    landingSection?.classList.contains("active") === true &&
+    mechanicMapSection?.classList.contains("active") !== true;
+  document.querySelectorAll("[data-nav-home]").forEach((link) => {
+    link.classList.toggle("is-current", onHome);
+    if (onHome) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   });
 }
 
@@ -1111,6 +1125,7 @@ function startJobSync() {
 function scrollToHomeContactsFooter() {
   window.requestAnimationFrame(() => {
     const footer =
+      document.getElementById("contact") ||
       document.getElementById("site-contacts-footer") ||
       landingSection?.querySelector(".page-footer");
     footer?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1445,9 +1460,9 @@ function showHomePage(options = {}) {
     siteNavigate("/");
   }
   setPageSeo({
-    title: "Find a mechanic near you",
+    title: "MotoTap Autosystems | Find a Mechanic Near You in Kenya",
     description:
-      "Search vetted mechanics, garages, and parts dealers across Kenya. Call without creating an account.",
+      "Search vetted garages, mobile mechanics and parts dealers across Kenya. Repairs, towing, tires, batteries and car detailing with MotoTap.",
     canonicalPath: "/",
   });
   void loadDirectoryResults();
@@ -1554,6 +1569,86 @@ function setupNavbarDropdowns() {
 }
 
 setupNavbarDropdowns();
+
+function closeSiteHeaderMenu() {
+  const header = document.getElementById("main-navbar");
+  const toggle = document.getElementById("site-header-toggle");
+  const menu = document.getElementById("mobile-menu");
+  header?.classList.remove("is-nav-open");
+  toggle?.setAttribute("aria-expanded", "false");
+  if (menu) menu.hidden = true;
+  const label = toggle?.querySelector(".visually-hidden");
+  if (label) label.textContent = "Open menu";
+}
+
+function openMarketplaceFromHeader(mode) {
+  closeSiteHeaderMenu();
+  const showCatalog = () => {
+    const driverVisible = driverDashboard?.classList.contains("active") === true;
+    if (driverVisible) setDriverMarketplaceMode(mode);
+    else setGuestMarketplaceMode(mode);
+    document.getElementById("services")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  if (!landingSection?.classList.contains("active")) {
+    showHomePage();
+    window.requestAnimationFrame(showCatalog);
+    return;
+  }
+  showCatalog();
+}
+
+function setupSiteHeader() {
+  const header = document.getElementById("main-navbar");
+  const toggle = document.getElementById("site-header-toggle");
+  const menu = document.getElementById("mobile-menu");
+  const servicesBtn = document.getElementById("mobile-services-btn");
+  const servicesList = document.getElementById("mobile-services");
+  if (!header || !toggle || !menu) return;
+
+  const setOpen = (open) => {
+    header.classList.toggle("is-nav-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    menu.hidden = !open;
+    const label = toggle.querySelector(".visually-hidden");
+    if (label) label.textContent = open ? "Close menu" : "Open menu";
+    if (open) closeMenu();
+  };
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setOpen(!header.classList.contains("is-nav-open"));
+  });
+
+  menu.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => setOpen(false));
+  });
+
+  servicesBtn?.addEventListener("click", () => {
+    const open = servicesList?.hidden !== false;
+    if (servicesList) servicesList.hidden = !open;
+    servicesBtn.setAttribute("aria-expanded", String(open));
+    servicesBtn.classList.toggle("is-open", open);
+  });
+
+  document.querySelectorAll("[data-nav-market]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openMarketplaceFromHeader(link.getAttribute("data-nav-market") || "mechanics");
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!header.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setOpen(false);
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 1024) setOpen(false);
+  });
+}
+
+setupSiteHeader();
 
 logoButton?.addEventListener("click", () => {
   showWelcomeScreen();
@@ -6055,7 +6150,7 @@ function mountPageFooters() {
     if (!footer) return;
 
     if (section === landingSection) {
-      footer.id = "site-contacts-footer";
+      footer.id = "contact";
     }
 
     section.appendChild(footer);
@@ -6066,6 +6161,25 @@ function mountPageFooters() {
     link.dataset.placeholderBound = "1";
     link.addEventListener("click", (event) => {
       event.preventDefault();
+    });
+  });
+
+  document.querySelectorAll(".page-footer-subscribe").forEach((form, index) => {
+    const input = form.querySelector("input[name='email']");
+    const label = form.querySelector("label");
+    const fieldId = index === 0 ? "footer-email" : `footer-email-${index}`;
+    if (input) input.id = fieldId;
+    if (label) label.htmlFor = fieldId;
+
+    if (form.dataset.bound === "1") return;
+    form.dataset.bound = "1";
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const email = String(new FormData(form).get("email") || "").trim();
+      const note = form.querySelector(".page-footer-subscribe-note");
+      if (!email || !note) return;
+      note.textContent = `Thanks! Updates will be sent to ${email}.`;
+      form.reset();
     });
   });
 }
@@ -6253,6 +6367,39 @@ window.addEventListener("popstate", () => applySiteRoute());
 document.getElementById("directory-service")?.addEventListener("change", () => {
   void loadDirectoryResults();
 });
+function openFeaturedService(categoryId) {
+  const category = SERVICE_CATEGORIES.find((item) => item.id === categoryId);
+  if (!category) return;
+  const serviceName = category.groups?.[0]?.items?.[0] || category.name;
+  showMechanicMapPage(category, serviceName);
+}
+
+function scrollToFullServiceCatalog() {
+  const driverVisible = driverDashboard?.classList.contains("active") === true;
+  const showingParts = driverVisible
+    ? driverMarketplaceMode === "parts_dealers"
+    : guestMarketplaceMode === "parts_dealers";
+  if (showingParts) {
+    if (driverVisible) setDriverMarketplaceMode("mechanics");
+    else setGuestMarketplaceMode("mechanics");
+  }
+  const target = document.getElementById(
+    driverVisible ? "service-category-list" : "guest-service-category-list"
+  );
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+document.querySelectorAll("[data-featured-service]").forEach((button) => {
+  button.addEventListener("click", () => {
+    openFeaturedService(button.getAttribute("data-featured-service"));
+  });
+});
+
+document.querySelector(".home-services-all")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  scrollToFullServiceCatalog();
+});
+
 document.getElementById("directory-filters")?.addEventListener("submit", (event) => {
   event.preventDefault();
   const serviceId = document.getElementById("directory-service")?.value || "";

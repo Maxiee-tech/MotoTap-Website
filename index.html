@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta name="mototap-build" content="brand-wordmark-2026-09-26" />
-  <title>MotoTap Autosystems</title>
+  <title>MotoTap Autosystems | Find a Mechanic Near You in Kenya</title>
   <meta name="application-name" content="MotoTap Autosystems" />
   <meta name="apple-mobile-web-app-title" content="MotoTap Autosystems" />
   <meta
     name="description"
-    content="MotoTap Autosystems — on-demand auto services, mobile mechanics, road assistance, and parts."
+    content="Search vetted garages, mobile mechanics and parts dealers across Kenya. Repairs, towing, tires, batteries and car detailing with MotoTap."
   />
   <link rel="canonical" href="https://mototap.co.ke/" />
 
@@ -40,15 +40,15 @@
     href="https://mototap.co.ke/apple-touch-icon.png?v=wordmark1"
   />
   <link rel="manifest" href="https://mototap.co.ke/site.webmanifest" />
-  <meta name="theme-color" content="#c8102e" />
+  <meta name="theme-color" content="#0a0a0c" />
 
   <!-- Open Graph / social previews -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MotoTap Autosystems" />
-  <meta property="og:title" content="MotoTap Autosystems" />
+  <meta property="og:title" content="MotoTap Autosystems | Find a Mechanic Near You in Kenya" />
   <meta
     property="og:description"
-    content="On-demand auto services, mobile mechanics, road assistance, and parts."
+    content="Search vetted garages, mobile mechanics and parts dealers across Kenya. Repairs, towing, tires, batteries and car detailing with MotoTap."
   />
   <meta property="og:url" content="https://mototap.co.ke/" />
   <meta property="og:image" content="https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1" />
@@ -57,10 +57,10 @@
   <meta property="og:image:height" content="512" />
   <meta property="og:image:alt" content="MotoTap Autosystems logo" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="MotoTap Autosystems" />
+  <meta name="twitter:title" content="MotoTap Autosystems | Find a Mechanic Near You in Kenya" />
   <meta
     name="twitter:description"
-    content="On-demand auto services, mobile mechanics, road assistance, and parts."
+    content="Search vetted garages, mobile mechanics and parts dealers across Kenya. Repairs, towing, tires, batteries and car detailing with MotoTap."
   />
   <meta name="twitter:image" content="https://mototap.co.ke/images/logo/brand-20260926-og-512.png?v=wordmark1" />
 
@@ -99,7 +99,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap"
     rel="stylesheet"
   />
   <link
@@ -114,17 +114,17 @@
     }
 
     :root {
-      --mt-red: #e11d2e;
-      --mt-ink: #111111;
-      --mt-muted: #6b7280;
-      --mt-screen: #f4f5f7;
+      --mt-red: #d4110f;
+      --mt-ink: #0d0f14;
+      --mt-muted: #4b5363;
+      --mt-screen: #f3f5f9;
       --nav-height: 56px;
       --nav-stack: 0px;
       --nav-pad-x: 12px;
       --content-pad-x: 16px;
       --content-max: 100%;
       --section-gap: 20px;
-      --header-offset: calc(var(--nav-height) + var(--nav-stack) + 12px);
+      --header-offset: var(--nav-height);
     }
 
     @media (min-width: 576px) {
@@ -163,8 +163,9 @@
     body {
       background: #050505;
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, sans-serif;
+      font-family: var(--font-sans, "Inter"), ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
@@ -410,32 +411,130 @@
       z-index: 100;
     }
 
-    .navbar-logo-btn {
-      width: auto;
-      flex: 0 0 auto;
-      border: none;
-      padding: 0;
+    button.navbar-brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      width: fit-content;
+      flex-shrink: 0;
       margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
       background: transparent;
       cursor: pointer;
-      line-height: 0;
+      text-align: left;
+      line-height: 1;
+      min-height: 0;
+      font-weight: inherit;
+    }
+
+    .navbar-logo-frame {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
       flex-shrink: 0;
-      font-family: inherit;
+      box-sizing: border-box;
+      height: 48px;
+      width: 5.25rem;
+      padding: 4px;
+      border-radius: 0.75rem;
+      background: #fff;
     }
 
     .navbar-logo-img {
-      width: clamp(120px, 28vw, 168px);
-      height: auto;
+      width: 100%;
+      height: 100%;
       max-width: none;
       border-radius: 0;
       object-fit: contain;
       display: block;
-      background: #fff;
-      transition: transform 0.2s ease;
+      background: transparent;
     }
 
-    .navbar-logo-btn:hover .navbar-logo-img {
-      transform: scale(1.05);
+    .navbar-brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .fixed-navbar .navbar-brand {
+      display: block;
+      flex: none;
+      font-family: var(--font-heading, "Poppins"), ui-sans-serif, system-ui, sans-serif;
+      font-weight: 800;
+      font-style: normal;
+      letter-spacing: -0.025em;
+      text-transform: none;
+      font-size: 1.125rem;
+      line-height: 1;
+      white-space: nowrap;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+
+    .navbar-brand-sub {
+      font-family: var(--font-heading, "Poppins"), ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      line-height: 1;
+      color: var(--primary, #d4110f);
+      margin: 0;
+    }
+
+    @media (min-width: 768px) {
+      button.navbar-brand-lockup {
+        gap: 16px;
+      }
+
+      .navbar-logo-frame {
+        height: 64px;
+        width: 9rem;
+        border-radius: 1.05rem;
+      }
+
+      .fixed-navbar .navbar-brand {
+        font-size: 1.5rem;
+      }
+
+      .navbar-brand-sub {
+        font-size: 0.875rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .navbar-logo-frame {
+        height: 56px;
+        width: 7rem;
+      }
+
+      .fixed-navbar .navbar-brand {
+        font-size: 1.25rem;
+      }
+
+      .navbar-brand-sub {
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .navbar-logo-frame {
+        height: 64px;
+        width: 9rem;
+      }
+
+      .fixed-navbar .navbar-brand {
+        font-size: 1.5rem;
+      }
+
+      .navbar-brand-sub {
+        font-size: 0.875rem;
+      }
     }
 
     .navbar-left {
@@ -447,28 +546,13 @@
       padding-left: 0;
     }
 
-    /* Logo + wordmark stay together; never stretch across the bar */
     .navbar-brand-lockup {
       display: inline-flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       width: fit-content;
       flex-shrink: 0;
       padding-left: 0;
-    }
-
-    .fixed-navbar .navbar-brand {
-      display: block;
-      flex: none;
-      font-weight: 900;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      font-size: clamp(1.3125rem, 5vw, 1.875rem);
-      line-height: 1;
-      white-space: nowrap;
-      margin: 0;
-      padding: 0;
-      color: #fff;
     }
 
     .navbar-center {
@@ -595,7 +679,7 @@
       padding: 0 5px;
       margin-left: 6px;
       border-radius: 999px;
-      background: #c00000;
+      background: #d4110f;
       color: #fff;
       font-size: 11px;
       font-weight: 700;
@@ -861,7 +945,7 @@
       align-items: center;
       justify-content: center;
       pointer-events: auto;
-      background: #0066cc !important;
+      background: #1565c0 !important;
       color: #fff !important;
       border: 1px solid #3399ff !important;
     }
@@ -1019,7 +1103,7 @@
 
     .job-review-comment:focus {
       outline: none;
-      border-color: rgba(0, 102, 204, 0.55);
+      border-color: rgba(21, 101, 192, 0.55);
     }
 
     .job-review-form-footer {
@@ -1113,22 +1197,22 @@
     }
 
     .landing-actions .btn-primary {
-      background: #0066cc;
+      background: #1565c0;
       border-color: transparent;
     }
 
     .landing-actions .btn-primary:hover:not(:disabled) {
-      background: #0052a3;
+      background: #0b2a5b;
     }
 
     .landing-actions .btn-secondary {
-      color: #0066cc;
-      border-color: #0066cc;
+      color: #1565c0;
+      border-color: #1565c0;
       background: transparent;
     }
 
     .landing-actions .btn-secondary:hover {
-      background: rgba(0, 102, 204, 0.08);
+      background: rgba(21, 101, 192, 0.08);
     }
 
     .hero-actions .btn-primary,
@@ -1267,7 +1351,7 @@
       font-size: 1.25rem;
       font-weight: 700;
       color: #fff;
-      background: linear-gradient(135deg, #c00000, #8b0000);
+      background: linear-gradient(135deg, #d4110f, #8b0000);
     }
 
     .job-card-driver-name {
@@ -1694,7 +1778,7 @@
         max(var(--content-pad-x, 16px), env(safe-area-inset-left, 0px));
       border-radius: 0;
       background:
-        linear-gradient(165deg, rgba(0, 102, 204, 0.38) 0%, rgba(0, 0, 0, 0.52) 100%),
+        linear-gradient(165deg, rgba(21, 101, 192, 0.38) 0%, rgba(0, 0, 0, 0.52) 100%),
         url("/images/welcome-bg/welcome-bg.jpg") center / cover no-repeat;
       background-color: #1a1a1a;
       box-shadow: none;
@@ -1815,7 +1899,7 @@
     }
 
     #signup-section .role-option:has(input:checked) label {
-      background: rgba(0, 102, 204, 0.35);
+      background: rgba(21, 101, 192, 0.35);
       border-color: rgba(255, 255, 255, 0.65);
     }
 
@@ -1825,10 +1909,10 @@
 
     #login-section .forgot-password-link,
     #login-section #forgot-password-link {
-      color: #c00000 !important;
-      -webkit-text-fill-color: #c00000;
+      color: #d4110f !important;
+      -webkit-text-fill-color: #d4110f;
       text-decoration: underline;
-      text-decoration-color: #c00000;
+      text-decoration-color: #d4110f;
       text-underline-offset: 3px;
     }
 
@@ -1900,7 +1984,7 @@
 
     .signup-step-dot.active,
     .signup-step-dot.completed {
-      background: var(--brand-blue, #0066cc);
+      background: var(--brand-blue, #1565c0);
       color: #fff;
       border-color: rgba(255, 255, 255, 0.8);
     }
@@ -2167,12 +2251,12 @@
 
     }
 
-    /* Phones & tablets: stack nav under brand so all tabs stay visible */
-    @media (max-width: 991px) {
+    /* Phones & tablets: one header row. The page links sit in the menu. */
+    @media (max-width: 1023px) {
       :root {
-        --nav-height: 56px;
-        --nav-stack: 112px;
-        --header-offset: calc(var(--nav-height) + var(--nav-stack) + 12px);
+        --nav-height: 76px;
+        --nav-stack: 0px;
+        --header-offset: var(--nav-height);
       }
 
       /* MENU sits top-right on the logo row — always visible, does not cover APK */
@@ -2182,50 +2266,16 @@
         left: auto;
       }
 
-      .fixed-navbar {
-        flex-wrap: wrap;
-        row-gap: 8px;
-        padding-bottom: 10px;
-        align-items: center;
-      }
-
-      .navbar-left {
-        flex: 1 1 100%;
-        width: 100%;
-        min-height: 0;
-        padding-left: 0;
-        padding-top: 4px;
-        padding-right: 0;
-      }
-
       .navbar-brand-lockup {
-        margin-top: 2px;
-        gap: 14px;
+        margin-top: 0;
+        gap: 12px;
         padding-left: 0;
       }
+    }
 
-      .navbar-center {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: 100%;
-        margin-left: 0;
-        justify-content: stretch;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding-bottom: 2px;
-      }
-
-      .navbar-center > .nav-dropdown {
-        flex: 1 1 calc(50% - 3px);
-        min-width: calc(50% - 3px);
-      }
-
-      .navbar-center .nav-menu-btn {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 9px 8px;
-        font-size: 0.6875rem;
-        min-height: 38px;
+    @media (min-width: 768px) and (max-width: 1023px) {
+      :root {
+        --nav-height: 88px;
       }
     }
 
@@ -2248,14 +2298,6 @@
     }
 
     @media (max-width: 380px) {
-      .navbar-brand-lockup {
-        gap: 5px;
-      }
-
-      .fixed-navbar .navbar-brand {
-        font-size: 1.25rem;
-      }
-
       .navbar-center .nav-menu-btn {
         font-size: 0.65rem;
         padding: 8px 6px;
@@ -2263,14 +2305,6 @@
     }
 
     @media (max-width: 340px) {
-      .navbar-brand-lockup {
-        gap: 12px;
-      }
-
-      .fixed-navbar .navbar-brand {
-        font-size: 1.125rem;
-      }
-
       .navbar-center {
         gap: 4px;
       }
@@ -2437,7 +2471,6 @@
       transition: all 0.2s;
     }
 
-    .fixed-navbar .navbar-logo-btn,
     .fixed-navbar .navbar-center .nav-menu-btn,
     .home-menu-btn {
       width: auto;
@@ -2447,21 +2480,23 @@
       margin-bottom: 0;
     }
 
-    .fixed-navbar .navbar-logo-btn {
-      width: auto;
+    .fixed-navbar button.navbar-brand-lockup {
+      width: fit-content;
       height: auto;
       min-width: 0;
+      min-height: 0;
       padding: 0;
       border: none;
       border-radius: 0;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       overflow: visible;
+      background: transparent;
     }
 
     @media (max-width: 575px) {
-      .fixed-navbar .navbar-logo-btn {
+      .fixed-navbar button.navbar-brand-lockup {
         min-height: 0;
       }
       button:not(.navbar-center .nav-menu-btn):not(.nav-dropdown-panel button) {
@@ -2474,13 +2509,39 @@
     }
 
     .btn-primary {
-      background: var(--mt-red, #e11d2e);
-      color: white;
+      background: var(--primary, #d4110f);
+      color: var(--primary-foreground, #fff);
+      border: 1px solid transparent;
+      border-radius: var(--radius-lg, 0.75rem);
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
       margin-bottom: 12px;
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #c8102e;
+      background: color-mix(in srgb, var(--primary, #d4110f) 80%, transparent);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--secondary, #e9edf3);
+      color: var(--secondary-foreground, #0d0f14);
+      border: 1px solid transparent;
+      border-radius: var(--radius-lg, 0.75rem);
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .btn-secondary:hover {
+      background: color-mix(in srgb, var(--secondary, #e9edf3) 80%, transparent);
     }
 
     .directory-hero {
@@ -2606,9 +2667,9 @@
     }
 
     .directory-card-actions .is-primary {
-      background: var(--mt-red, #e11d2e);
+      background: var(--mt-red, #d4110f);
       color: #fff;
-      border-color: var(--mt-red, #e11d2e);
+      border-color: var(--mt-red, #d4110f);
     }
 
     @media (min-width: 700px) {
@@ -2619,18 +2680,8 @@
     }
 
     .btn-primary:disabled {
-      background: #666;
+      opacity: 0.5;
       cursor: not-allowed;
-    }
-
-    .btn-secondary {
-      background: transparent;
-      color: #0066cc;
-      border: 1px solid #0066cc;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(0, 102, 204, 0.1);
     }
 
     .error-message {
@@ -2656,13 +2707,13 @@
       padding: 0;
       border: none;
       background: none;
-      color: #c00000;
+      color: #d4110f;
       font-size: 13px;
       font-weight: 600;
       text-align: right;
       cursor: pointer;
       text-decoration: underline;
-      text-decoration-color: #c00000;
+      text-decoration-color: #d4110f;
       text-underline-offset: 3px;
     }
 
@@ -2767,7 +2818,7 @@
       padding: 14px 18px;
       border: 2px solid #ffcc00;
       border-radius: 12px;
-      background: #c00000;
+      background: #d4110f;
       color: #fff;
       font-size: clamp(0.85rem, 2.5vw, 1rem);
       font-weight: 800;
@@ -2791,14 +2842,14 @@
     @keyframes garage-job-alert-flash {
       0%,
       100% {
-        background: #c00000;
+        background: #d4110f;
         border-color: #ffcc00;
         color: #fff;
         box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.55);
       }
       50% {
         background: #ffcc00;
-        border-color: #c00000;
+        border-color: #d4110f;
         color: #111;
         box-shadow: 0 0 22px 4px rgba(255, 204, 0, 0.75);
       }
@@ -3047,7 +3098,7 @@
       letter-spacing: 0.04em;
       text-transform: uppercase;
       background: #eaf3ff;
-      color: #0066cc;
+      color: #1565c0;
     }
 
     .garage-team-meta,
@@ -3089,7 +3140,7 @@
     .garage-invite-code {
       font-size: 1.25rem;
       letter-spacing: 0.12em;
-      color: #0066cc;
+      color: #1565c0;
     }
 
     .garage-invite-actions {
@@ -3136,7 +3187,7 @@
     }
 
     .garage-vehicle-type-option:has(input:checked) {
-      border-color: #0066cc;
+      border-color: #1565c0;
       background: #f4f9ff;
     }
 
@@ -3188,8 +3239,8 @@
       margin: 0;
       padding: 12px 14px;
       border-radius: 10px;
-      border: 1px solid #0066cc;
-      background: #0066cc;
+      border: 1px solid #1565c0;
+      background: #1565c0;
       color: #fff;
       font-size: 0.8125rem;
       font-weight: 800;
@@ -3310,7 +3361,7 @@
       padding: 18px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 4px 18px rgba(0, 102, 204, 0.28);
+      box-shadow: 0 4px 18px rgba(21, 101, 192, 0.28);
       transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
       display: flex;
       flex-direction: column;
@@ -3333,7 +3384,7 @@
       transform: translateY(-4px);
       background: rgba(255, 68, 68, 0.08);
       border-color: rgba(255, 68, 68, 0.22);
-      box-shadow: 0 12px 36px rgba(0, 102, 204, 0.38);
+      box-shadow: 0 12px 36px rgba(21, 101, 192, 0.38);
     }
 
     .service-category-card[data-category-id="road-assistance"] {
@@ -3919,7 +3970,7 @@
     }
 
     .service-tag.selected {
-      background: #0066cc;
+      background: #1565c0;
       border-color: #3399ff;
     }
 
@@ -4216,7 +4267,7 @@
       flex-shrink: 0;
       margin: 0;
       padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
-      background: #0066cc;
+      background: #1565c0;
       box-shadow: none;
     }
 
@@ -4298,7 +4349,7 @@
       padding: 0;
       border: 0;
       background: none;
-      color: #c00000;
+      color: #d4110f;
       font-size: 0.9375rem;
       font-weight: 700;
       text-decoration: underline;
@@ -4340,7 +4391,7 @@
     }
 
     .nearby-sort-chip.is-selected {
-      background: #c00000;
+      background: #d4110f;
       color: #fff;
     }
 
@@ -4463,7 +4514,7 @@
       padding: 10px 22px;
       border: 0;
       border-radius: 16px;
-      background: #c00000;
+      background: #d4110f;
       color: #fff;
       font-weight: 800;
       cursor: pointer;
@@ -4671,7 +4722,7 @@
     }
 
     .mechanic-map-float-panel .mechanic-panel-distance.is-retry {
-      color: #0066cc;
+      color: #1565c0;
       cursor: pointer;
       text-decoration: underline;
     }
@@ -4692,7 +4743,7 @@
     }
 
     .mechanic-map-float-panel .mechanic-panel-hours.is-closed {
-      color: #c00000;
+      color: #d4110f;
       font-weight: 600;
     }
 
@@ -4822,12 +4873,12 @@
     }
 
     .mechanic-panel-team-btn.is-selected {
-      border-color: #0066cc;
+      border-color: #1565c0;
       background: #eaf3ff;
     }
 
     .mechanic-panel-team-price {
-      color: #0066cc;
+      color: #1565c0;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -5227,17 +5278,17 @@
       max-width: 100vw;
       margin-left: calc(50% - 50vw);
       margin-right: calc(50% - 50vw);
-      padding: 28px max(var(--content-pad-x), env(safe-area-inset-left, 0px))
-        max(28px, env(safe-area-inset-bottom, 0px));
+      padding: 0;
       box-sizing: border-box;
       scroll-margin-top: var(--header-offset);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.02);
+      border-top: 4px solid #d4110f;
+      background: #0a0a0c;
       border-radius: 0;
       box-shadow: none;
       overflow: visible;
       flex-shrink: 0;
       order: 10;
+      color: #fff;
     }
 
     #landing-section.active .page-footer,
@@ -5363,7 +5414,7 @@
     }
 
     .signup-legal a {
-      color: #c00000;
+      color: #d4110f;
     }
 
     .page-footer-copyright {
@@ -5412,8 +5463,8 @@
 
     /* Navbar brand — inline so it applies even if external CSS fails to load */
     .fixed-navbar {
-      background: #000000 !important;
-      border-bottom: 2px solid #c00000 !important;
+      background: #0a0a0c !important;
+      border-bottom: 4px solid #d4110f !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
@@ -5447,7 +5498,7 @@
       width: 100px;
       height: 100px;
       border-radius: 50%;
-      background: rgba(192, 0, 0, 0.12);
+      background: rgba(212, 17, 15, 0.12);
       display: grid;
       place-items: center;
       overflow: hidden;
@@ -5477,7 +5528,7 @@
       padding: 10px 12px;
       gap: 10px;
       min-width: 0;
-      box-shadow: 0 2px 12px rgba(0, 102, 204, 0.14) !important;
+      box-shadow: 0 2px 12px rgba(21, 101, 192, 0.14) !important;
     }
 
     .profile-hero-info .profile-info-icon {
@@ -5504,7 +5555,7 @@
     .profile-hero-name {
       margin: 10px 0 0;
       font-size: 1rem;
-      font-weight: 900;
+      font-weight: 800;
       color: #000000 !important;
       -webkit-text-fill-color: #000000 !important;
       line-height: 1.3;
@@ -5521,7 +5572,7 @@
 
     .profile-hero-points {
       margin: 0;
-      color: #c00000;
+      color: #d4110f;
       font-weight: 800;
       font-size: 0.9375rem;
     }
@@ -5604,94 +5655,105 @@
       line-height: 1.35;
     }
   </style>
-  <link rel="stylesheet" href="/css/mototap-ui.css?v=20261111hover3" />
+  <link rel="stylesheet" href="/css/mototap-ui.css?v=20261113hero2" />
 </head>
 <body class="mt-brand welcome-active">
   <template id="page-footer-template">
     <footer class="page-footer" aria-label="Contact and social links">
-      <p class="page-footer-slogan">TAP IT <span>•</span> FIX IT <span>•</span> GO WITH CONFIDENCE</p>
-      <p class="page-footer-heading">Connect with us</p>
-      <div class="page-footer-social">
-        <a
-          class="page-footer-social-link"
-          href="https://wa.me/+254758677968"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="WhatsApp +254 758 677968"
-          title="WhatsApp +254 758 677968"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        </a>
-        <a
-          class="page-footer-social-link"
-          href="https://wa.me/+254101452886"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="WhatsApp +254 101 452886"
-          title="WhatsApp +254 101 452886"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        </a>
-        <a class="page-footer-social-link is-placeholder" href="#" aria-label="Facebook (link coming soon)" title="Facebook — link coming soon">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-        </a>
-        <a
-          class="page-footer-social-link"
-          href="https://www.instagram.com/mototap_autosystems"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Instagram @mototap_autosystems"
-          title="Instagram @mototap_autosystems"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-        </a>
-        <a
-          class="page-footer-social-link"
-          href="https://x.com/mototap01"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="X @mototap01"
-          title="X @mototap01"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        </a>
-        <a
-          class="page-footer-social-link"
-          href="https://www.threads.net/@mototap_autosystems"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Threads @mototap_autosystems"
-          title="Threads @mototap_autosystems"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.598.024 12.179 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.471 5.345l-2.028.812c-.498-1.634-1.372-2.963-2.658-3.963-1.365-1.057-3.11-1.608-5.194-1.624-2.96.022-5.233.939-6.756 2.768-1.472 1.763-2.162 4.365-2.189 7.533.027 3.17.717 5.772 2.189 7.534 1.523 1.83 3.796 2.746 6.756 2.768 2.084-.016 3.829-.567 5.194-1.624 1.286-1 2.16-2.329 2.658-3.963l2.028.812c-.613 2.215-1.794 4.055-3.471 5.345-1.783 1.373-4.08 2.078-6.826 2.098zM16.75 11.46c-.97-.55-2.07-.93-3.28-1.14a19.86 19.86 0 0 0-3.47-.3c-2.4 0-4.33.61-5.74 1.81-1.29 1.11-2.01 2.67-2.14 4.64-.06.78-.09 1.58-.09 2.39 0 .98.04 1.9.12 2.75.18 2.02 1.13 3.65 2.82 4.85 1.56 1.11 3.73 1.67 6.47 1.67 1.46 0 2.74-.2 3.82-.6v-2.46a5.24 5.24 0 0 1-3.42 1.14c-1.38 0-2.45-.38-3.18-1.13-.7-.72-1.09-1.74-1.16-3.02h8.69c.07-1.31.11-2.57.11-3.77 0-2.49-.52-4.46-1.56-5.89Z"/></svg>
-        </a>
-      </div>
-      <div class="page-footer-contact">
-        <a href="mailto:support@mototap.co.ke">
-          <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">mail</span>
-          <span>support@mototap.co.ke</span>
-        </a>
-        <a href="mailto:themechlabcompany@gmail.com">
-          <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">mail</span>
-          <span>themechlabcompany@gmail.com</span>
-        </a>
-        <div class="page-footer-phones">
-          <a href="tel:+254758677968">
-            <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">call</span>
-            <span>0758677968</span>
-          </a>
-          <a href="tel:+254101452886">
-            <span class="material-symbols-outlined page-footer-contact-icon" aria-hidden="true">call</span>
-            <span>0101452886</span>
-          </a>
+      <div class="page-footer-inner">
+        <div class="page-footer-grid">
+          <div class="page-footer-brand">
+            <a class="navbar-brand-lockup page-footer-logo" href="/">
+              <span class="navbar-logo-frame">
+                <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="" width="1572" height="666" />
+              </span>
+              <span class="navbar-brand-text">
+                <span class="navbar-brand">MOTO TAP</span>
+                <span class="navbar-brand-sub">AUTOSYSTEMS</span>
+              </span>
+            </a>
+            <p class="page-footer-tagline">Kenya's Most Trusted Automotive Services Platform.</p>
+            <ul class="page-footer-reach">
+              <li><a href="tel:+254758677968">0758677968</a></li>
+              <li><a href="tel:+254101452886">0101452886</a></li>
+              <li><a href="mailto:support@mototap.co.ke">support@mototap.co.ke</a></li>
+              <li><a href="mailto:themechlabcompany@gmail.com">themechlabcompany@gmail.com</a></li>
+            </ul>
+          </div>
+          <div class="page-footer-linkcols">
+            <div>
+              <h2>Quick Links</h2>
+              <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/#services">Services</a></li>
+                <li><a href="/about">About Us</a></li>
+                <li><a href="/contacts">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h2>Our Services</h2>
+              <ul>
+                <li><a href="/services/garage-services?need=Engine%20overhaul">Repairs</a></li>
+                <li><a href="/services/towing-services?need=Flatbed%20towing">Towing</a></li>
+                <li><a href="/services/emergency-battery-services?need=General%20Request">Battery</a></li>
+                <li><a href="/services/tire-wheel-services?need=Alignment">Tires</a></li>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <h2>Stay Connected</h2>
+            <ul class="page-footer-social">
+              <li>
+                <a class="page-footer-social-link is-placeholder" href="#" aria-label="Facebook (link coming soon)" title="Facebook — link coming soon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="page-footer-social-link" href="https://x.com/mototap01" target="_blank" rel="noopener noreferrer" aria-label="X @mototap01">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="page-footer-social-link is-placeholder" href="#" aria-label="YouTube (link coming soon)" title="YouTube — link coming soon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="page-footer-social-link" href="https://www.instagram.com/mototap_autosystems" target="_blank" rel="noopener noreferrer" aria-label="Instagram @mototap_autosystems">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                </a>
+              </li>
+              <li>
+                <a class="page-footer-social-link is-placeholder" href="#" aria-label="TikTok (link coming soon)" title="TikTok — link coming soon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h2>Subscribe for updates</h2>
+            <form class="page-footer-subscribe">
+              <div class="page-footer-subscribe-row">
+                <label class="visually-hidden" for="footer-email">Email address</label>
+                <input id="footer-email" name="email" type="email" required placeholder="Your email address" autocomplete="email" />
+                <button type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  <span class="visually-hidden">Subscribe</span>
+                </button>
+              </div>
+              <p class="page-footer-subscribe-note" aria-live="polite"></p>
+            </form>
+          </div>
+        </div>
+        <div class="page-footer-bar">
+          <p>© 2026 MotoTap Autosystems Limited. All rights reserved.</p>
+          <div class="page-footer-legal">
+            <a href="/privacy-policy">Privacy Policy</a>
+            <span aria-hidden="true">|</span>
+            <a href="/terms">Terms of Service</a>
+          </div>
         </div>
       </div>
-      <nav class="page-footer-legal" aria-label="Legal">
-        <a href="/privacy-policy">Privacy Policy</a>
-        <a href="/terms">Terms</a>
-        <a href="/delete-account">Delete account</a>
-      </nav>
-      <p class="page-footer-copyright">Copyright © 2026 MotoTap Autosystems. All rights reserved.</p>
     </footer>
   </template>
 
@@ -5731,62 +5793,117 @@
 
   <!-- Fixed top navbar (app pages — not shown on welcome) -->
   <nav class="fixed-navbar" id="main-navbar" hidden>
-    <div class="navbar-left">
-      <div class="navbar-brand-lockup">
-        <button type="button" class="navbar-logo-btn" id="menu-toggle" aria-label="Open menu">
-          <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="MotoTap" width="168" height="62" />
+    <div class="site-header-inner">
+      <div class="navbar-left">
+        <button type="button" class="navbar-brand-lockup" id="menu-toggle" aria-label="MotoTap Autosystems, open menu">
+          <span class="navbar-logo-frame">
+            <img class="navbar-logo-img" src="/images/logo/mototap-logo.png" alt="" width="1572" height="666" />
+          </span>
+          <span class="navbar-brand-text">
+            <span class="navbar-brand">MOTO TAP</span>
+            <span class="navbar-brand-sub">AUTOSYSTEMS</span>
+          </span>
         </button>
-        <div class="navbar-brand-text">
-          <div class="navbar-brand">MOTO TAP</div>
-          <div class="navbar-brand-sub">AUTOSYSTEMS</div>
-        </div>
       </div>
-    </div>
-    <div class="navbar-center">
-      <div class="nav-dropdown" id="nav-account-menu">
-        <button type="button" class="nav-menu-btn" id="nav-account-btn" aria-haspopup="true" aria-expanded="false">
-          <span class="material-symbols-outlined" aria-hidden="true">person</span>
-          Account
-          <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
-        </button>
-        <div class="nav-dropdown-panel" role="menu">
-          <button type="button" id="nav-requests-2" role="menuitem">
-            <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
-            Requests
+
+      <nav class="site-nav" aria-label="Main">
+        <ul class="site-nav-list">
+          <li><a class="site-nav-link is-current" href="/" data-nav-home aria-current="page">Home</a></li>
+          <li class="nav-dropdown" id="nav-services-menu">
+            <button type="button" class="nav-menu-btn site-nav-link" id="nav-services-btn" aria-expanded="false" aria-controls="services-menu">
+              Services
+              <svg class="site-nav-chevron nav-menu-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul class="nav-dropdown-panel site-services-panel" id="services-menu" role="menu">
+              <li><a role="menuitem" href="/services/garage-services?need=Engine%20overhaul">Repairs &amp; Diagnostics</a></li>
+              <li><a role="menuitem" href="/services/towing-services?need=Flatbed%20towing">Towing Services</a></li>
+              <li><a role="menuitem" href="/services/tire-wheel-services?need=Alignment">Tires &amp; Battery</a></li>
+              <li><a role="menuitem" href="/services/car-wash-services?need=Exterior%20wash">Car Wash &amp; Detailing</a></li>
+              <li><a role="menuitem" href="/services/vehicle-electronics-security?mode=parts&amp;need=Transponder%20chip">Vehicle Electronics &amp; Security</a></li>
+            </ul>
+          </li>
+          <li><a class="site-nav-link" href="/#services" data-nav-market="mechanics">Garage &amp; Mechanics</a></li>
+          <li><a class="site-nav-link" href="/#services" data-nav-market="parts_dealers">Parts Dealers</a></li>
+          <li><a class="site-nav-link" href="/about">About Us</a></li>
+          <li><a class="site-nav-link" href="/contacts">Contact</a></li>
+        </ul>
+      </nav>
+
+      <button type="button" class="site-header-toggle" id="site-header-toggle" aria-expanded="false" aria-controls="mobile-menu">
+        <svg class="site-header-icon-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+        <svg class="site-header-icon-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <span class="visually-hidden">Open menu</span>
+      </button>
+
+      <nav class="site-mobile-nav" id="mobile-menu" aria-label="Mobile" hidden>
+        <ul class="site-mobile-list">
+          <li><a class="site-mobile-link is-current" href="/" data-nav-home aria-current="page">Home</a></li>
+          <li>
+            <button type="button" class="site-mobile-link site-mobile-services-btn" id="mobile-services-btn" aria-expanded="false" aria-controls="mobile-services">
+              Services
+              <svg class="site-nav-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul id="mobile-services" hidden>
+              <li><a href="/services/garage-services?need=Engine%20overhaul">Repairs &amp; Diagnostics</a></li>
+              <li><a href="/services/towing-services?need=Flatbed%20towing">Towing Services</a></li>
+              <li><a href="/services/tire-wheel-services?need=Alignment">Tires &amp; Battery</a></li>
+              <li><a href="/services/car-wash-services?need=Exterior%20wash">Car Wash &amp; Detailing</a></li>
+              <li><a href="/services/vehicle-electronics-security?mode=parts&amp;need=Transponder%20chip">Vehicle Electronics &amp; Security</a></li>
+            </ul>
+          </li>
+          <li><a class="site-mobile-link" href="/#services" data-nav-market="mechanics">Garage &amp; Mechanics</a></li>
+          <li><a class="site-mobile-link" href="/#services" data-nav-market="parts_dealers">Parts Dealers</a></li>
+          <li><a class="site-mobile-link" href="/about">About Us</a></li>
+          <li><a class="site-mobile-link" href="/contacts">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="navbar-center site-header-actions">
+        <div class="nav-dropdown" id="nav-account-menu">
+          <button type="button" class="nav-menu-btn" id="nav-account-btn" aria-haspopup="true" aria-expanded="false" aria-label="Account">
+            <span class="material-symbols-outlined" aria-hidden="true">person</span>
+            <span class="nav-menu-label">Account</span>
+            <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
           </button>
-          <button type="button" id="nav-messages-2" role="menuitem">
-            <span class="material-symbols-outlined" aria-hidden="true">chat</span>
-            Messages
-          </button>
-          <button type="button" id="nav-signup-2" role="menuitem">
-            <span class="material-symbols-outlined" data-nav-auth-icon aria-hidden="true">login</span>
-            <span class="nav-item-label">Sign In</span>
-          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <button type="button" id="nav-requests-2" role="menuitem">
+              <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
+              Requests
+            </button>
+            <button type="button" id="nav-messages-2" role="menuitem">
+              <span class="material-symbols-outlined" aria-hidden="true">chat</span>
+              Messages
+            </button>
+            <button type="button" id="nav-signup-2" role="menuitem">
+              <span class="material-symbols-outlined" data-nav-auth-icon aria-hidden="true">login</span>
+              <span class="nav-item-label">Sign In</span>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="nav-dropdown" id="nav-help-menu">
-        <button type="button" class="nav-menu-btn" id="nav-help-btn" aria-haspopup="true" aria-expanded="false">
-          <span class="material-symbols-outlined" aria-hidden="true">help</span>
-          Help
-          <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
-        </button>
-        <div class="nav-dropdown-panel" role="menu">
-          <a id="nav-help-call" role="menuitem" href="tel:+254758677968">
-            <span class="material-symbols-outlined" aria-hidden="true">call</span>
-            Call
-          </a>
-          <a
-            id="nav-help-whatsapp"
-            role="menuitem"
-            href="https://wa.me/+254758677968?text=Hello%20MotoTap%2C%20I%20need%20help"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <svg class="nav-item-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M20.5 3.5A11 11 0 0 0 2.1 17.2L1 23l6-1.6A11 11 0 0 0 12 23a11 11 0 0 0 8.5-19.5zM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.5.9.9-3.4-.2-.3A9 9 0 1 1 12 21zm5-6.7c-.3-.1-1.6-.8-1.8-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.4.1-.6l.4-.5.2-.3a.5.5 0 0 0 0-.5c0-.1-.6-1.4-.8-1.9s-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.8 11.8 0 0 0 4.5 4 15 15 0 0 0 1.5.6 3.6 3.6 0 0 0 1.7.1 2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3z"/>
-            </svg>
-            WhatsApp
-          </a>
+        <div class="nav-dropdown" id="nav-help-menu">
+          <button type="button" class="nav-menu-btn" id="nav-help-btn" aria-haspopup="true" aria-expanded="false" aria-label="Help">
+            <span class="material-symbols-outlined" aria-hidden="true">help</span>
+            <span class="nav-menu-label">Help</span>
+            <span class="material-symbols-outlined nav-menu-caret" aria-hidden="true">expand_more</span>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <a id="nav-help-call" role="menuitem" href="tel:+254758677968">
+              <span class="material-symbols-outlined" aria-hidden="true">call</span>
+              Call
+            </a>
+            <a
+              id="nav-help-whatsapp"
+              role="menuitem"
+              href="https://wa.me/+254758677968?text=Hello%20MotoTap%2C%20I%20need%20help"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg class="nav-item-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M20.5 3.5A11 11 0 0 0 2.1 17.2L1 23l6-1.6A11 11 0 0 0 12 23a11 11 0 0 0 8.5-19.5zM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.5.9.9-3.4-.2-.3A9 9 0 1 1 12 21zm5-6.7c-.3-.1-1.6-.8-1.8-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.4.1-.6l.4-.5.2-.3a.5.5 0 0 0 0-.5c0-.1-.6-1.4-.8-1.9s-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.8 11.8 0 0 0 4.5 4 15 15 0 0 0 1.5.6 3.6 3.6 0 0 0 1.7.1 2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3z"/>
+              </svg>
+              WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -5844,10 +5961,17 @@
 
     <!-- HOME: service catalog (guests) & new request flow (signed-in drivers) -->
     <div id="landing-section" class="form-section">
-      <section class="directory-hero" id="directory-hero">
-        <h1>Find a mechanic near you</h1>
-        <p>Search vetted garages, mobile mechanics, and parts dealers across Kenya. No account needed to call.</p>
-        <form class="directory-filters" id="directory-filters">
+      <section class="home-hero" aria-labelledby="hero-title">
+        <div class="home-hero-media">
+          <div class="home-hero-shade" aria-hidden="true"></div>
+          <div class="home-hero-copy">
+            <h1 id="hero-title">Find a Mechanic Near You in <span>Kenya</span></h1>
+            <p>Search vetted garages, mobile mechanics and parts dealers across Kenya.</p>
+          </div>
+        </div>
+        <div class="home-hero-search">
+          <section class="directory-hero" id="directory-hero">
+            <form class="directory-filters" id="directory-filters">
           <label>
             What do you need?
             <select id="directory-service" name="service"></select>
@@ -5864,8 +5988,148 @@
           </label>
           <button type="submit" class="btn-primary">Show results</button>
         </form>
+          </section>
+        </div>
       </section>
       <div class="directory-results" id="directory-results" aria-live="polite"></div>
+
+      <section class="home-services" id="services" aria-labelledby="services-title">
+        <div class="home-services-head">
+          <div class="home-services-heading">
+            <h2 id="services-title">Our Services</h2>
+            <p>Tap any service to find nearby experts who offer it.</p>
+          </div>
+          <button type="button" class="home-services-all">
+            <span>View All<span class="home-services-all-extra"> Services</span></span>
+            <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <ul class="home-services-grid">
+          <li class="home-service-card">
+            <div class="home-service-photo home-service-photo--repairs" role="img" aria-label="Mechanic working on a car engine"></div>
+            <div class="home-service-shade" aria-hidden="true"></div>
+            <div class="home-service-body">
+              <span class="home-service-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              </span>
+              <h3>Repairs &amp; Diagnostics</h3>
+              <p>Get expert auto repairs</p>
+              <button type="button" class="home-service-cta" data-featured-service="garage-services">
+                Find Experts
+                <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span class="visually-hidden">for Repairs &amp; Diagnostics</span>
+              </button>
+            </div>
+          </li>
+          <li class="home-service-card">
+            <div class="home-service-photo home-service-photo--towing" role="img" aria-label="Tow truck carrying an SUV"></div>
+            <div class="home-service-shade" aria-hidden="true"></div>
+            <div class="home-service-body">
+              <span class="home-service-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+              </span>
+              <h3>Towing Services</h3>
+              <p>24/7 towing assistance</p>
+              <button type="button" class="home-service-cta" data-featured-service="towing-services">
+                Get Help
+                <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span class="visually-hidden">for Towing Services</span>
+              </button>
+            </div>
+          </li>
+          <li class="home-service-card">
+            <div class="home-service-photo home-service-photo--tires" role="img" aria-label="Row of new car tires"></div>
+            <div class="home-service-shade" aria-hidden="true"></div>
+            <div class="home-service-body">
+              <span class="home-service-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></svg>
+              </span>
+              <h3>Tires &amp; Battery</h3>
+              <p>Quality tires &amp; batteries</p>
+              <button type="button" class="home-service-cta" data-featured-service="tire-wheel-services">
+                Shop Now
+                <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span class="visually-hidden">for Tires &amp; Battery</span>
+              </button>
+            </div>
+          </li>
+          <li class="home-service-card">
+            <div class="home-service-photo home-service-photo--wash" role="img" aria-label="Car being pressure washed"></div>
+            <div class="home-service-shade" aria-hidden="true"></div>
+            <div class="home-service-body">
+              <span class="home-service-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+              </span>
+              <h3>Car Wash &amp; Detailing</h3>
+              <p>Keep your car shining</p>
+              <button type="button" class="home-service-cta" data-featured-service="car-wash-services">
+                Book Now
+                <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span class="visually-hidden">for Car Wash &amp; Detailing</span>
+              </button>
+            </div>
+          </li>
+        </ul>
+
+        <ul class="home-services-list">
+          <li>
+            <button type="button" class="home-service-row" data-featured-service="garage-services">
+              <span class="home-service-thumb home-service-photo--repairs" role="img" aria-label="Mechanic working on a car engine"></span>
+              <span class="home-service-row-copy">
+                <span class="home-service-row-title">Repairs &amp; Diagnostics</span>
+                <span class="home-service-row-cta">
+                  Find Experts
+                  <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </span>
+              </span>
+              <svg class="home-service-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="home-service-row" data-featured-service="towing-services">
+              <span class="home-service-thumb home-service-photo--towing" role="img" aria-label="Tow truck carrying an SUV"></span>
+              <span class="home-service-row-copy">
+                <span class="home-service-row-title">Towing Services</span>
+                <span class="home-service-row-cta">
+                  Get Help
+                  <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </span>
+              </span>
+              <svg class="home-service-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="home-service-row" data-featured-service="tire-wheel-services">
+              <span class="home-service-thumb home-service-photo--tires" role="img" aria-label="Row of new car tires"></span>
+              <span class="home-service-row-copy">
+                <span class="home-service-row-title">Tires &amp; Battery</span>
+                <span class="home-service-row-cta">
+                  Shop Now
+                  <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </span>
+              </span>
+              <svg class="home-service-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="home-service-row" data-featured-service="car-wash-services">
+              <span class="home-service-thumb home-service-photo--wash" role="img" aria-label="Car being pressure washed"></span>
+              <span class="home-service-row-copy">
+                <span class="home-service-row-title">Car Wash &amp; Detailing</span>
+                <span class="home-service-row-cta">
+                  Book Now
+                  <svg class="home-service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </span>
+              </span>
+              <svg class="home-service-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </li>
+        </ul>
+      </section>
 
       <div id="landing-guest-view">
         <div class="driver-marketplace-toggle" id="guest-marketplace-toggle" role="tablist" aria-label="Browse mechanics or parts dealers">
@@ -5912,6 +6176,74 @@
           <div class="service-category-list" id="parts-category-list"></div>
         </div>
       </div>
+
+      <section class="home-features" id="home-features" aria-label="Why MotoTap">
+        <ul class="home-features-list">
+          <li>
+            <svg class="home-feature-icon home-feature-icon--shield" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <span class="home-feature-copy">
+              Verified<span class="home-feature-mobile"> Experts</span>
+              <span class="home-feature-desktop">Garages &amp; Mechanics</span>
+            </span>
+          </li>
+          <li>
+            <svg class="home-feature-icon home-feature-icon--zap" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span class="home-feature-copy">
+              Fast<span class="home-feature-mobile"> Service</span>
+              <span class="home-feature-desktop">&amp; Reliable Services</span>
+            </span>
+          </li>
+          <li>
+            <svg class="home-feature-icon home-feature-icon--pin" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="home-feature-copy">
+              Nearby Locations
+              <span class="home-feature-desktop">Across Kenya</span>
+            </span>
+          </li>
+          <li class="home-feature-desktop-only">
+            <svg class="home-feature-icon home-feature-icon--support" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+            <span class="home-feature-copy">
+              24/7 Customer
+              <span class="home-feature-desktop">Support</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="home-trust" id="about" aria-labelledby="trust-title">
+        <div class="home-trust-card">
+          <div class="home-trust-photo" aria-hidden="true"></div>
+          <div class="home-trust-shade" aria-hidden="true"></div>
+          <div class="home-trust-row">
+            <svg class="home-trust-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m11 17 2 2a1 1 0 1 0 3-3"/>
+              <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/>
+              <path d="m21 3 1 11h-2"/>
+              <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/>
+              <path d="M3 4h8"/>
+            </svg>
+            <div class="home-trust-copy">
+              <h2 id="trust-title">Trusted by Thousands<span class="home-trust-extra"> of Kenyan Drivers</span></h2>
+              <p>Keep your vehicle in top shape<span class="home-trust-extra"> with MotoTap</span>.</p>
+            </div>
+            <a class="home-trust-cta" href="#directory-hero">
+              Get Started
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
 
       <div class="app-download-banner" id="android-apk-download">
         <div class="app-download-qr-col">
