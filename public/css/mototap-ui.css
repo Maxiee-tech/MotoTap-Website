@@ -814,7 +814,7 @@ body.mt-brand .home-hero-media {
   margin-right: calc(50% - 50vw);
   background-color: var(--ink);
   background-image:
-    url("/images/hero-mazda-red.png?v=20261113b"),
+    url("/images/hero-mazda-red.png?v=20261126"),
     url("/images/services/car-customization-upgrades.jpg");
   background-repeat: no-repeat;
   background-size: cover;
@@ -1370,7 +1370,7 @@ body.mt-brand .home-trust-shade {
 }
 
 body.mt-brand .home-trust-photo {
-  background-image: url("/images/nairobi-skyline.png");
+  background-image: url("/images/nairobi-skyline.png?v=20261126");
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center bottom;
